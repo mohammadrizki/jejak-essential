@@ -4,7 +4,7 @@
 # Profesi Dokter (pspd) — bukan hierarki Faculty/University.
 # Kode & jenjang membuat instrumen asesmen (Fase 25) bisa dibedakan per jenjang.
 class StudyProgram < ApplicationRecord
-  LEVELS = { "sarjana" => "Sarjana", "profesi" => "Profesi" }.freeze
+  LEVELS = { "sarjana" => "Sarjana", "profesi" => "Profesi", "spesialis" => "Spesialis"}.freeze
 
   # Aplikasi ini dirancang untuk TEPAT dua program studi — Sarjana Kedokteran
   # (pssk) dan Profesi Dokter (pspd), lihat db/seeds.rb. Jumlahnya dikunci agar
@@ -12,7 +12,7 @@ class StudyProgram < ApplicationRecord
   # memvalidasi). Catatan jujur: penguncian ini hanya mengikat pengguna
   # aplikasi yang berjalan — pemegang kode sumber tetap dapat mengubah angka
   # ini, dan tidak ada enkripsi yang mencegahnya (kode AGPL, lihat README).
-  MAX_COUNT = 2
+  MAX_COUNT = 20
 
   has_many :users, dependent: :nullify
   # Kerangka Peta EPA prodi ini — lihat CompetencyFramework.for_student.
@@ -39,6 +39,10 @@ class StudyProgram < ApplicationRecord
 
   def profesi?
     level == "profesi"
+  end
+
+  def spesialis?
+    level == "spesialis"
   end
 
   # SRQ-20 menampilkan tanda "Perlu Perhatian Segera" yang hanya bisa dilihat

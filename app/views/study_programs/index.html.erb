@@ -2,8 +2,13 @@
 <div class="flex items-center justify-between flex-wrap gap-3">
   <div>
     <h1 class="text-xl font-bold text-gray-900">Program Studi</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Kode bawaan: <code>pssk</code> Sarjana Kedokteran, <code>pspd</code> Profesi Dokter. Jumlah program studi dikunci maksimal <%= StudyProgram::MAX_COUNT %> — prodi yang ada dapat disunting, bukan ditambah.</p>
+    <p class="text-sm text-gray-500 mt-0.5">Jumlah program studi dikunci maksimal <%= StudyProgram::MAX_COUNT %> — prodi yang ada dapat disunting.</p>
   </div>
+  <% if current_user.has_role?("admin") %>
+    <div class="flex items-center gap-2">
+      <%= link_to "+ Tambah Prodi", new_study_program_path, class: "bg-indigo-600 hover: bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
+    </div>
+  <% end %>
 </div>
 
 <div class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
