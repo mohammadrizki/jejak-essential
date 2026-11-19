@@ -164,10 +164,14 @@
 <% if is_config_manager %>
   <div>
     <p class="px-2 mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"><%= term("nav.groups.configuration") %></p>
-    <%= render "shared/nav_item", label: term("nav.academic_periods"), path: academic_periods_path,
-        active: active_class.call("/academic_periods") %>
     <%= render "shared/nav_item", label: term("nav.study_programs"), path: study_programs_path,
         active: active_class.call("/study_programs") %>
+    <%= render "shared/nav_item", label: term("nav.competency_frameworks"), path: competency_frameworks_path,
+        active: active_class.call(%w[/competency_frameworks /competency_items]) %>
+    <%= render "shared/nav_item", label: term("nav.assessment_blueprints"), path: assessment_blueprints_path,
+        active: active_class.call("/assessment_blueprints") %>
+    <%= render "shared/nav_item", label: term("nav.academic_periods"), path: academic_periods_path,
+        active: active_class.call("/academic_periods") %>
     <%= render "shared/nav_item", label: term("nav.users"), path: admin_users_path,
         active: active_class.call("/admin/users") %>
     <%= render "shared/nav_item", label: term("nav.student_relabel"), path: new_admin_student_relabel_path,
@@ -180,10 +184,6 @@
         active: active_class.call("/admin/glide_syncs") %>
     <%= render "shared/nav_item", label: term("nav.evaluation_schedules"), path: admin_evaluation_schedules_path,
         active: active_class.call("/admin/evaluation_schedules") %>
-    <%= render "shared/nav_item", label: term("nav.competency_frameworks"), path: competency_frameworks_path,
-        active: active_class.call(%w[/competency_frameworks /competency_items]) %>
-    <%= render "shared/nav_item", label: term("nav.assessment_blueprints"), path: assessment_blueprints_path,
-        active: active_class.call("/assessment_blueprints") %>
     <%= render "shared/nav_item", label: term("nav.learning_units"), path: admin_learning_units_path,
         active: active_class.call("/admin/learning_units") %>
     <%= render "shared/nav_item", label: term("nav.logbook_case_targets"), path: admin_logbook_case_targets_path,
