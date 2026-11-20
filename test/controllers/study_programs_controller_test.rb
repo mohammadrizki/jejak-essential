@@ -29,24 +29,14 @@ class StudyProgramsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Sarjana Kedokteran (S1)", study_programs(:sarjana_kedokteran).reload.name
   end
 
-  test "daftar menyebut penguncian jumlah prodi" do
+  test "admin dapat menambahkan program subspesialis" do
     sign_in_admin
-    get study_programs_path
-    assert_match "dikunci maksimal #{StudyProgram::MAX_COUNT}", response.body
-  end
-
-  test "menambah prodi ditolak saat jumlah sudah di batas" do
-    sign_in_admin
-    assert_equal StudyProgram::MAX_COUNT, StudyProgram.count
-
-    get new_study_program_path
-    assert_redirected_to study_programs_path
-    assert_match "dikunci maksimal", flash[:alert]
-
-    assert_no_difference "StudyProgram.count" do
-      post study_programs_path, params: { study_program: { name: "Profesi Ners", code: "profesi-ners", level: "profesi" } }
+    assert_difference "StudyProgram.count", 1 do
+      post study_programs_path, params: {
+        study_program: { name: "Subspesialis Kardiologi", code: "subsp-kardio", level: "subspesialis" }
+      }
     end
     assert_redirected_to study_programs_path
-    assert_match "dikunci maksimal", flash[:alert]
+    assert_equal "subspesialis", StudyProgram.find_by!(code: "subsp-kardio").level
   end
 end

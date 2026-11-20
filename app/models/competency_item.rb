@@ -17,6 +17,7 @@ class CompetencyItem < ApplicationRecord
   before_destroy :ensure_unused_by_entrustment, prepend: true
 
   validates :title, presence: true
+  validate :expected_evidence_types_are_supported
 
   before_create :assign_position
 
@@ -46,5 +47,12 @@ class CompetencyItem < ApplicationRecord
   def assign_position
     siblings = parent_id ? CompetencyItem.where(parent_id: parent_id) : competency_framework.domains
     self.position = (siblings.maximum(:position) || 0) + 1
+  end
+
+  def expected_evidence_types_are_supported
+    allowed = %w[observasi artefak asesmen refleksi]
+    return if expected_evidence_types.is_a?(Array) && (expected_evidence_types - allowed).empty?
+
+    errors.add(:expected_evidence_types, "berisi jenis bukti yang tidak dikenal")
   end
 end

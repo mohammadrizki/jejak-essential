@@ -6,17 +6,23 @@ class AssessmentBlueprintsController < ApplicationController
 
   def index
     authorize AssessmentBlueprint
-    @assessment_blueprints = AssessmentBlueprint.order(:name)
+    @assessment_blueprints = AssessmentBlueprint.includes(:study_program).order(:name)
   end
 
   def show
     authorize @assessment_blueprint
-    @available_competency_items = CompetencyItem.where.not(id: @assessment_blueprint.competency_items.select(:id)).order(:position)
+    framework = @assessment_blueprint.study_program.peta_kompetensi
+    @available_competency_items = if framework
+      framework.competency_items.where.not(id: @assessment_blueprint.competency_items.select(:id)).order(:position)
+    else
+      CompetencyItem.none
+    end
   end
 
   def new
     authorize AssessmentBlueprint
     @assessment_blueprint = AssessmentBlueprint.new
+    load_study_programs
   end
 
   def create
@@ -26,12 +32,14 @@ class AssessmentBlueprintsController < ApplicationController
     if @assessment_blueprint.save
       redirect_to assessment_blueprints_path, notice: "Blueprint asesmen ditambahkan."
     else
+      load_study_programs
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     authorize @assessment_blueprint
+    load_study_programs
   end
 
   def update
@@ -39,6 +47,7 @@ class AssessmentBlueprintsController < ApplicationController
     if @assessment_blueprint.update(assessment_blueprint_params)
       redirect_to assessment_blueprints_path, notice: "Blueprint asesmen diperbarui."
     else
+      load_study_programs
       render :edit, status: :unprocessable_entity
     end
   end
@@ -63,6 +72,10 @@ class AssessmentBlueprintsController < ApplicationController
     outcomes = params.dig(:assessment_blueprint, :learning_outcomes_text).to_s
       .split("\n").map(&:strip).reject(&:blank?)
 
-    params.require(:assessment_blueprint).permit(:name, :description).merge(learning_outcomes: outcomes)
+    params.require(:assessment_blueprint).permit(:name, :description, :study_program_id).merge(learning_outcomes: outcomes)
+  end
+
+  def load_study_programs
+    @study_programs = StudyProgram.ordered
   end
 end

@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
 class CompetencyFramework < ApplicationRecord
+  belongs_to :study_program
+  has_many :epa_programs, class_name: "StudyProgram", foreign_key: :competency_framework_id, dependent: :nullify
   has_many :competency_items, -> { order(:position) }, dependent: :destroy, inverse_of: :competency_framework
-  has_many :study_programs, dependent: :nullify
   # Diperiksa sebelum simpul-simpulnya dihapus (lihat CompetencyItem).
   before_destroy :ensure_unused_by_entrustment, prepend: true
 
   validates :name, presence: true
 
-  # Kerangka Peta EPA seorang mahasiswa: pilihan prodinya, atau kerangka paling
-  # awal bila prodi belum memilih.
+  # Peta kompetensi utama milik program studi mahasiswa.
   def self.for_student(student)
-    student&.study_program&.competency_framework || order(:id).first
+    student&.study_program&.peta_kompetensi
   end
 
   def domains

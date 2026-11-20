@@ -1,6 +1,7 @@
 osce_blueprint:
   name: Blueprint OSCE Blok 5
   description: Distribusi bobot stasiun OSCE blok 5.
+  study_program: sarjana_kedokteran
   learning_outcomes:
     - Mampu menginterpretasi EKG dasar
     - Mampu mendiagnosis nyeri dada akut
@@ -8,4 +9,5 @@ osce_blueprint:
 unbalanced_blueprint:
   name: Blueprint Draft Belum Seimbang
   description: Masih disusun, bobot belum genap 100.
+  study_program: sarjana_kedokteran
   learning_outcomes: []

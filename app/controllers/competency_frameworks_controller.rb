@@ -6,7 +6,7 @@ class CompetencyFrameworksController < ApplicationController
 
   def index
     authorize CompetencyFramework
-    @competency_frameworks = CompetencyFramework.includes(:study_programs).order(:name)
+    @competency_frameworks = CompetencyFramework.includes(:study_program, :epa_programs).order(:name)
   end
 
   def show
@@ -18,6 +18,7 @@ class CompetencyFrameworksController < ApplicationController
   def new
     authorize CompetencyFramework
     @competency_framework = CompetencyFramework.new
+    load_study_programs
   end
 
   def create
@@ -27,12 +28,14 @@ class CompetencyFrameworksController < ApplicationController
     if @competency_framework.save
       redirect_to competency_framework_path(@competency_framework), notice: "Peta kompetensi ditambahkan."
     else
+      load_study_programs
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     authorize @competency_framework
+    load_study_programs
   end
 
   def update
@@ -40,6 +43,7 @@ class CompetencyFrameworksController < ApplicationController
     if @competency_framework.update(competency_framework_params)
       redirect_to competency_framework_path(@competency_framework), notice: "Peta kompetensi diperbarui."
     else
+      load_study_programs
       render :edit, status: :unprocessable_entity
     end
   end
@@ -61,6 +65,10 @@ class CompetencyFrameworksController < ApplicationController
   end
 
   def competency_framework_params
-    params.require(:competency_framework).permit(:name, :description)
+    params.require(:competency_framework).permit(:name, :description, :study_program_id)
+  end
+
+  def load_study_programs
+    @study_programs = StudyProgram.ordered
   end
 end

@@ -12,9 +12,8 @@
   Role.find_or_create_by!(code: code) { |role| role.name = name }
 end
 
-# Persis 2 prodi tetap — bukan hierarki Faculty/University (lihat
-# IMPLEMENTATION_PLAN.md § Keputusan Arsitektur Kunci). Kode & jenjang:
-# pssk = Sarjana, pspd = Profesi.
+# Prodi contoh awal. Prodi Spesialis dan Subspesialis serta prodi tambahan
+# dibuat melalui Konfigurasi → Program Studi; seed tidak menghapus master data.
 { "Sarjana Kedokteran" => %w[pssk sarjana], "Profesi Dokter" => %w[pspd profesi] }.each do |name, (code, level)|
   sp = StudyProgram.find_or_initialize_by(name: name)
   sp.code  ||= code
@@ -81,12 +80,15 @@ AcademicActivityTaxonomySeeder.call
   end
 end
 
-# Fase 13 — Kurikulum Dasar: satu peta kompetensi contoh (Standar Kompetensi
-# Dokter Indonesia versi ringkas) dan satu blueprint yang mengacunya lewat
-# nama ranah, bukan FK.
+# Kurikulum — satu Peta Kompetensi dan satu blueprint untuk masing-masing
+# program studi. Blueprint dipetakan ke simpul peta milik prodi yang sama.
+sarjana = StudyProgram.find_by!(code: "pssk")
+profesi = StudyProgram.find_by!(code: "pspd")
 framework = CompetencyFramework.find_or_create_by!(name: "Standar Kompetensi Dokter Indonesia (Ringkas)") do |f|
   f.description = "Tujuh area kompetensi inti dokter layanan primer."
+  f.study_program = sarjana
 end
+framework.update!(study_program: sarjana) if framework.study_program_id.nil?
 
 if framework.domains.none?
   {
@@ -103,7 +105,21 @@ if framework.domains.none?
   end
 end
 
+profession_framework = CompetencyFramework.find_or_initialize_by(study_program: profesi)
+if profession_framework.new_record?
+  profession_framework.name = "Standar Kompetensi Dokter Indonesia (Ringkas) — Profesi"
+  profession_framework.description = framework.description
+  profession_framework.save!
+  framework.domains.includes(:children).each do |domain|
+    copied_domain = profession_framework.competency_items.create!(title: domain.title, description: domain.description)
+    domain.children.each do |child|
+      profession_framework.competency_items.create!(title: child.title, description: child.description, parent: copied_domain)
+    end
+  end
+end
+
 osce_blueprint = AssessmentBlueprint.find_or_create_by!(name: "Blueprint OSCE Komprehensif") do |b|
+  b.study_program = profesi
   b.description = "Distribusi bobot stasiun OSCE akhir tahap profesi."
   b.learning_outcomes = [
     "Mampu melakukan anamnesis & pemeriksaan fisik sistematis",
@@ -112,15 +128,17 @@ osce_blueprint = AssessmentBlueprint.find_or_create_by!(name: "Blueprint OSCE Ko
     "Menunjukkan perilaku profesional selama ujian"
   ]
 end
+osce_blueprint.update!(study_program: profesi) if osce_blueprint.study_program_id.nil?
 
-if osce_blueprint.assessment_blueprint_mappings.none?
+blueprint_framework = osce_blueprint.study_program.peta_kompetensi
+if osce_blueprint.assessment_blueprint_mappings.none? && blueprint_framework
   {
     "Keterampilan Klinis" => 35,
     "Komunikasi Efektif" => 20,
     "Pengelolaan Masalah Kesehatan" => 30,
     "Profesionalitas yang Luhur" => 15
   }.each do |domain_name, weight|
-    item = CompetencyItem.find_by(title: domain_name)
+    item = blueprint_framework.competency_items.find_by(title: domain_name, parent_id: nil)
     osce_blueprint.assessment_blueprint_mappings.create!(competency_item: item, weight: weight) if item
   end
 end

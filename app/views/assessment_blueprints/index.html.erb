@@ -9,7 +9,7 @@
   <% @assessment_blueprints.each do |blueprint| %>
     <%= link_to assessment_blueprint_path(blueprint), class: "block bg-white rounded-2xl ring-1 ring-gray-200 p-4 hover:ring-indigo-300" do %>
       <div class="flex items-center justify-between">
-        <p class="font-semibold text-gray-800"><%= blueprint.name %></p>
+      <p class="font-semibold text-gray-800"><%= blueprint.name %> <span class="font-normal text-gray-500">· <%= blueprint.study_program.name %></span></p>
         <span class="text-xs font-bold px-2 py-0.5 rounded-full <%= blueprint.total_weight == 100 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' %>">
           <%= blueprint.total_weight.round(1) %>%
         </span>

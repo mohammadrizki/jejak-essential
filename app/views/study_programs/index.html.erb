@@ -2,7 +2,7 @@
 <div class="flex items-center justify-between flex-wrap gap-3">
   <div>
     <h1 class="text-xl font-bold text-gray-900">Program Studi</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Jumlah program studi dikunci maksimal <%= StudyProgram::MAX_COUNT %> — prodi yang ada dapat disunting.</p>
+    <p class="text-sm text-gray-500 mt-0.5">Kelola program Sarjana, Profesi, Spesialis, dan Subspesialis di sini.</p>
   </div>
   <% if current_user.has_role?("admin") %>
     <div class="flex items-center gap-2">

@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
-# Rencana cakupan asesmen (Blueprinting) — berdiri sendiri tanpa asosiasi
-# apa pun. Bukan data hasil, tapi
-# rencana: seberapa besar bobot tiap ranah kompetensi dalam satu asesmen.
+# Rencana cakupan asesmen tunggal milik satu program studi.
 class AssessmentBlueprint < ApplicationRecord
+  belongs_to :study_program
   has_many :assessment_blueprint_mappings, dependent: :destroy
   has_many :competency_items, through: :assessment_blueprint_mappings
   has_many :learning_units, dependent: :nullify
 
   validates :name, presence: true
+  validates :study_program_id, uniqueness: true
+
 
   # Mapping ditambah satu per satu, jadi total di tengah penyusunan wajar
   # belum 100% — itu ditandai di halaman detail (weights_complete?), bukan
@@ -33,4 +34,5 @@ class AssessmentBlueprint < ApplicationRecord
   def weight_by_competency_item
     assessment_blueprint_mappings.includes(:competency_item).index_by(&:competency_item).transform_values { |m| m.weight.to_f }
   end
+
 end
