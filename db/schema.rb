@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_010001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -157,6 +157,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_010001) do
     t.jsonb "learning_outcomes", default: [], null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
+    t.bigint "study_program_id", null: false
+    t.index ["study_program_id"], name: "index_assessment_blueprints_on_study_program_id", unique: true
   end
 
   create_table "assessment_dimension_scores", force: :cascade do |t|
@@ -391,6 +393,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_010001) do
     t.text "description"
     t.string "name", null: false
     t.datetime "updated_at", null: false
+    t.bigint "study_program_id", null: false
+    t.index ["study_program_id"], name: "index_competency_frameworks_on_study_program_id", unique: true
   end
 
   create_table "competency_items", force: :cascade do |t|
@@ -401,6 +405,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_010001) do
     t.integer "position", default: 0, null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.text "expected_evidence_text"
+    t.jsonb "expected_evidence_types", default: [], null: false
     t.index ["competency_framework_id"], name: "index_competency_items_on_competency_framework_id"
     t.index ["parent_id"], name: "index_competency_items_on_parent_id"
   end
@@ -901,6 +907,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_010001) do
   add_foreign_key "app_settings", "users", column: "updated_by_id"
   add_foreign_key "assessment_blueprint_mappings", "assessment_blueprints"
   add_foreign_key "assessment_blueprint_mappings", "competency_items"
+  add_foreign_key "assessment_blueprints", "study_programs"
   add_foreign_key "assessment_dimension_scores", "assessment_dimensions"
   add_foreign_key "assessment_dimension_scores", "assessment_instances"
   add_foreign_key "assessment_dimensions", "assessment_events"
@@ -934,6 +941,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_010001) do
   add_foreign_key "clinical_rotations", "academic_periods"
   add_foreign_key "clinical_rotations", "users"
   add_foreign_key "clinical_rotations", "users", column: "preceptor_id"
+  add_foreign_key "competency_frameworks", "study_programs"
   add_foreign_key "competency_items", "competency_frameworks"
   add_foreign_key "competency_items", "competency_items", column: "parent_id"
   add_foreign_key "competency_milestones", "academic_periods"
