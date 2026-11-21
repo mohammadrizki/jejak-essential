@@ -1,8 +1,8 @@
 # Audit dan Rancangan Konsolidasi Arsitektur JEJAK Essential
 
-Tanggal: 21 November 2026  
-Branch: unram  
-Tahap: audit dan desain saja. Tidak ada perubahan schema, migration, model, route, atau perilaku aplikasi.
+Tanggal audit: 21 November 2026
+Branch: unram
+Status: audit dan rancangan awal diikuti implementasi fondasi bertahap pada working tree (22 November 2026). Rancangan terpadu belum seluruhnya diimplementasikan.
 
 ## Ringkasan
 
@@ -22,7 +22,29 @@ File yang diperiksa:
 - Otorisasi/navigasi: config/routes.rb, app/views/shared/_sidebar_nav.html.erb, app/policies/* dan controller terkait.
 - docs/erd-final.md masih menggambarkan ERD kurikulum yang lebih lama dari schema terkini; perlu ditandai historis atau diperbarui setelah desain disetujui.
 
-Kesimpulan berikut mengacu pada working tree, bukan jaminan bahwa perubahan lokal sudah dirilis.
+Kesimpulan audit mengacu pada working tree, bukan jaminan bahwa perubahan lokal sudah dirilis.
+
+## Perubahan fondasi setelah rancangan
+
+Perubahan berikut sudah diterapkan pada working tree dan migration-nya sudah dijalankan hanya pada database lokal `jejak_essential_development`:
+
+- `EvidenceSource` menjadi snapshot sumber bukti kanonis dengan sistem/record/revisi, activity key stabil, mahasiswa, penilai, instrumen, konteks, status validasi, dan provenance. `CanonicalEvidenceIngestor` melakukan upsert idempoten untuk requirement bertipe `external`; payload revisi yang sama tetapi berubah ditolak.
+- `EvidenceRecord` kini dapat menunjuk ke sumber Mini-CEX, DOPS, atau `EvidenceSource`. Perhitungan Syarat Bukti memakai activity key untuk deduplikasi revisi/independensi. Validasi sumber eksternal memperbarui hasil evidence terkait dalam transaksi.
+- Mini-CEX dan DOPS yang sudah dikirim dapat menjadi bukti WPBA. Formulir penilai dibatasi dengan assignment rotasi aktif dan kepemilikan mahasiswa.
+- `ModuleConfiguration` mengatur aktivasi Logbook, WPBA, dan EPA per program studi, dengan riwayat perubahan append-only di `ModuleConfigurationChange`. Mematikan modul menghentikan input baru dan tetap mempertahankan akses baca historis sesuai otorisasi. Core selalu aktif; EPA Sarjana ditolak.
+- Kaprodi dibatasi pada framework dan blueprint program studinya pada controller/policy yang disentuh.
+- Resolusi flag keselamatan EPA menghasilkan snapshot sumber baru; record bukti diarahkan ke revisi baru sebelum readiness dihitung ulang.
+
+Migration tambahan yang diterapkan lokal: `20261122020001`, `20261122020002`, `20261122030001`, `20261122040001`. Seluruhnya memakai transaksi migration PostgreSQL standar; tidak menggunakan `disable_ddl_transaction!` atau concurrent index. Database production tidak diakses.
+
+### Verifikasi terbaru
+
+- Tes domain terarah: 37 tes, 133 assertion, lulus.
+- Tes tambahan EPA + canonical evidence + progress: 9 tes, 30 assertion, lulus.
+- `rails zeitwerk:check` dan `git diff --check`: lulus.
+- Suite penuh terbaru: 741 tes, 4.164 assertion, 13 failure dan 8 error. Failure EPA readiness yang terkait refresh snapshot sudah diperbaiki dan tes terkait lulus pada run terarah. Temuan tersisa terutama mencakup ekspektasi label/menu navigasi lama, fixture framework/program studi yang tidak lagi memenuhi validasi wajib, dan ekspektasi lama pada dashboard/terminologi. Suite penuh belum hijau dan perlu triase regresi terpisah.
+
+Ini adalah fondasi, bukan implementasi keseluruhan arsitektur. Lihat gap yang masih ada pada bagian akhir dokumen.
 
 ## Inventaris kondisi
 

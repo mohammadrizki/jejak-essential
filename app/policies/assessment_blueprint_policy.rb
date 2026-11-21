@@ -2,12 +2,24 @@
 
 class AssessmentBlueprintPolicy < ApplicationPolicy
   def index?
-    user.has_role?("admin")
+    user.has_role?("admin") || user.has_role?("kaprodi")
   end
-  alias show? index?
   alias create? index?
   alias new? index?
-  alias update? index?
-  alias edit? index?
-  alias destroy? index?
+
+  def show?
+    return true if user.has_role?("admin")
+
+    user.has_role?("kaprodi") && record.is_a?(AssessmentBlueprint) &&
+      record.study_program_id == user.study_program_id
+  end
+
+  def update?
+    return true if user.has_role?("admin")
+
+    user.has_role?("kaprodi") && record.is_a?(AssessmentBlueprint) &&
+      record.study_program_id == user.study_program_id
+  end
+  alias edit? update?
+  alias destroy? update?
 end

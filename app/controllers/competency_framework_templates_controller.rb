@@ -11,12 +11,14 @@ class CompetencyFrameworkTemplatesController < ApplicationController
 
   def show
     authorize CompetencyFramework
-    @study_programs = StudyProgram.ordered if current_user.has_role?("admin")
+    @study_programs = current_user.has_role?("admin") ? StudyProgram.ordered : StudyProgram.where(id: current_user.study_program_id)
   end
 
   def duplicate
     authorize CompetencyFramework, :create?
     target_program = StudyProgram.find(params.require(:study_program_id))
+    return redirect_to competency_framework_templates_path, alert: "Kaprodi hanya dapat menyalin template ke program studinya." if
+      current_user.has_role?("kaprodi") && target_program.id != current_user.study_program_id
     framework = CompetencyFrameworkDuplicator.new(
       template: @template,
       study_program: target_program,
@@ -24,7 +26,7 @@ class CompetencyFrameworkTemplatesController < ApplicationController
     ).call
     redirect_to framework, notice: "Template disalin ke Peta Kompetensi sebagai draf independen versi #{framework.version}."
   rescue ActiveRecord::RecordInvalid => e
-    @study_programs = StudyProgram.ordered
+    @study_programs = current_user.has_role?("admin") ? StudyProgram.ordered : StudyProgram.where(id: current_user.study_program_id)
     @duplicate_errors = e.record.errors.full_messages
     render :show, status: :unprocessable_entity
   end

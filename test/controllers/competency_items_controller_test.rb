@@ -54,12 +54,19 @@ class CompetencyItemsControllerTest < ActionDispatch::IntegrationTest
     admin = users(:budi)
     admin.roles << roles(:admin)
     sign_in admin
-    framework = competency_frameworks(:skdi_ringkas)
-    EntrustmentDecision.decide!(student: users(:siti), competency_item: competency_items(:domain_klinis), level: 3,
-                                justification: "Supervisi tidak langsung.", decided_by: users(:budi))
+    program = study_programs(:profesi_dokter)
+    student = User.create!(full_name: "Mahasiswa Profesi", email: "epa-mahasiswa@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: program)
+    student.roles << roles(:mahasiswa)
+    framework = CompetencyFramework.create!(study_program: program, name: "Peta Uji Entrustment",
+      version: "audit-test", education_stage: "professional")
+    item = framework.competency_items.create!(title: "Kompetensi Uji", code: "K-UJI", level_type: "domain")
+    epa = framework.epas.create!(code: "EPA-UJI", title: "Aktivitas Uji")
+    EntrustmentDecision.decide!(student: student, competency_item: item, epa: epa, level: 3,
+      justification: "Supervisi tidak langsung.", decided_by: users(:budi))
 
     assert_no_difference "CompetencyItem.count" do
-      delete competency_framework_competency_item_path(framework, competency_items(:domain_klinis))
+      delete competency_framework_competency_item_path(framework, item)
     end
     assert_redirected_to competency_framework_path(framework)
     assert_match "Peta EPA", flash[:alert]

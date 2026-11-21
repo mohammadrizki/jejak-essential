@@ -54,6 +54,9 @@ class ClinicalCasesController < ApplicationController
   # tersalin dari kasus. Status "requested" sampai penilai mengisi rubrik.
   def initiate_workplace_assessment
     authorize @clinical_case
+    unless ModuleConfiguration.for(current_user.study_program).enabled?("wpba")
+      return redirect_to @clinical_case, alert: "WPBA sedang dinonaktifkan untuk program studi ini."
+    end
     rotation = workplace_rotation_for(@clinical_case)
     evaluator = rotation&.preceptor
     return redirect_to(@clinical_case, alert: "Tidak ada rotasi klinis yang mencakup tanggal kasus ini.") unless rotation

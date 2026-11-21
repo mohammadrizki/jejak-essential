@@ -18,7 +18,14 @@
   assessment_active = phase_active.call(%w[/asesmen /nilai-ujian /student/assessments /examiner_evaluations /capaian-belajar /dashboard/entrustment /epa_observations /epa_promotions]) || (verification_scope && request.path.start_with?("/clinical_cases", "/activity_logs"))
   validation_active = phase_active.call(%w[/nilai-ujian /student/assessments /examiner_evaluations /assessment_form_templates /assessment_form_submissions]) || (verification_scope && request.path.start_with?("/clinical_cases", "/activity_logs"))
   current_program = current_user.study_program
-  epa_relevant = is_student && current_program&.level.in?(%w[profesi spesialis subspesialis])
+  module_configuration = ModuleConfiguration.for(current_program)
+  logbook_history_visible = current_user.activity_logs.exists? ||
+    (is_verifier && ActivityLog.awaiting_verification_by(current_user).exists?)
+  logbook_visible = module_configuration.enabled?("clinical_logbook") || logbook_history_visible
+  epa_relevant = is_student && current_program&.level.in?(%w[profesi spesialis subspesialis]) &&
+    (module_configuration.enabled?("epa") || current_user.epa_observations.exists? || current_user.entrustment_decisions.exists?)
+  epa_staff_visible = (is_instructor || is_prodi_manager) &&
+    (module_configuration.enabled?("epa") || current_user.epa_observations.exists? || current_user.epa_promotions.exists?)
 %>
 
 <div>
@@ -50,7 +57,7 @@
       <%= render "shared/nav_item", label: "Rencana Pembelajaran", path: admin_learning_units_path,
           active: active_class.call("/admin/learning_units") %>
     <% end %>
-    <%= render "shared/nav_accordion", label: "Pengalaman Belajar", open: phase_active.call(%w[/clinical_cases /clinical_rotations /tutorial_enrollments /final_projects]) do %>
+    <%= render "shared/nav_accordion", label: "Konteks Praktik", open: phase_active.call(%w[/clinical_cases /clinical_rotations /tutorial_enrollments /final_projects]) do %>
       <%= render "shared/nav_item", label: "Kasus Klinis", path: clinical_cases_path,
           active: active_class.call("/clinical_cases") && !params[:scope].in?(%w[to_verify reviewed]) %>
       <%= render "shared/nav_item", label: "Rotasi Klinis", path: clinical_rotations_path,
@@ -60,8 +67,10 @@
       <%= render "shared/nav_item", label: "Proyek Akhir", path: final_projects_path,
           active: active_class.call("/final_projects") %>
     <% end %>
-    <%= render "shared/nav_item", label: "Logbook", path: activity_logs_path,
-        active: active_class.call(%w[/activity_logs /kalender]) && !verification_scope %>
+    <% if logbook_visible %>
+      <%= render "shared/nav_item", label: "Logbook", path: activity_logs_path,
+          active: active_class.call(%w[/activity_logs /kalender]) && !verification_scope %>
+    <% end %>
     <% if is_student %>
       <%= render "shared/nav_item", label: "Portofolio", path: portfolio_path,
           active: active_class.call("/portfolio") %>
@@ -123,7 +132,7 @@
       <%= render "shared/nav_item", label: "Observasi EPA", path: epa_observations_path,
           active: active_class.call("/epa_observations") %>
     <% end %>
-    <% if is_instructor || is_prodi_manager %>
+    <% if epa_staff_visible %>
       <%= render "shared/nav_item", label: "Promosi EPA", path: epa_promotions_path,
           active: active_class.call("/epa_promotions") %>
     <% end %>
@@ -201,11 +210,18 @@
         <%= render "shared/nav_item", label: "Ekspor Data", path: admin_exports_path,
             active: active_class.call("/admin/exports") %>
       <% end %>
-      <%= render "shared/nav_accordion", label: "Pengaturan Sistem", open: phase_active.call(%w[/admin/terminology /admin/data_governance]) do %>
-        <%= render "shared/nav_item", label: "Istilah Aplikasi", path: admin_terminology_path,
-            active: active_class.call("/admin/terminology") %>
-        <%= render "shared/nav_item", label: "Tata Kelola Data", path: admin_data_governance_path,
-            active: active_class.call("/admin/data_governance") %>
+    <% end %>
+    <% if is_config_manager || is_prodi_manager %>
+      <%= render "shared/nav_accordion", label: "Pengaturan Sistem", open: phase_active.call(%w[/module_configuration /admin/terminology /admin/data_governance]) do %>
+        <%= render "shared/nav_item", label: "Aktivasi Modul", path: edit_module_configuration_path(
+              study_program_id: (current_user.has_role?("admin") ? StudyProgram.ordered.first&.id : current_user.study_program_id)),
+            active: active_class.call("/module_configuration") %>
+        <% if is_config_manager %>
+          <%= render "shared/nav_item", label: "Istilah Aplikasi", path: admin_terminology_path,
+              active: active_class.call("/admin/terminology") %>
+          <%= render "shared/nav_item", label: "Tata Kelola Data", path: admin_data_governance_path,
+              active: active_class.call("/admin/data_governance") %>
+        <% end %>
       <% end %>
     <% end %>
   </div>

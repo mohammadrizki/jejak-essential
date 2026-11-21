@@ -6,7 +6,8 @@ class AssessmentBlueprintsController < ApplicationController
 
   def index
     authorize AssessmentBlueprint
-    @assessment_blueprints = AssessmentBlueprint.includes(:study_program).order(:name)
+    scope = AssessmentBlueprint.includes(:study_program).order(:name)
+    @assessment_blueprints = current_user.has_role?("admin") ? scope : scope.where(study_program_id: current_user.study_program_id)
   end
 
   def show
@@ -31,6 +32,8 @@ class AssessmentBlueprintsController < ApplicationController
   def create
     authorize AssessmentBlueprint
     @assessment_blueprint = AssessmentBlueprint.new(assessment_blueprint_params)
+    return redirect_to assessment_blueprints_path, alert: "Kaprodi hanya dapat membuat blueprint untuk program studinya." if
+      current_user.has_role?("kaprodi") && @assessment_blueprint.study_program_id != current_user.study_program_id
 
     if @assessment_blueprint.save
       redirect_to assessment_blueprint_path(@assessment_blueprint), notice: "Blueprint asesmen dibuat sebagai draf. Tambahkan komponennya sebelum menerbitkan."
@@ -47,6 +50,11 @@ class AssessmentBlueprintsController < ApplicationController
 
   def update
     authorize @assessment_blueprint
+    if current_user.has_role?("kaprodi") && params.dig(:assessment_blueprint, :study_program_id).present? &&
+       params.dig(:assessment_blueprint, :study_program_id).to_i != current_user.study_program_id
+      return redirect_to @assessment_blueprint, alert: "Kaprodi hanya dapat mengelola blueprint program studinya."
+    end
+
     if @assessment_blueprint.update(assessment_blueprint_params)
       redirect_to assessment_blueprints_path, notice: "Blueprint asesmen diperbarui."
     else
@@ -121,10 +129,15 @@ class AssessmentBlueprintsController < ApplicationController
     outcomes = params.dig(:assessment_blueprint, :learning_outcomes_text).to_s
       .split("\n").map(&:strip).reject(&:blank?)
 
-    params.require(:assessment_blueprint).permit(:name, :description, :study_program_id).merge(learning_outcomes: outcomes)
+    params.require(:assessment_blueprint).permit(:name, :description, :study_program_id)
+      .merge(learning_outcomes: outcomes)
   end
 
   def load_study_programs
-    @study_programs = StudyProgram.ordered
+    @study_programs = if current_user.has_role?("admin")
+      StudyProgram.ordered
+    else
+      StudyProgram.where(id: current_user.study_program_id)
+    end
   end
 end

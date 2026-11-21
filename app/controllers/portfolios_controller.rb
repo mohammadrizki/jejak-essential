@@ -32,6 +32,8 @@ class PortfoliosController < ApplicationController
     @reflections = current_user.reflection_entries.recent
     @evidence_sources = {
       "assessment" => @assessment_instances.map { |record| ["Asesmen · #{record.assessment_event.name} · #{record.created_at.to_date}", "assessment_instance-#{record.id}"] },
+      "wpba" => current_user.mini_cex_evaluations_as_student.submitted.recent.map { |record| ["Mini-CEX · #{record.case_description} · #{record.evaluated_at}", "mini_cex_evaluation-#{record.id}"] } +
+        current_user.dops_evaluations_as_student.submitted.recent.map { |record| ["DOPS · #{record.procedure_name} · #{record.evaluated_at}", "dops_evaluation-#{record.id}"] },
       "logbook" => @logs.recent.map { |record| ["Logbook · #{record.title} · #{record.activity_date}", "activity_log-#{record.id}"] },
       "reflection" => @reflections.map { |record| ["Refleksi · #{record.entry_date}", "reflection_entry-#{record.id}"] },
       "portfolio" => @assessment_instances.map { |record| ["Asesmen · #{record.assessment_event.name}", "assessment_instance-#{record.id}"] } +

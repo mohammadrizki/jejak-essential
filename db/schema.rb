@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_22_010005) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -801,16 +801,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010005) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "epa_observation_id"
+    t.bigint "mini_cex_evaluation_id"
+    t.bigint "dops_evaluation_id"
+    t.bigint "evidence_source_id"
     t.index ["activity_log_id"], name: "index_evidence_records_on_activity_log_id"
     t.index ["assessment_instance_id"], name: "index_evidence_records_on_assessment_instance_id"
+    t.index ["dops_evaluation_id"], name: "index_evidence_records_on_dops_evaluation_id"
     t.index ["epa_observation_id"], name: "index_evidence_records_on_epa_observation_id"
     t.index ["evidence_requirement_id", "activity_log_id"], name: "idx_evidence_record_activity_once", unique: true, where: "(activity_log_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "assessment_instance_id"], name: "idx_evidence_record_assessment_once", unique: true, where: "(assessment_instance_id IS NOT NULL)"
+    t.index ["evidence_requirement_id", "dops_evaluation_id"], name: "idx_evidence_record_dops_once", unique: true, where: "(dops_evaluation_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "evidence_date"], name: "idx_evidence_records_requirement_date"
+    t.index ["evidence_requirement_id", "evidence_source_id"], name: "idx_evidence_record_source_once", unique: true, where: "(evidence_source_id IS NOT NULL)"
+    t.index ["evidence_requirement_id", "mini_cex_evaluation_id"], name: "idx_evidence_record_mini_cex_once", unique: true, where: "(mini_cex_evaluation_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "reflection_entry_id"], name: "idx_evidence_record_reflection_once", unique: true, where: "(reflection_entry_id IS NOT NULL)"
     t.index ["evidence_requirement_id"], name: "index_evidence_records_on_evidence_requirement_id"
+    t.index ["evidence_source_id"], name: "index_evidence_records_on_evidence_source_id"
+    t.index ["mini_cex_evaluation_id"], name: "index_evidence_records_on_mini_cex_evaluation_id"
     t.index ["reflection_entry_id"], name: "index_evidence_records_on_reflection_entry_id"
-    t.check_constraint "num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id) = 1", name: "chk_evidence_record_single_source"
+    t.check_constraint "num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id) = 1 OR num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id) = 0 AND evidence_source_id IS NOT NULL", name: "chk_evidence_record_single_source"
     t.check_constraint "result::text = ANY (ARRAY['pass'::character varying, 'fail'::character varying, 'borderline'::character varying, 'not_assessed'::character varying, 'other'::character varying]::text[])", name: "chk_evidence_record_result"
   end
 
@@ -839,8 +848,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010005) do
     t.check_constraint "origin::text = 'blueprint'::text AND blueprint_item_id IS NOT NULL OR origin::text = 'manual'::text AND blueprint_item_id IS NULL", name: "chk_evidence_requirement_origin_source"
     t.check_constraint "origin::text = ANY (ARRAY['blueprint'::character varying, 'manual'::character varying]::text[])", name: "chk_evidence_requirement_origin"
     t.check_constraint "required_count > 0", name: "chk_evidence_requirement_count"
-    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying, 'logbook'::character varying, 'portfolio'::character varying, 'reflection'::character varying, 'other'::character varying, 'epa_observation'::character varying]::text[])", name: "chk_evidence_requirement_source"
+    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying, 'wpba'::character varying, 'logbook'::character varying, 'portfolio'::character varying, 'reflection'::character varying, 'other'::character varying, 'epa_observation'::character varying, 'external'::character varying]::text[])", name: "chk_evidence_requirement_source"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_evidence_requirement_status"
+  end
+
+  create_table "evidence_sources", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "assessor_id"
+    t.string "source_system", null: false
+    t.string "source_type", null: false
+    t.string "source_record_id", null: false
+    t.string "source_revision", null: false
+    t.string "activity_key", null: false
+    t.date "occurred_on", null: false
+    t.string "validation_status", default: "unverified", null: false
+    t.string "instrument_code"
+    t.string "instrument_version"
+    t.decimal "score", precision: 8, scale: 3
+    t.string "result"
+    t.text "feedback"
+    t.jsonb "context", default: {}, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "validated_at"
+    t.bigint "validated_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assessor_id"], name: "index_evidence_sources_on_assessor_id"
+    t.index ["source_system", "activity_key"], name: "idx_evidence_sources_activity_key"
+    t.index ["source_system", "source_record_id", "source_revision"], name: "idx_evidence_sources_external_identity", unique: true
+    t.index ["student_id"], name: "index_evidence_sources_on_student_id"
+    t.index ["validated_by_id"], name: "index_evidence_sources_on_validated_by_id"
+    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying, 'wpba'::character varying, 'logbook'::character varying, 'reflection'::character varying, 'epa_observation'::character varying, 'external'::character varying]::text[])", name: "chk_evidence_source_type"
+    t.check_constraint "validation_status::text = ANY (ARRAY['unverified'::character varying, 'validated'::character varying, 'rejected'::character varying]::text[])", name: "chk_evidence_source_validation_status"
   end
 
   create_table "exam_imports", force: :cascade do |t|
@@ -990,6 +1029,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010005) do
     t.index ["evaluator_id"], name: "index_mini_cex_evaluations_on_evaluator_id"
     t.index ["student_id", "evaluated_at"], name: "index_mini_cex_evaluations_on_student_id_and_evaluated_at"
     t.index ["student_id"], name: "index_mini_cex_evaluations_on_student_id"
+  end
+
+  create_table "module_configuration_changes", force: :cascade do |t|
+    t.bigint "study_program_id", null: false
+    t.bigint "actor_id", null: false
+    t.jsonb "before_value", default: {}, null: false
+    t.jsonb "after_value", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_module_configuration_changes_on_actor_id"
+    t.index ["study_program_id", "created_at"], name: "idx_module_config_changes_program_time"
+    t.index ["study_program_id"], name: "index_module_configuration_changes_on_study_program_id"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -1353,14 +1404,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010005) do
   add_foreign_key "evaluation_schedules", "users", column: "student_id"
   add_foreign_key "evidence_records", "activity_logs"
   add_foreign_key "evidence_records", "assessment_instances"
+  add_foreign_key "evidence_records", "dops_evaluations"
   add_foreign_key "evidence_records", "epa_observations"
   add_foreign_key "evidence_records", "evidence_requirements"
+  add_foreign_key "evidence_records", "evidence_sources"
+  add_foreign_key "evidence_records", "mini_cex_evaluations"
   add_foreign_key "evidence_records", "reflection_entries"
   add_foreign_key "evidence_requirements", "assessment_methods"
   add_foreign_key "evidence_requirements", "blueprint_items"
   add_foreign_key "evidence_requirements", "competency_indicators"
   add_foreign_key "evidence_requirements", "competency_items"
   add_foreign_key "evidence_requirements", "epas"
+  add_foreign_key "evidence_sources", "users", column: "assessor_id"
+  add_foreign_key "evidence_sources", "users", column: "student_id"
+  add_foreign_key "evidence_sources", "users", column: "validated_by_id"
   add_foreign_key "exam_imports", "users", column: "imported_by_id"
   add_foreign_key "exam_scores", "exam_imports"
   add_foreign_key "exam_scores", "users", column: "student_id"
@@ -1380,6 +1437,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_010005) do
   add_foreign_key "mini_cex_evaluations", "clinical_rotations"
   add_foreign_key "mini_cex_evaluations", "users", column: "evaluator_id"
   add_foreign_key "mini_cex_evaluations", "users", column: "student_id"
+  add_foreign_key "module_configuration_changes", "study_programs"
+  add_foreign_key "module_configuration_changes", "users", column: "actor_id"
   add_foreign_key "notifications", "users", column: "recipient_id"
   add_foreign_key "notifications", "users", column: "sender_id"
   add_foreign_key "osce_station_scores", "assessment_instances"

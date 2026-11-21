@@ -15,6 +15,7 @@ class EpaObservationsController < ApplicationController
   def new
     @student = User.find(params[:student_id])
     @epa = Epa.find(params[:epa_id])
+    return module_disabled unless ModuleConfiguration.for(@student.study_program).enabled?("epa")
     return deny_access unless assigned_observer?(@student, @epa)
 
     @observation = EpaObservation.new(student: @student, epa: @epa, observed_at: Time.current)
@@ -24,6 +25,7 @@ class EpaObservationsController < ApplicationController
   def create
     @student = User.find(params.require(:epa_observation).fetch(:student_id))
     @epa = Epa.find(params.require(:epa_observation).fetch(:epa_id))
+    return module_disabled unless ModuleConfiguration.for(@student.study_program).enabled?("epa")
     return deny_access unless assigned_observer?(@student, @epa)
 
     @observation = EpaObservation.new(observation_params.merge(student: @student, epa: @epa, observer: current_user,
@@ -78,5 +80,10 @@ class EpaObservationsController < ApplicationController
 
   def deny_access
     redirect_to dashboard_path, alert: "Observasi EPA hanya dapat diisi oleh pengamat yang ditugaskan." 
+  end
+
+  def module_disabled
+    redirect_to epa_observations_path(student_id: @student.id),
+      alert: "Input EPA untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."
   end
 end

@@ -24,4 +24,22 @@ class MiniCexEvaluationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to mini_cex_evaluation_path(MiniCexEvaluation.order(:id).last)
   end
+
+  test "dosen tanpa penugasan rotasi tidak dapat menilai mahasiswa tersebut" do
+    unassigned = User.create!(full_name: "Dosen Tanpa Penugasan", email: "unassigned@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current)
+    unassigned.roles << roles(:dosen)
+    sign_in unassigned
+
+    assert_no_difference "MiniCexEvaluation.count" do
+      post mini_cex_evaluations_path, params: {
+        mini_cex_evaluation: {
+          student_id: users(:siti).id, clinical_rotation_id: clinical_rotations(:ongoing_rotation_siti).id,
+          case_description: "Konsultasi hipertensi", evaluated_at: Date.current,
+          scores: { komunikasi: 7, profesionalisme: 8 }, global_rating: "performed"
+        }
+      }
+    end
+    assert_response :redirect
+  end
 end

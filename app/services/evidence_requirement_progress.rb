@@ -12,9 +12,15 @@ class EvidenceRequirementProgress
 
   def call
     rule = @requirement.fulfillment_rule || {}
-    records = @requirement.evidence_records.includes(:assessment_instance, :activity_log, :reflection_entry, :epa_observation).to_a
+    records = @requirement.evidence_records.includes(:assessment_instance, :activity_log, :reflection_entry,
+      :epa_observation, :mini_cex_evaluation, :dops_evaluation, :evidence_source).to_a
     valid_results = rule.fetch("valid_results", EvidenceRecord::RESULTS - ["not_assessed"])
-    eligible_records = records.select { |record| valid_record?(record, rule, valid_results) }
+    latest_records = records.group_by(&:source_key).values.map do |versions|
+      # Revision identifiers are opaque (an upstream may use a UUID or a
+      # non-sortable sequence). Import order is the only safe chronology.
+      versions.max_by { |record| [record.evidence_source&.created_at || record.created_at, record.id] }
+    end
+    eligible_records = latest_records.select { |record| valid_record?(record, rule, valid_results) }
     eligible_records.reject! { |record| source_key_reserved_by_sibling?(record, rule, valid_results) }
     pass_count = eligible_records.count { |record| record.result == "pass" }
     assessors = eligible_records.filter_map { |record| assessor_id(record) }.uniq
@@ -49,6 +55,7 @@ class EvidenceRequirementProgress
     return false unless EvidenceRecord::RESULTS.include?(record.result)
     return false if rule.fetch("require_validation", true) && record.result == "not_assessed"
     return false unless valid_results.include?(record.result)
+    return false if rule.fetch("require_validation", true) && record.evidence_source&.validation_status != "validated"
     return false unless source_type_matches?(record, requirement.source_type)
 
     true
@@ -56,9 +63,12 @@ class EvidenceRequirementProgress
 
   def source_type_matches?(record, source_type)
     case source_type
-    when "assessment" then record.assessment_instance.present?
-    when "logbook" then record.activity_log.present?
-    when "reflection" then record.reflection_entry.present?
+    when "assessment" then record.assessment_instance.present? || record.evidence_source&.source_type == "assessment"
+    when "logbook" then record.activity_log.present? || record.evidence_source&.source_type == "logbook"
+    when "reflection" then record.reflection_entry.present? || record.evidence_source&.source_type == "reflection"
+    when "wpba" then record.mini_cex_evaluation&.submitted? || record.dops_evaluation&.submitted? ||
+      record.evidence_source&.source_type == "wpba"
+    when "external" then record.evidence_source&.source_type == "external"
     when "epa_observation" then record.epa_observation&.status == "recorded" &&
       (!record.epa_observation.safety_flag? || record.epa_observation.safety_resolved_at.present?)
     when "portfolio", "other" then true
@@ -67,15 +77,7 @@ class EvidenceRequirementProgress
   end
 
   def source_key(record)
-    if record.assessment_instance_id
-      ["assessment", record.assessment_instance_id]
-    elsif record.activity_log_id
-      ["logbook", record.activity_log_id]
-    else
-      return ["epa_observation", record.epa_observation_id] if record.epa_observation_id
-
-      ["reflection", record.reflection_entry_id]
-    end
+    record.source_key
   end
 
   def source_key_reserved_by_sibling?(record, rule, valid_results)
@@ -91,6 +93,7 @@ class EvidenceRequirementProgress
 
     EvidenceRecord.where(evidence_requirement_id: earlier_ids)
       .includes(:evidence_requirement, :assessment_instance, :activity_log, :reflection_entry, :epa_observation)
+      .includes(:mini_cex_evaluation, :dops_evaluation)
       .any? do |claimed_record|
         claimed_requirement = claimed_record.evidence_requirement
         claimed_rule = claimed_requirement.fulfillment_rule || {}
@@ -101,11 +104,15 @@ class EvidenceRequirementProgress
 
   def assessor_id(record)
     record.assessment_instance&.examiner_id || record.activity_log&.verified_by_id ||
-      record.reflection_entry&.activity_log&.verified_by_id || record.epa_observation&.observer_id
+      record.reflection_entry&.activity_log&.verified_by_id || record.epa_observation&.observer_id ||
+      record.mini_cex_evaluation&.evaluator_id || record.dops_evaluation&.evaluator_id ||
+      record.evidence_source&.assessor_id
   end
 
   def case_id(record)
     record.assessment_instance&.clinical_case_id || record.reflection_entry&.clinical_case_id ||
-      record.activity_log&.patient_code || record.epa_observation&.clinical_case_id
+      record.activity_log&.patient_code || record.epa_observation&.clinical_case_id ||
+      record.mini_cex_evaluation&.clinical_case_id || record.dops_evaluation&.clinical_case_id ||
+      record.evidence_source&.context&.fetch("case_id", nil)
   end
 end

@@ -10,6 +10,11 @@ class DopsEvaluationPolicy < ApplicationPolicy
   end
   alias new? create?
 
+  def create_for_assigned_student?
+    AssessmentAssignment.assigned?(assessor: user, student: record.student,
+      rotation: record.clinical_rotation, assessed_at: record.evaluated_at || Date.current)
+  end
+
   def update?
     record.evaluator_id == user.id || user.has_role?("admin")
   end

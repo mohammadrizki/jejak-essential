@@ -25,6 +25,8 @@ class CompetencyFrameworksController < ApplicationController
   def create
     authorize CompetencyFramework
     @competency_framework = CompetencyFramework.new(competency_framework_params)
+    return redirect_to competency_frameworks_path, alert: "Kaprodi hanya dapat membuat peta untuk program studinya." if
+      current_user.has_role?("kaprodi") && @competency_framework.study_program_id != current_user.study_program_id
 
     if @competency_framework.save
       redirect_to competency_framework_path(@competency_framework), notice: "Peta kompetensi ditambahkan."
@@ -151,6 +153,9 @@ class CompetencyFrameworksController < ApplicationController
     return unless request.post?
 
     target_program = StudyProgram.find(params.require(:study_program_id))
+    return redirect_to @competency_framework, alert: "Kaprodi hanya dapat menduplikasi framework ke program studinya." if
+      current_user.has_role?("kaprodi") && target_program.id != current_user.study_program_id
+
     duplicate = CompetencyFrameworkDuplicator.new(
       source_framework: @competency_framework,
       study_program: target_program,
@@ -185,11 +190,19 @@ class CompetencyFrameworksController < ApplicationController
   end
 
   def load_study_programs
-    @study_programs = StudyProgram.ordered
+    @study_programs = if current_user.has_role?("admin")
+      StudyProgram.ordered
+    else
+      StudyProgram.where(id: current_user.study_program_id)
+    end
   end
 
   def load_duplicate_form
-    @study_programs = StudyProgram.ordered
+    @study_programs = if current_user.has_role?("admin")
+      StudyProgram.ordered
+    else
+      StudyProgram.where(id: current_user.study_program_id)
+    end
     @domains = @competency_framework.domains.includes(:competency_indicators, children: :competency_indicators)
   end
 end

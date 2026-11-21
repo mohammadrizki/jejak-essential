@@ -7,7 +7,11 @@ class CompetencyFrameworkPolicy < ApplicationPolicy
   alias show? index?
 
   def manage?
-    user.has_role?("admin")
+    return true if user.has_role?("admin")
+    return false unless user.has_role?("kaprodi")
+
+    program_id = record.is_a?(Class) ? user.study_program_id : record.study_program_id
+    program_id.present? && program_id == user.study_program_id
   end
   alias create? manage?
   alias new? manage?

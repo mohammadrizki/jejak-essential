@@ -12,6 +12,7 @@ class EpaPromotionsController < ApplicationController
 
   def promote
     promotion = EpaPromotion.open.find(params[:id])
+    return module_disabled unless ModuleConfiguration.for(promotion.student.study_program).enabled?("epa")
     return deny_access unless current_user.can_view_student?(promotion.student) && preceptor_for?(promotion.student)
     return redirect_to epa_promotions_path, alert: "Kecukupan bukti atau tindak lanjut keselamatan berubah; promosi ditahan." unless
       EpaPromotionReadiness.new(student: promotion.student, epa: promotion.epa).call.eligible
@@ -24,6 +25,7 @@ class EpaPromotionsController < ApplicationController
 
   def review
     promotion = EpaPromotion.find(params[:id])
+    return module_disabled unless ModuleConfiguration.for(promotion.student.study_program).enabled?("epa")
     return deny_access unless academic_authority_for?(promotion.student)
     return redirect_to epa_promotions_path, alert: "Pengajuan belum dipromosikan oleh preseptor." unless promotion.status.in?(%w[promoted under_review])
 
@@ -91,5 +93,9 @@ class EpaPromotionsController < ApplicationController
 
   def deny_access
     redirect_to dashboard_path, alert: "Anda tidak memiliki kewenangan untuk tindakan EPA ini."
+  end
+
+  def module_disabled
+    redirect_to epa_promotions_path, alert: "Input dan keputusan EPA untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."
   end
 end

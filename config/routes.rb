@@ -6,6 +6,7 @@ Rails.application.routes.draw do
 
   get "dashboard", to: "dashboard#show"
   resource :profile, only: %i[show edit update]
+  resource :module_configuration, only: %i[edit update]
   resources :roles, only: [] do
     collection do
       patch :switch

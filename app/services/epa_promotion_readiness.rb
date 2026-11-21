@@ -46,6 +46,7 @@ class EpaPromotionReadiness
 
   def applicable?
     @student.study_program_id.present? &&
+      ModuleConfiguration.for(@student.study_program).enabled?("epa") &&
       @epa.competency_framework.study_program_id == @student.study_program_id &&
       @epa.competency_framework.education_stage.in?(%w[professional specialist subspecialist]) &&
       @epa.competency_framework.status == "published" && @epa.status == "published"

@@ -30,6 +30,23 @@ class CompetencyFrameworksControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "kaprodi dapat mengelola peta hanya untuk program studinya" do
+    sign_in users(:dedi)
+
+    assert_difference "CompetencyFramework.count", 1 do
+      post competency_frameworks_path, params: {
+        competency_framework: { name: "Peta Prodi Kaprodi", study_program_id: study_programs(:sarjana_kedokteran).id }
+      }
+    end
+
+    assert_no_difference "CompetencyFramework.count" do
+      post competency_frameworks_path, params: {
+        competency_framework: { name: "Peta Prodi Lain", study_program_id: study_programs(:profesi_dokter).id }
+      }
+    end
+    assert_response :redirect
+  end
+
   test "admin dapat melihat pratinjau dan menduplikasi framework sebagai draf" do
     admin = users(:budi)
     admin.roles << roles(:admin)

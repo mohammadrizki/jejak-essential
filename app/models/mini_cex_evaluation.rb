@@ -29,6 +29,7 @@ class MiniCexEvaluation < ApplicationRecord
   belongs_to :student, class_name: "User"
   belongs_to :evaluator, class_name: "User"
   belongs_to :clinical_rotation
+  has_many :evidence_records, dependent: :restrict_with_error
 
   validates :case_description, presence: true
   validates :global_rating, inclusion: { in: GLOBAL_RATING_OPTIONS.keys }, unless: :requested?

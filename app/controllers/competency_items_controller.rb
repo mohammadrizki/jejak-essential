@@ -9,7 +9,7 @@ class CompetencyItemsController < ApplicationController
   before_action :set_competency_item, only: %i[edit update destroy]
 
   def create
-    authorize CompetencyItem
+    authorize @competency_framework, :update?
     @competency_item = @competency_framework.competency_items.new(competency_item_params)
 
     if @competency_item.save

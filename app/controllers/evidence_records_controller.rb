@@ -41,12 +41,17 @@ class EvidenceRecordsController < ApplicationController
     when :assessment_instance then current_user.assessment_instances.find_by(id: id) if type == "assessment_instance"
     when :activity_log then current_user.activity_logs.find_by(id: id) if type == "activity_log"
     when :reflection_entry then current_user.reflection_entries.find_by(id: id) if type == "reflection_entry"
+    when :mini_cex_evaluation
+      current_user.mini_cex_evaluations_as_student.submitted.find_by(id: id) if type == "mini_cex_evaluation"
+    when :dops_evaluation
+      current_user.dops_evaluations_as_student.submitted.find_by(id: id) if type == "dops_evaluation"
     end
   end
 
   def source_matches_requirement?(source, required_type)
     case required_type
     when "assessment" then source == :assessment_instance
+    when "wpba" then source.in?(%i[mini_cex_evaluation dops_evaluation])
     when "logbook" then source == :activity_log
     when "reflection" then source == :reflection_entry
     when "portfolio", "other" then true
@@ -57,6 +62,7 @@ class EvidenceRecordsController < ApplicationController
   def initial_result(source_record)
     case source_record
     when AssessmentInstance then source_record.status == "scored" ? "other" : "not_assessed"
+    when MiniCexEvaluation, DopsEvaluation then "other"
     when ActivityLog then source_record.verified_at.present? ? "pass" : "not_assessed"
     else
       source_record.respond_to?(:activity_log) && source_record.activity_log&.verified_at.present? ? "pass" : "not_assessed"

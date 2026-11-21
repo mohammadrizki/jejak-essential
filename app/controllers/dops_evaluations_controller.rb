@@ -3,6 +3,7 @@
 class DopsEvaluationsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_dops_evaluation, only: %i[show edit update destroy submit]
+  before_action :require_wpba_enabled, only: %i[new create edit update destroy submit]
 
   def show
     authorize @dops_evaluation
@@ -18,6 +19,7 @@ class DopsEvaluationsController < ApplicationController
     authorize DopsEvaluation
     @dops_evaluation = DopsEvaluation.new(dops_evaluation_params)
     @dops_evaluation.evaluator = current_user
+    authorize @dops_evaluation, :create_for_assigned_student?
 
     if @dops_evaluation.save
       redirect_to @dops_evaluation, notice: "Evaluasi DOPS berhasil disimpan."
@@ -59,13 +61,19 @@ class DopsEvaluationsController < ApplicationController
 
   private
 
+  def require_wpba_enabled
+    return if ModuleConfiguration.for(current_user.study_program).enabled?("wpba")
+
+    redirect_to assessments_path, alert: "Input WPBA untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."
+  end
+
   def set_dops_evaluation
     @dops_evaluation = DopsEvaluation.find(params[:id])
   end
 
   def load_form_collections
-    @students = User.active_accounts.joins(:roles).where(roles: { code: "mahasiswa" }).order(:full_name)
-    @clinical_rotations = ClinicalRotation.includes(:user).order(start_date: :desc)
+    @clinical_rotations = AssessmentAssignment.rotations_for(current_user).includes(:user).order(start_date: :desc)
+    @students = User.active_accounts.where(id: @clinical_rotations.select(:user_id)).order(:full_name)
   end
 
   def dops_evaluation_params

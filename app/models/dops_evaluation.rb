@@ -33,6 +33,7 @@ class DopsEvaluation < ApplicationRecord
   belongs_to :student, class_name: "User"
   belongs_to :evaluator, class_name: "User"
   belongs_to :clinical_rotation
+  has_many :evidence_records, dependent: :restrict_with_error
 
   validates :procedure_name, presence: true
 

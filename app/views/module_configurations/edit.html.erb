@@ -1,0 +1,57 @@
+<% content_for :title, "Aktivasi Modul" %>
+<div class="mx-auto max-w-3xl space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold text-slate-900">Aktivasi Modul</h1>
+    <p class="mt-1 text-sm text-slate-600"><%= @study_program.name %> · <%= @study_program.level_label %></p>
+    <p class="mt-2 text-sm text-slate-500">Menonaktifkan modul menghentikan input baru. Riwayat tetap tersimpan dan dapat dibaca sesuai izin.</p>
+  </header>
+
+  <% if @study_programs %>
+    <%= form_with url: edit_module_configuration_path, method: :get, class: "flex items-end gap-3" do |f| %>
+      <div class="flex-1">
+        <%= f.label :study_program_id, "Program studi", class: "mb-1 block text-sm font-medium text-slate-700" %>
+        <%= f.collection_select :study_program_id, @study_programs, :id, :name, { selected: @study_program.id },
+            class: "w-full rounded-lg border-slate-300 text-sm" %>
+      </div>
+      <%= f.submit "Pilih", class: "rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white" %>
+    <% end %>
+  <% end %>
+
+  <%= form_with url: module_configuration_path(study_program_id: @study_program.id), method: :patch, scope: :modules,
+      class: "rounded-2xl border border-slate-200 bg-white p-6 space-y-5" do |f| %>
+    <div class="rounded-xl bg-indigo-50 p-4">
+      <p class="font-semibold text-indigo-950">Core E-Portfolio · Selalu aktif</p>
+      <p class="mt-1 text-sm text-indigo-800">Peta kompetensi, Expected Evidence, koleksi bukti, refleksi, portofolio, kecukupan dan capaian kompetensi.</p>
+    </div>
+
+    <% [
+      ["clinical_logbook", "Logbook Klinis", "Catatan aktivitas profesional dan validasi aktivitas."],
+      ["wpba", "Workplace-Based Assessment", "Mini-CEX, DOPS dan instrumen observasi tempat kerja yang tersedia."],
+      ["epa", "EPA", "Observasi dan workflow EPA. Tidak berlaku untuk jenjang Sarjana."]
+    ].each do |key, label, description| %>
+      <label class="flex gap-3 rounded-xl border border-slate-200 p-4">
+        <%= f.check_box key, checked: @configuration.enabled?(key), disabled: (key == "epa" && @study_program.level == "sarjana"),
+            class: "mt-1 rounded border-slate-300 text-indigo-600" %>
+        <span>
+          <span class="block font-semibold text-slate-900"><%= label %></span>
+          <span class="mt-1 block text-sm text-slate-600"><%= description %></span>
+        </span>
+      </label>
+    <% end %>
+    <p class="text-xs text-slate-500">Adapter SIA, Moodle, Examtool dan OSCE belum tersedia sebagai konektor yang dapat diaktifkan. Impor CSV yang sudah ada tetap berjalan sesuai izin.</p>
+    <%= f.submit "Simpan konfigurasi", class: "rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700" %>
+  <% end %>
+
+  <section class="rounded-2xl border border-slate-200 bg-white">
+    <h2 class="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900">Riwayat perubahan konfigurasi</h2>
+    <ul class="divide-y divide-slate-100">
+      <% @history.each do |change| %>
+        <li class="px-5 py-3 text-sm text-slate-700">
+          <%= l(change.created_at, format: :long) %> · <%= change.actor.full_name %>
+          <span class="block text-xs text-slate-500"><%= change.after_value.map { |key, value| "#{key}=#{value ? 'aktif' : 'nonaktif'}" }.join(" · ") %></span>
+        </li>
+      <% end %>
+      <% if @history.empty? %><li class="px-5 py-4 text-sm text-slate-500">Belum ada perubahan; memakai konfigurasi bawaan.</li><% end %>
+    </ul>
+  </section>
+</div>

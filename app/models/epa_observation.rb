@@ -93,6 +93,15 @@ class EpaObservation < ApplicationRecord
         record.result = "other"
       end
     end
+    refresh_canonical_evidence_source!
     EpaPromotionReadiness.new(student: student, epa: epa).promote_if_eligible!
+  end
+
+  # Safety resolution changes the validity of an existing observation. Keep
+  # the prior source revision for audit, and point requirement links at the
+  # new canonical snapshot so readiness reflects the resolution.
+  def refresh_canonical_evidence_source!
+    source = EvidenceSource.for_local_record!(self)
+    evidence_records.update_all(evidence_source_id: source.id, updated_at: Time.current)
   end
 end

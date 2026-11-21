@@ -51,6 +51,26 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, blueprint.reload.draft_version.blueprint_items.count
   end
 
+  test "kaprodi dibatasi pada blueprint program studinya" do
+    kaprodi = users(:dedi)
+    program = StudyProgram.create!(name: "Program Kaprodi Uji", code: "kaprodi-#{SecureRandom.hex(3)}", level: "sarjana")
+    kaprodi.update!(study_program: program)
+    sign_in kaprodi
+
+    assert_difference "AssessmentBlueprint.count", 1 do
+      post assessment_blueprints_path, params: {
+          assessment_blueprint: { name: "Blueprint Kaprodi", study_program_id: program.id }
+      }
+    end
+
+    assert_no_difference "AssessmentBlueprint.count" do
+      post assessment_blueprints_path, params: {
+        assessment_blueprint: { name: "Blueprint Program Lain", study_program_id: study_programs(:profesi_dokter).id }
+      }
+    end
+    assert_response :redirect
+  end
+
   test "mahasiswa tidak bisa menambah mapping" do
     sign_in users(:siti)
 

@@ -2,13 +2,15 @@
 
 class EvidenceRequirement < ApplicationRecord
   ORIGINS = %w[blueprint manual].freeze
-  SOURCE_TYPES = %w[assessment logbook portfolio reflection epa_observation other].freeze
+  SOURCE_TYPES = %w[assessment wpba logbook portfolio reflection epa_observation external other].freeze
   SOURCE_TYPE_LABELS = {
     "assessment" => "Asesmen",
+    "wpba" => "Asesmen di Tempat Kerja (WPBA)",
     "logbook" => "Logbook",
     "portfolio" => "Portofolio",
     "reflection" => "Refleksi",
     "epa_observation" => "Observasi EPA",
+    "external" => "Bukti Terintegrasi",
     "other" => "Lainnya"
   }.freeze
   RULE_KEYS = %w[

@@ -22,7 +22,8 @@ module NavigationHelper
     [ %r{\A/admin/(evaluation_schedules|student_relabel|learning_units)}, "Administrasi", "Program Studi & Kurikulum" ],
     [ %r{\A/(admin/users|cari)}, "Administrasi", "Pengguna & Hak Akses" ],
     [ %r{\A/admin/(assessment_events|cbt_exams|glide_syncs|logbook_case_targets|academic_activity_domains|academic_activity_subdomains|academic_activity_templates|diagnosis_definitions|skill_definitions|medication_definitions|exports)}, "Administrasi", "Master Data" ],
-    [ %r{\A/admin/(terminology|data_governance)}, "Administrasi", "Pengaturan Sistem" ]
+    [ %r{\A/admin/(terminology|data_governance)}, "Administrasi", "Pengaturan Sistem" ],
+    [ %r{\A/module_configuration}, "Administrasi", "Pengaturan Sistem" ]
   ].freeze
 
   def navigation_breadcrumbs

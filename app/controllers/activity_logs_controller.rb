@@ -3,6 +3,7 @@
 class ActivityLogsController < ApplicationController
   before_action :authenticate_user!, except: %i[feed]
   before_action :set_activity_log, only: %i[show edit update destroy generate_patient_code verify]
+  before_action :require_logbook_enabled_for_write, only: %i[new create edit update]
 
   # scope=to_verify (pengajar saja): kegiatan siapa pun yang belum
   # diverifikasi, meniru tab "Perlu Diverifikasi" ClinicalCasesController.
@@ -119,6 +120,12 @@ class ActivityLogsController < ApplicationController
   end
 
   private
+
+  def require_logbook_enabled_for_write
+    return if ModuleConfiguration.for(current_user.study_program).enabled?("clinical_logbook")
+
+    redirect_to activity_logs_path, alert: "Input Logbook untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."
+  end
 
   def set_activity_log
     @activity_log = ActivityLog.find(params[:id])
