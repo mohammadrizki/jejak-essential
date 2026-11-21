@@ -39,15 +39,12 @@ class ClinicalCaseVerificationActionsTest < ActionDispatch::IntegrationTest
     assert_equal "submitted", @kasus.reload.status
   end
 
-  test "verifier membatalkan verifikasi: kasus kembali ke antrean dan level EPA dari kasus itu dicabut, keputusan lama pulih" do
-    epa = competency_frameworks(:skdi_ringkas).domains.first
+  test "verifier membatalkan verifikasi tanpa membuat keputusan EPA" do
     sign_in users(:budi)
-    post entrustment_decisions_path, params: { student_id: users(:siti).id, competency_item_id: epa.id, level: 2, justification: "Masih perlu supervisi penuh saat ini." }
-    earlier = EntrustmentDecision.current.find_by!(student: users(:siti), competency_item: epa)
 
-    patch verify_clinical_case_path(@kasus), params: { entrustment_level: "mandiri", epa_item_ids: [ epa.id ] }
-    from_case = EntrustmentDecision.current.find_by!(student: users(:siti), competency_item: epa)
-    assert_equal 4, from_case.level
+    assert_no_difference "EntrustmentDecision.count" do
+      patch verify_clinical_case_path(@kasus), params: { entrustment_level: "mandiri" }
+    end
 
     get clinical_case_path(@kasus)
     assert_match "Batalkan Verifikasi", response.body
@@ -58,13 +55,11 @@ class ClinicalCaseVerificationActionsTest < ActionDispatch::IntegrationTest
     assert_equal "submitted", @kasus.status
     assert_nil @kasus.verified_by
     assert_nil @kasus.entrustment_level
-    assert from_case.reload.revoked?
-    assert_nil earlier.reload.superseded_at
-    assert_equal earlier, EntrustmentDecision.current.find_by!(student: users(:siti), competency_item: epa)
+    assert_not EntrustmentDecision.exists?(student: users(:siti))
     assert_equal "verification_cancelled", @kasus.case_verification_comments.last.action
 
     get entrustment_decisions_path(student_id: users(:siti).id)
-    assert_match "dicabut", response.body
+    assert_response :success
   end
 
   test "pengajar lain tidak boleh membatalkan verifikasi orang lain" do

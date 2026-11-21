@@ -1,0 +1,24 @@
+<details class="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700">
+  <summary class="cursor-pointer font-semibold">Aturan pemenuhan tambahan</summary>
+  <div class="mt-3 grid gap-2 sm:grid-cols-2">
+    <label class="flex items-center gap-2">
+      <%= hidden_field_tag "evidence_requirement[fulfillment_rule][require_validation]", "0" %>
+      <%= check_box_tag "evidence_requirement[fulfillment_rule][require_validation]", "1", rule.fetch("require_validation", true), class: "rounded border-gray-300 text-indigo-600" %>
+      Hitung hanya bukti yang sudah dinilai atau divalidasi
+    </label>
+    <label class="flex items-center gap-2">
+      <%= hidden_field_tag "evidence_requirement[fulfillment_rule][critical]", "0" %>
+      <%= check_box_tag "evidence_requirement[fulfillment_rule][critical]", "1", rule.fetch("critical", false), class: "rounded border-gray-300 text-indigo-600" %>
+      Komponen kritis
+    </label>
+    <%= number_field_tag "evidence_requirement[fulfillment_rule][minimum_pass]", rule["minimum_pass"], min: 0, placeholder: "Minimal bukti lulus", class: "rounded-lg border-gray-300" %>
+    <%= number_field_tag "evidence_requirement[fulfillment_rule][minimum_distinct_cases]", rule["minimum_distinct_cases"], min: 0, placeholder: "Kasus berbeda minimal", class: "rounded-lg border-gray-300" %>
+    <%= number_field_tag "evidence_requirement[fulfillment_rule][minimum_distinct_assessors]", rule["minimum_distinct_assessors"], min: 0, placeholder: "Penilai berbeda minimal", class: "rounded-lg border-gray-300" %>
+    <%= number_field_tag "evidence_requirement[fulfillment_rule][minimum_distinct_dates]", rule["minimum_distinct_dates"], min: 0, placeholder: "Tanggal pengamatan berbeda minimal", class: "rounded-lg border-gray-300" %>
+    <%= number_field_tag "evidence_requirement[fulfillment_rule][minimum_span_days]", rule["minimum_span_days"], min: 0, placeholder: "Rentang waktu minimum (hari)", class: "rounded-lg border-gray-300" %>
+    <%= number_field_tag "evidence_requirement[fulfillment_rule][minimum_distinct_opportunities]", rule["minimum_distinct_opportunities"], min: 0, placeholder: "Kesempatan berbeda minimal", class: "rounded-lg border-gray-300" %>
+    <%= text_field_tag "evidence_requirement[fulfillment_rule][independence_group]", rule.fetch("independence_group", indicator ? "indicator" : ""), placeholder: "Kelompok bukti independen (opsional)", class: "rounded-lg border-gray-300 sm:col-span-2" %>
+    <%= text_area_tag "evidence_requirement[fulfillment_rule][additional_criteria]", rule["additional_criteria"], rows: 2, placeholder: "Ketentuan tambahan", class: "rounded-lg border-gray-300 sm:col-span-2" %>
+    <p class="text-[11px] text-gray-500 sm:col-span-2">Syarat dengan kelompok independensi yang sama tidak dapat memakai sumber bukti aktual yang sama. Jumlah minimum utama diisi pada kolom jumlah bukti.</p>
+  </div>
+</details>

@@ -19,15 +19,17 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
     assert_match assessment_blueprints(:osce_blueprint).name, response.body
   end
 
-  test "admin bisa membuat blueprint dan menambah mapping kompetensi" do
+  test "admin membuat blueprint dan memetakan kompetensi pada komponen versi draf" do
     admin = users(:budi)
     admin.roles << roles(:admin)
     sign_in admin
+    program = create_test_program
 
     assert_difference "AssessmentBlueprint.count", 1 do
       post assessment_blueprints_path, params: {
         assessment_blueprint: {
           name: "Blueprint Baru",
+          study_program_id: program.id,
           description: "Contoh",
           learning_outcomes_text: "Mampu mendiagnosis nyeri dada"
         }
@@ -37,12 +39,16 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
     blueprint = AssessmentBlueprint.find_by(name: "Blueprint Baru")
     assert_equal [ "Mampu mendiagnosis nyeri dada" ], blueprint.learning_outcomes
 
-    assert_difference "AssessmentBlueprintMapping.count", 1 do
-      post assessment_blueprint_assessment_blueprint_mappings_path(blueprint), params: {
-        assessment_blueprint_mapping: { competency_item_id: competency_items(:domain_klinis).id, weight: 100 }
+    assert_difference "BlueprintItemCompetency.count", 1 do
+      post assessment_blueprint_blueprint_items_path(blueprint), params: {
+        blueprint_item: {
+          code: "C-01", title: "CBT Kardiovaskular",
+          assessment_method_id: create_assessment_method.id,
+          competency_item_ids: [ blueprint.study_program.peta_kompetensi.domains.first.id ]
+        }
       }
     end
-    assert_equal 100.0, blueprint.reload.total_weight
+    assert_equal 1, blueprint.reload.draft_version.blueprint_items.count
   end
 
   test "mahasiswa tidak bisa menambah mapping" do
@@ -59,12 +65,12 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
     admin = users(:budi)
     admin.roles << roles(:admin)
     sign_in admin
-    blueprint = AssessmentBlueprint.create!(name: "Blueprint Kosong")
+    blueprint = AssessmentBlueprint.create!(name: "Blueprint Kosong", study_program: create_test_program)
 
     get assessment_blueprint_path(blueprint)
-    assert_select "form[action=?]", assessment_blueprint_assessment_blueprint_mappings_path(blueprint) do
-      assert_select "select[name=?]", "assessment_blueprint_mapping[competency_item_id]"
-      assert_select "input[name=?]", "assessment_blueprint_mapping[weight]"
+    assert_select "form[action=?]", assessment_blueprint_blueprint_items_path(blueprint) do
+      assert_select "select[name=?]", "blueprint_item[competency_item_ids][]"
+      assert_select "input[name=?]", "blueprint_item[title]"
     end
   end
 
@@ -72,12 +78,28 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
     admin = users(:budi)
     admin.roles << roles(:admin)
     sign_in admin
-    blueprint = AssessmentBlueprint.create!(name: "Blueprint Lepas")
+    blueprint = AssessmentBlueprint.create!(name: "Blueprint Lepas", study_program: create_test_program)
     unit = LearningUnit.create!(name: "Blok Uji", study_program: study_programs(:sarjana_kedokteran), assessment_blueprint: blueprint)
 
-    assert_difference "AssessmentBlueprint.count", -1 do
+    assert_no_difference "AssessmentBlueprint.count" do
       delete assessment_blueprint_path(blueprint)
     end
-    assert_nil unit.reload.assessment_blueprint_id
+    assert_equal blueprint.id, unit.reload.assessment_blueprint_id
+    assert AssessmentBlueprint.exists?(blueprint.id)
+  end
+
+  private
+
+  def create_test_program
+    program = StudyProgram.create!(name: "Program Blueprint Uji", code: "bp-#{SecureRandom.hex(3)}", level: "sarjana")
+    framework = CompetencyFramework.create!(study_program: program, name: "Peta Blueprint Uji", version: "1",
+      education_stage: "undergraduate")
+    framework.competency_items.create!(title: "Domain Uji", code: "D-01", level_type: "domain")
+    framework.publish!
+    program.reload
+  end
+
+  def create_assessment_method
+    AssessmentMethod.create!(code: "cbt-test", name: "Uji CBT", assessment_type: "written")
   end
 end

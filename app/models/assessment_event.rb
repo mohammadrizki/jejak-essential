@@ -12,7 +12,7 @@ class AssessmentEvent < ApplicationRecord
     "tmex"               => [ "TMEX",                         :written,  %w[pssk pspd] ],
     "progress_test"      => [ "Progress Test",                :written,  %w[pssk pspd] ],
     "osce"               => [ "OSCE",                         :practical, %w[pssk pspd] ],
-    "ebcr"               => [ "EBCR (Evidence-Based Case Report)", :rubric, %w[pspd] ],
+    "ebcr"               => [ "EBCR (Laporan Kasus Berbasis Bukti)", :rubric, %w[pspd] ],
     "soca_msp"           => [ "SOCA / MSP",                   :rubric,   %w[pssk] ],
     "essay_gagasan"      => [ "Essay Gagasan",                :rubric,   %w[pssk] ],
     "festival_gagasan"   => [ "Festival Gagasan",             :rubric,   %w[pssk] ],
@@ -31,6 +31,7 @@ class AssessmentEvent < ApplicationRecord
 
   belongs_to :academic_period
   belongs_to :study_program, optional: true
+  belongs_to :blueprint_item, optional: true
   belongs_to :assessment_form_template, optional: true
   belongs_to :created_by, class_name: "User", optional: true
   has_many :assessment_instances, dependent: :destroy
@@ -47,6 +48,9 @@ class AssessmentEvent < ApplicationRecord
   validates :max_score, numericality: { greater_than: 0 }
   validates :exam_purpose, inclusion: { in: EXAM_PURPOSES.keys }, allow_nil: true
   validates :external_code, uniqueness: true, allow_nil: true
+  validate :blueprint_item_matches_program
+  validate :active_blueprint_item_for_new_event
+  validate :blueprint_item_unchanged_after_attempts
 
   scope :published, -> { where(status: "published") }
   scope :ordered, -> { order(exam_date: :desc, created_at: :desc) }
@@ -109,5 +113,33 @@ class AssessmentEvent < ApplicationRecord
 
   def self.types_for_select
     TYPES.map { |code, (label, family, _)| [ "#{label} — #{FAMILY_LABELS[family]}", code ] }
+  end
+
+  private
+
+  def blueprint_item_matches_program
+    return if blueprint_item.blank?
+    if study_program_id.blank?
+      errors.add(:study_program, "wajib dipilih saat event ditautkan ke komponen blueprint")
+      return
+    end
+    if blueprint_item.blueprint_version.assessment_blueprint.study_program_id != study_program_id
+      errors.add(:blueprint_item, "harus berasal dari blueprint program studi event")
+    end
+
+  end
+
+  def active_blueprint_item_for_new_event
+    return unless blueprint_item.present? && (new_record? || will_save_change_to_blueprint_item_id?)
+    return if blueprint_item.blueprint_version.status == "published" &&
+      blueprint_item.blueprint_version.competency_framework.status == "published"
+
+    errors.add(:blueprint_item, "hanya komponen dari versi blueprint dan framework terbit yang dapat dipakai pada event baru")
+  end
+
+  def blueprint_item_unchanged_after_attempts
+    return unless persisted? && will_save_change_to_blueprint_item_id? && assessment_instances.exists?
+
+    errors.add(:blueprint_item, "tidak dapat diubah setelah asesmen memiliki percobaan")
   end
 end

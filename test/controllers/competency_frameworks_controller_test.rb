@@ -26,7 +26,39 @@ class CompetencyFrameworksControllerTest < ActionDispatch::IntegrationTest
     sign_in admin
 
     assert_difference "CompetencyFramework.count", 1 do
-      post competency_frameworks_path, params: { competency_framework: { name: "Peta Baru" } }
+      post competency_frameworks_path, params: { competency_framework: { name: "Peta Baru", study_program_id: study_programs(:profesi_dokter).id } }
     end
+  end
+
+  test "admin dapat melihat pratinjau dan menduplikasi framework sebagai draf" do
+    admin = users(:budi)
+    admin.roles << roles(:admin)
+    sign_in admin
+    source = competency_frameworks(:skdi_ringkas)
+
+    get duplicate_competency_framework_path(source)
+    assert_response :success
+    assert_match "Tinjau framework sumber", response.body
+
+    assert_difference "CompetencyFramework.count", 1 do
+      post duplicate_competency_framework_path(source), params: {
+        name: "Salinan untuk Profesi", study_program_id: study_programs(:profesi_dokter).id
+      }
+    end
+    copy = CompetencyFramework.order(:created_at).last
+    assert_equal "draft", copy.status
+    assert_equal "framework_copy", copy.provenance.fetch("kind")
+    assert_not_equal source.competency_items.first.id, copy.competency_items.first.id
+  end
+
+  test "pengguna non-admin tidak dapat menduplikasi framework" do
+    sign_in users(:siti)
+
+    assert_no_difference "CompetencyFramework.count" do
+      post duplicate_competency_framework_path(competency_frameworks(:skdi_ringkas)), params: {
+        name: "Tidak Diizinkan", study_program_id: study_programs(:profesi_dokter).id
+      }
+    end
+    assert_response :redirect
   end
 end

@@ -12,7 +12,7 @@ class StudyProgram < ApplicationRecord
   }.freeze
 
   has_many :users, dependent: :nullify
-  has_one :peta_kompetensi, class_name: "CompetencyFramework", dependent: :restrict_with_error
+  has_many :framework_versions, class_name: "CompetencyFramework", dependent: :restrict_with_error
   has_one :assessment_blueprint, dependent: :restrict_with_error
 
   # Kerangka Peta EPA prodi ini — lihat CompetencyFramework.for_student.
@@ -26,6 +26,12 @@ class StudyProgram < ApplicationRecord
 
   def level_label
     LEVELS.fetch(level, level)
+  end
+
+  # Compatibility accessor used throughout the portfolio. Published versions
+  # are preferred; draft-only programs can still configure their first map.
+  def peta_kompetensi
+    framework_versions.order(Arel.sql("CASE status WHEN 'published' THEN 0 ELSE 1 END"), created_at: :desc, id: :desc).first
   end
 
   def sarjana?

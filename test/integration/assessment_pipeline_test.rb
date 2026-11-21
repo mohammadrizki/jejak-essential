@@ -335,26 +335,22 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
   end
 
   # ── Peta EPA ──
-  test "verifikasi kasus dengan ranah EPA terpilih menulis level entrustment; penilaian baru menggantikan yang lama" do
+  test "verifikasi kasus tetap terpisah dari keputusan entrustment dan keputusan langsung ditolak" do
     kasus = clinical_cases(:submitted_case_siti)
     epa = competency_frameworks(:skdi_ringkas).domains.first
     sign_in users(:budi)
 
-    assert_difference "EntrustmentDecision.count", 1 do
+    assert_no_difference "EntrustmentDecision.count" do
       patch verify_clinical_case_path(kasus), params: { entrustment_level: "supervisi_tidak_langsung", epa_item_ids: [ epa.id ], comment: "Baik" }
     end
-    first = EntrustmentDecision.current.find_by!(student: users(:siti), competency_item: epa)
-    assert_equal 3, first.level
-    assert_equal kasus, first.clinical_case
 
-    post entrustment_decisions_path, params: { student_id: users(:siti).id, competency_item_id: epa.id, level: 4, justification: "Sudah mandiri di tiga kasus terakhir." }
+    post entrustment_decisions_path, params: { student_id: users(:siti).id, epa_id: epa.id, level: 4, justification: "Sudah mandiri di tiga kasus terakhir." }
     assert_redirected_to entrustment_decisions_path(student_id: users(:siti).id)
-    assert_not_nil first.reload.superseded_at
-    assert_equal 4, EntrustmentDecision.current.find_by!(student: users(:siti), competency_item: epa).level
+    assert_not EntrustmentDecision.exists?(student: users(:siti), competency_item: epa)
 
     get entrustment_decisions_path(student_id: users(:siti).id)
     assert_response :success
-    assert_match "tergantikan", response.body
+    assert_match "tinjauan Otoritas Akademik", response.body
   end
 
   test "mahasiswa melihat Peta EPA miliknya tanpa form; pengajar tanpa relasi ditolak menilai" do

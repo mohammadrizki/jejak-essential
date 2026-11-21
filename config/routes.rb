@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   # Dasbor Mahasiswa (hanya-baca) untuk pengajar/kaprodi/admin — pintu masuk
   # dari hasil pencarian; kartunya membawa ?student_id= ke halaman asesmen.
   get "mahasiswa/:id", to: "student_dashboards#show", as: :student_dashboard
+  post "mahasiswa/:student_id/competency-attainments", to: "competency_attainments#create", as: :student_competency_attainments
   get "panduan", to: "panduan#index", as: :panduan
   get "brand", to: "brand#index", as: :brand
   # Unduhan lampiran (bukti kasus/kegiatan, dokumen asesmen, foto profil) —
@@ -222,16 +223,47 @@ Rails.application.routes.draw do
   # Peta EPA & Tingkat Entrustment
   get  "dashboard/entrustment", to: "entrustment_decisions#index",  as: :entrustment_decisions
   post "dashboard/entrustment", to: "entrustment_decisions#create"
+  get "epa_observations/new", to: "epa_observations#new", as: :new_epa_observation
+  resources :epa_observations, only: %i[index create] do
+    member { patch :resolve_safety }
+  end
+  resources :epa_promotions, only: %i[index] do
+    member do
+      patch :promote
+      patch :review
+    end
+  end
 
   resources :assessment_blueprints do
+    member { post :new_version; patch :publish_version }
     resources :assessment_blueprint_mappings, only: %i[create destroy]
+    resources :blueprint_items, only: %i[create destroy]
   end
   resources :competency_frameworks do
-    resources :competency_items, only: %i[create destroy]
+    member { post :new_version; patch :publish_version; get :duplicate; post :duplicate }
+    resources :competency_items, only: %i[create edit update destroy]
+    resources :epas, only: %i[create destroy] do
+      member { post :map_competency }
+      resources :epa_milestones, only: %i[create destroy]
+    end
+    resources :evidence_requirements, only: %i[create edit update destroy]
+  end
+  resources :competency_framework_templates, only: %i[index show] do
+    post :duplicate, on: :member
+  end
+  resources :competency_items, only: [] do
+    resources :competency_indicators, only: %i[create edit update destroy]
   end
   resources :competency_items, only: [] do
     resources :competency_milestones, only: %i[create destroy]
   end
+  resources :blueprint_items, only: [] do
+    resources :evidence_requirements, only: %i[create edit update destroy]
+  end
+  resources :evidence_requirements, only: [ :index ] do
+    resources :evidence_records, only: %i[create]
+  end
+  get "peta-artefak", to: "artifact_maps#index", as: :artifact_map
   get "capaian-belajar", to: "academic_assessments#index", as: :academic_assessments
   get "analitik", to: "analytics#index", as: :analytics
 

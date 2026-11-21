@@ -2,3 +2,4 @@ skdi_ringkas:
   name: Standar Kompetensi Dokter Indonesia (Ringkas)
   description: Tujuh area kompetensi inti dokter layanan primer.
   study_program: sarjana_kedokteran
+  education_stage: undergraduate

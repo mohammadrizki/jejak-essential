@@ -1,0 +1,20 @@
+<div class="max-w-4xl">
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-bold text-gray-900">Pustaka Template Kerangka Kompetensi</h1>
+      <p class="mt-1 text-sm text-gray-500">Template adalah titik awal. Saat dipilih, isinya disalin ke framework baru milik program studi.</p>
+    </div>
+    <%= link_to "← Peta Kompetensi", competency_frameworks_path, class: "text-sm text-indigo-600 hover:underline" %>
+  </div>
+  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    <% @templates.each do |template| %>
+      <article class="rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Template v<%= template.template_version %></p>
+        <h2 class="mt-1 font-semibold text-gray-900"><%= template.name %></h2>
+        <p class="mt-2 text-sm text-gray-600"><%= template.description %></p>
+        <p class="mt-2 text-xs text-gray-500">Sumber: <%= template.source_name %> · versi <%= template.source_version %></p>
+        <%= link_to "Pratinjau template", competency_framework_template_path(template.key), class: "mt-4 inline-flex rounded-lg border border-indigo-200 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" %>
+      </article>
+    <% end %>
+  </div>
+</div>

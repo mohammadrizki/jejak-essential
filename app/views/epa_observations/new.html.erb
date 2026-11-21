@@ -1,0 +1,27 @@
+<div class="max-w-2xl mx-auto px-4 py-6 space-y-5">
+  <div>
+    <%= link_to "← Kembali ke observasi", epa_observations_path(student_id: @student.id), class: "text-sm text-indigo-700" %>
+    <h1 class="mt-3 text-2xl font-bold text-gray-900">Observasi formatif EPA</h1>
+    <p class="mt-1 text-sm text-gray-600"><%= @student.full_name %> · <%= @epa.code %> — <%= @epa.title %></p>
+    <p class="mt-2 text-xs text-amber-800 bg-amber-50 rounded-lg p-3">Catatan ini merekam supervisi pada satu kejadian. Catatan ini bukan keputusan entrustment.</p>
+  </div>
+  <%= form_with model: @observation, class: "bg-white rounded-2xl ring-1 ring-gray-200 p-5 space-y-4" do |f| %>
+    <%= f.hidden_field :student_id, value: @student.id %>
+    <%= f.hidden_field :epa_id, value: @epa.id %>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div><%= f.label :observed_at, "Waktu pengamatan", class: "block text-sm font-medium" %><%= f.datetime_local_field :observed_at, required: true, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+      <div><%= f.label :complexity, "Kompleksitas kasus", class: "block text-sm font-medium" %><%= f.select :complexity, EpaObservation::COMPLEXITIES.map { |v| [v.humanize, v] }, {}, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+    </div>
+    <div><%= f.label :supervision_level_id, "Supervisi yang benar-benar diberikan", class: "block text-sm font-medium" %><%= f.collection_select :supervision_level_id, @scales.flat_map(&:supervision_levels), :id, :label, { prompt: "Pilih tingkat supervisi" }, required: true, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :clinical_rotation_id, "Rotasi", class: "block text-sm font-medium" %><%= f.collection_select :clinical_rotation_id, @student.clinical_rotations.order(start_date: :desc), :id, :station_name, { include_blank: "Tidak ditautkan" }, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :clinical_case_id, "Kasus klinis (opsional)", class: "block text-sm font-medium" %><%= f.collection_select :clinical_case_id, @student.clinical_cases.where(status: "verified").order(case_date: :desc), :id, :chief_complaint, { include_blank: "Tidak ditautkan" }, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :activity_scope, "Bagian aktivitas yang diamati", class: "block text-sm font-medium" %><%= f.text_area :activity_scope, rows: 2, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :narrative, "Catatan pengamatan", class: "block text-sm font-medium" %><%= f.text_area :narrative, rows: 4, required: true, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div><%= f.label :strengths, "Hal yang berjalan baik", class: "block text-sm font-medium" %><%= f.text_area :strengths, rows: 2, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+      <div><%= f.label :areas_to_improve, "Hal yang perlu dikembangkan", class: "block text-sm font-medium" %><%= f.text_area :areas_to_improve, rows: 2, class: "mt-1 w-full rounded-lg border-gray-300" %></div>
+    </div>
+    <label class="flex items-start gap-2 rounded-lg bg-rose-50 p-3 text-sm text-rose-900"><%= f.check_box :safety_flag, class: "mt-0.5 rounded border-rose-300" %><span>Tandai masalah keselamatan yang perlu ditindaklanjuti. Observasi bertanda keselamatan tidak dihitung sebagai bukti promosi.</span></label>
+    <%= f.submit "Simpan observasi", class: "w-full rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white" %>
+  <% end %>
+</div>

@@ -47,6 +47,11 @@
       <%= f.datetime_local_field :submission_close_at, class: cls %>
     </div>
     <div class="sm:col-span-2">
+      <%= f.label :blueprint_item_id, "Komponen blueprint (opsional)", class: lbl %>
+      <%= f.collection_select :blueprint_item_id, @blueprint_items, :id, ->(item) { "#{item.title} · #{item.assessment_method.name} · #{item.blueprint_version.assessment_blueprint.name}" }, { include_blank: "Tidak ditautkan" }, class: cls %>
+      <p class="mt-1 text-[11px] text-gray-400">Menautkan event ke komponen blueprint memungkinkan hasilnya menjadi bukti aktual untuk memenuhi syarat bukti.</p>
+    </div>
+    <div class="sm:col-span-2">
       <%= f.label :assessment_form_template_id, "Rubrik penguji (Assessment Form Builder, opsional)", class: lbl %>
       <%= f.collection_select :assessment_form_template_id, @form_templates, :id, :name, { include_blank: "Tanpa rubrik terstruktur — penguji memberi nilai langsung" }, class: cls %>
     </div>

@@ -308,7 +308,7 @@ annisa.putri@kampus.ac.id,Annisa Putri,mahasiswa,pspd
 
 *Kaprodi menetapkan isinya, admin memasukkannya. Kaprodi tidak punya akses ke menu-menu ini.*
 
-1. **Kerangka kompetensi** (**Konfigurasi → Kerangka Kompetensi**). Sesuaikan kerangka contoh, atau buat kerangka baru: tambah atau hapus ranah dan sub-kompetensi, lalu isi target skor per periode lewat **Set Target**.
+1. **Program Studi dan kerangka kompetensi** (**Konfigurasi → Program Studi**, lalu **Konfigurasi → Kerangka Kompetensi**). Buat program studi terlebih dahulu, kemudian sesuaikan kerangka contoh atau buat kerangka baru. Isi ranah, tambahkan indikator, dan bila perlu kelompokkan indikator yang lebih spesifik di bawah sub-kompetensi. Indikator dapat ditambahkan langsung pada ranah; sub-kompetensi bukan langkah wajib. Terakhir, isi target skor per periode lewat **Set Target**.
 2. **Kerangka Peta EPA tiap prodi** (**Konfigurasi → Program Studi → Sunting**). Pilih kerangka yang dipakai Peta EPA mahasiswa prodi itu dan pilihan EPA saat verifikasi kasus. Bila dikosongkan, dipakai kerangka yang paling awal dibuat.
 3. **Target kasus** (**Konfigurasi → Target Kasus Logbook**). Buat satu target FKTP dan satu FKRTL per prodi. Kasus berlatar Pelayanan Primer dihitung FKTP, sisanya FKRTL. Tanpa target, kartu pemenuhan target tidak tampil bagi mahasiswa.
 4. **Domain kegiatan** (**Konfigurasi → Domain Kegiatan Akademik**). Nonaktifkan yang tidak dipakai supaya form mahasiswa ringkas.
@@ -1378,7 +1378,24 @@ Aturan pengaman:
 
 ### 6.7 Kerangka Kompetensi
 
-`/competency_frameworks` — pohon dua tingkat: **ranah/domain** (tingkat atas) dan **sub-kompetensi**. Bawaan: *Standar Kompetensi Dokter Indonesia (Ringkas)* dengan 7 area. Semua pengguna dapat melihatnya; hanya admin yang menambah/menghapus butir (form inline di halaman detail). Ranah tingkat atas berfungsi sebagai **EPA** di Peta EPA. Dari baris ranah, admin juga menetapkan **target milestone** (skor 1–9 per periode, lewat formulir **Set Target**) yang tampil di Peta Kompetensi mahasiswa.
+`/competency_frameworks` — hierarki kompetensi memiliki dua tingkat: **ranah/domain** dan **sub-kompetensi**. Indikator adalah uraian terukur yang dapat ditambahkan langsung pada ranah atau pada sub-kompetensi. Jadi, sub-kompetensi bersifat opsional: gunakan jika indikator perlu dikelompokkan lebih rinci; jika indikator berlaku untuk seluruh ranah, tambahkan langsung di ranah.
+
+Urutan pengisian yang disarankan:
+
+1. Atur **Program Studi** terlebih dahulu, lalu buat atau pilih **Kerangka Kompetensi**.
+2. Tambahkan **ranah** sebagai kelompok kompetensi utama.
+3. Tambahkan **indikator** langsung pada ranah untuk kemampuan yang berlaku umum. Jika perlu pengelompokan yang lebih spesifik, tambahkan **sub-kompetensi**, lalu isi indikator pada sub-kompetensi tersebut.
+
+Contoh struktur:
+
+~~~text
+Ranah: Komunikasi
+├── Indikator: Menjelaskan rencana pemeriksaan kepada pasien
+└── Sub-kompetensi: Komunikasi saat konsultasi
+    └── Indikator: Menggunakan pertanyaan terbuka untuk menggali keluhan
+~~~
+
+Bawaan: *Standar Kompetensi Dokter Indonesia (Ringkas)* dengan 7 ranah. Semua pengguna dapat melihat kerangka; hanya admin yang dapat mengubah isinya, melalui formulir pada halaman detail. Ranah tingkat atas berfungsi sebagai **EPA** di Peta EPA. Dari baris ranah, admin juga menetapkan **target milestone** (skor 1–9 per periode, lewat formulir **Set Target**) yang tampil di Peta Kompetensi mahasiswa.
 
 ![Kerangka Kompetensi: ranah dan sub-kompetensi, dengan formulir tambah butir dan Set Target](panduan/6-7-kerangka-kompetensi.png)
 

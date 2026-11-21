@@ -65,5 +65,19 @@ export default class extends Controller {
 
       group.style.display = (normalizedQuery === "" || groupHasVisibleLink) ? "" : "none"
     })
+
+    nav.querySelectorAll("[data-controller~='accordion']").forEach(accordion => {
+      const content = accordion.querySelector("[data-accordion-target='content']")
+      const trigger = accordion.querySelector("[data-accordion-target='trigger']")
+      const icon = accordion.querySelector("[data-accordion-target='icon']")
+      if (!content) return
+
+      const open = normalizedQuery === ""
+        ? accordion.dataset.accordionOpenValue === "true"
+        : Array.from(accordion.querySelectorAll("a.group")).some(link => link.style.display !== "none")
+      content.classList.toggle("hidden", !open)
+      if (trigger) trigger.setAttribute("aria-expanded", String(open))
+      if (icon) icon.classList.toggle("rotate-180", open)
+    })
   }
 }

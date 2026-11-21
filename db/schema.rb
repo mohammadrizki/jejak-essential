@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_22_010005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -206,9 +206,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.bigint "study_program_id"
     t.datetime "submission_close_at"
     t.datetime "updated_at", null: false
+    t.bigint "blueprint_item_id"
     t.index ["academic_period_id", "assessment_type"], name: "idx_on_academic_period_id_assessment_type_60ee6849bc"
     t.index ["academic_period_id"], name: "index_assessment_events_on_academic_period_id"
     t.index ["assessment_form_template_id"], name: "index_assessment_events_on_assessment_form_template_id"
+    t.index ["blueprint_item_id"], name: "index_assessment_events_on_blueprint_item_id"
     t.index ["created_by_id"], name: "index_assessment_events_on_created_by_id"
     t.index ["external_code"], name: "index_assessment_events_on_external_code", unique: true, where: "(external_code IS NOT NULL)"
     t.index ["study_program_id"], name: "index_assessment_events_on_study_program_id"
@@ -305,6 +307,83 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.index ["learning_unit_id"], name: "index_assessment_mappings_on_learning_unit_id"
   end
 
+  create_table "assessment_methods", force: :cascade do |t|
+    t.string "code", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.string "assessment_type"
+    t.boolean "is_active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_assessment_methods_on_code", unique: true
+  end
+
+  create_table "blueprint_item_competencies", force: :cascade do |t|
+    t.bigint "blueprint_item_id", null: false
+    t.bigint "competency_item_id", null: false
+    t.bigint "competency_indicator_id"
+    t.decimal "assessment_weight", precision: 7, scale: 3
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["blueprint_item_id", "competency_item_id", "competency_indicator_id"], name: "idx_blueprint_item_competencies_unique", unique: true
+    t.index ["blueprint_item_id", "competency_item_id"], name: "idx_blueprint_item_competency_without_indicator", unique: true, where: "(competency_indicator_id IS NULL)"
+    t.index ["blueprint_item_id"], name: "index_blueprint_item_competencies_on_blueprint_item_id"
+    t.index ["competency_indicator_id"], name: "index_blueprint_item_competencies_on_competency_indicator_id"
+    t.index ["competency_item_id"], name: "index_blueprint_item_competencies_on_competency_item_id"
+  end
+
+  create_table "blueprint_item_epas", force: :cascade do |t|
+    t.bigint "blueprint_item_id", null: false
+    t.bigint "epa_id", null: false
+    t.string "assessment_purpose", null: false
+    t.integer "expected_level"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "supervision_level_id"
+    t.index ["blueprint_item_id", "epa_id", "assessment_purpose"], name: "idx_blueprint_item_epas_unique", unique: true
+    t.index ["blueprint_item_id"], name: "index_blueprint_item_epas_on_blueprint_item_id"
+    t.index ["epa_id"], name: "index_blueprint_item_epas_on_epa_id"
+    t.index ["supervision_level_id"], name: "index_blueprint_item_epas_on_supervision_level_id"
+    t.check_constraint "assessment_purpose::text = ANY (ARRAY['formative'::character varying, 'summative'::character varying, 'entrustment'::character varying]::text[])", name: "chk_blueprint_epa_purpose"
+    t.check_constraint "expected_level IS NULL OR expected_level >= 1", name: "chk_blueprint_epa_expected_level"
+  end
+
+  create_table "blueprint_items", force: :cascade do |t|
+    t.bigint "blueprint_version_id", null: false
+    t.bigint "assessment_method_id", null: false
+    t.string "code", null: false
+    t.string "title", null: false
+    t.text "assessment_context"
+    t.integer "target_count"
+    t.decimal "weight", precision: 7, scale: 3
+    t.string "frequency"
+    t.string "curricular_stage"
+    t.string "minimum_standard"
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assessment_method_id"], name: "index_blueprint_items_on_assessment_method_id"
+    t.index ["blueprint_version_id", "code"], name: "idx_blueprint_items_version_code", unique: true
+    t.index ["blueprint_version_id"], name: "index_blueprint_items_on_blueprint_version_id"
+  end
+
+  create_table "blueprint_versions", force: :cascade do |t|
+    t.bigint "assessment_blueprint_id", null: false
+    t.bigint "competency_framework_id", null: false
+    t.integer "version", null: false
+    t.string "status", default: "draft", null: false
+    t.date "effective_date"
+    t.text "change_notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assessment_blueprint_id", "version"], name: "idx_blueprint_versions_unique", unique: true
+    t.index ["assessment_blueprint_id"], name: "idx_one_published_blueprint_version", unique: true, where: "((status)::text = 'published'::text)"
+    t.index ["assessment_blueprint_id"], name: "index_blueprint_versions_on_assessment_blueprint_id"
+    t.index ["competency_framework_id"], name: "index_blueprint_versions_on_competency_framework_id"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])", name: "chk_blueprint_version_status"
+  end
+
   create_table "break_glass_accesses", force: :cascade do |t|
     t.bigint "clinical_case_id", null: false
     t.datetime "created_at", null: false
@@ -388,13 +467,54 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.index ["user_id"], name: "index_clinical_rotations_on_user_id"
   end
 
+  create_table "competency_attainments", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "competency_item_id", null: false
+    t.integer "attainment_level"
+    t.datetime "decision_date", null: false
+    t.bigint "decision_by_id"
+    t.text "rationale"
+    t.string "status", default: "proposed", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["competency_item_id"], name: "index_competency_attainments_on_competency_item_id"
+    t.index ["decision_by_id"], name: "index_competency_attainments_on_decision_by_id"
+    t.index ["student_id", "competency_item_id", "decision_date"], name: "idx_competency_attainments_history"
+    t.index ["student_id"], name: "index_competency_attainments_on_student_id"
+    t.check_constraint "attainment_level IS NULL OR attainment_level >= 1 AND attainment_level <= 5", name: "chk_competency_attainment_level"
+    t.check_constraint "status::text = ANY (ARRAY['proposed'::character varying, 'approved'::character varying, 'rejected'::character varying]::text[])", name: "chk_competency_attainment_status"
+  end
+
   create_table "competency_frameworks", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.bigint "study_program_id", null: false
-    t.index ["study_program_id"], name: "index_competency_frameworks_on_study_program_id", unique: true
+    t.string "version", default: "1", null: false
+    t.string "education_stage", null: false
+    t.date "effective_date"
+    t.string "status", default: "draft", null: false
+    t.jsonb "provenance", default: {}, null: false
+    t.index ["study_program_id", "version"], name: "idx_framework_program_version", unique: true
+    t.index ["study_program_id"], name: "idx_one_published_competency_framework", unique: true, where: "((status)::text = 'published'::text)"
+    t.index ["study_program_id"], name: "index_competency_frameworks_on_study_program_id"
+    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['undergraduate'::character varying, 'professional'::character varying, 'specialist'::character varying, 'subspecialist'::character varying]::text[]))", name: "chk_framework_education_stage"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])", name: "chk_framework_status"
+    t.check_constraint "version IS NOT NULL AND status IS NOT NULL AND education_stage IS NOT NULL", name: "chk_framework_required_fields"
+  end
+
+  create_table "competency_indicators", force: :cascade do |t|
+    t.bigint "competency_item_id", null: false
+    t.string "code"
+    t.text "description", null: false
+    t.string "performance_level"
+    t.integer "position", default: 0, null: false
+    t.boolean "is_active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["competency_item_id", "code"], name: "idx_indicators_item_code", unique: true, where: "(code IS NOT NULL)"
+    t.index ["competency_item_id"], name: "index_competency_indicators_on_competency_item_id"
   end
 
   create_table "competency_items", force: :cascade do |t|
@@ -407,8 +527,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.datetime "updated_at", null: false
     t.text "expected_evidence_text"
     t.jsonb "expected_evidence_types", default: [], null: false
+    t.string "code"
+    t.string "level_type", default: "competency", null: false
+    t.index ["competency_framework_id", "code"], name: "idx_competency_items_framework_code", unique: true, where: "(code IS NOT NULL)"
     t.index ["competency_framework_id"], name: "index_competency_items_on_competency_framework_id"
     t.index ["parent_id"], name: "index_competency_items_on_parent_id"
+    t.check_constraint "level_type IS NOT NULL", name: "chk_competency_level_type_present"
+    t.check_constraint "level_type::text = ANY (ARRAY['domain'::character varying, 'competency'::character varying, 'subcompetency'::character varying]::text[])", name: "chk_competency_level_type"
+    t.check_constraint "parent_id IS NULL OR parent_id <> id", name: "chk_competency_not_self_parent"
   end
 
   create_table "competency_milestones", force: :cascade do |t|
@@ -420,6 +546,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.index ["academic_period_id"], name: "index_competency_milestones_on_academic_period_id"
     t.index ["competency_item_id", "academic_period_id"], name: "index_competency_milestones_uniq", unique: true
     t.index ["competency_item_id"], name: "index_competency_milestones_on_competency_item_id"
+  end
+
+  create_table "competency_progressions", force: :cascade do |t|
+    t.bigint "source_competency_id", null: false
+    t.bigint "target_competency_id", null: false
+    t.string "relationship_type", null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_competency_id", "target_competency_id", "relationship_type"], name: "idx_competency_progressions_unique", unique: true
+    t.index ["source_competency_id"], name: "index_competency_progressions_on_source_competency_id"
+    t.index ["target_competency_id"], name: "index_competency_progressions_on_target_competency_id"
+    t.check_constraint "relationship_type::text = ANY (ARRAY['prerequisite'::character varying, 'supports'::character varying, 'develops_into'::character varying]::text[])", name: "chk_progression_relationship_type"
+    t.check_constraint "source_competency_id <> target_competency_id", name: "chk_progression_not_self"
   end
 
   create_table "data_export_logs", force: :cascade do |t|
@@ -483,7 +623,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
 
   create_table "entrustment_decisions", force: :cascade do |t|
     t.bigint "clinical_case_id"
-    t.bigint "competency_item_id", null: false
+    t.bigint "competency_item_id"
     t.datetime "created_at", null: false
     t.bigint "decided_by_id", null: false
     t.text "justification", null: false
@@ -492,12 +632,142 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.datetime "superseded_at"
     t.bigint "superseded_by_id"
     t.datetime "updated_at", null: false
+    t.bigint "epa_id"
+    t.bigint "supervision_level_id"
+    t.bigint "epa_promotion_id"
     t.index ["clinical_case_id"], name: "index_entrustment_decisions_on_clinical_case_id"
     t.index ["competency_item_id"], name: "index_entrustment_decisions_on_competency_item_id"
     t.index ["decided_by_id"], name: "index_entrustment_decisions_on_decided_by_id"
+    t.index ["epa_id"], name: "index_entrustment_decisions_on_epa_id"
+    t.index ["epa_promotion_id"], name: "index_entrustment_decisions_on_epa_promotion_id"
     t.index ["student_id", "competency_item_id", "superseded_at"], name: "idx_entrustment_current_lookup"
+    t.index ["student_id", "epa_id", "superseded_at"], name: "idx_entrustment_epa_history"
     t.index ["student_id"], name: "index_entrustment_decisions_on_student_id"
     t.index ["superseded_by_id"], name: "index_entrustment_decisions_on_superseded_by_id"
+    t.index ["supervision_level_id"], name: "index_entrustment_decisions_on_supervision_level_id"
+  end
+
+  create_table "epa_competencies", force: :cascade do |t|
+    t.bigint "epa_id", null: false
+    t.bigint "competency_item_id", null: false
+    t.bigint "competency_indicator_id"
+    t.string "contribution", default: "supporting", null: false
+    t.decimal "importance_weight", precision: 7, scale: 3
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "ksa_dimension"
+    t.boolean "is_prerequisite", default: false, null: false
+    t.integer "minimum_attainment_level"
+    t.boolean "is_critical", default: false, null: false
+    t.index ["competency_indicator_id"], name: "index_epa_competencies_on_competency_indicator_id"
+    t.index ["competency_item_id"], name: "index_epa_competencies_on_competency_item_id"
+    t.index ["epa_id", "competency_item_id", "competency_indicator_id"], name: "idx_epa_competencies_unique", unique: true
+    t.index ["epa_id", "competency_item_id"], name: "idx_epa_competency_without_indicator", unique: true, where: "(competency_indicator_id IS NULL)"
+    t.index ["epa_id"], name: "index_epa_competencies_on_epa_id"
+    t.check_constraint "ksa_dimension IS NULL OR (ksa_dimension::text = ANY (ARRAY['knowledge'::character varying, 'skill'::character varying, 'attitude'::character varying]::text[]))", name: "chk_epa_competency_ksa"
+    t.check_constraint "minimum_attainment_level IS NULL OR minimum_attainment_level >= 1 AND minimum_attainment_level <= 5", name: "chk_epa_competency_minimum_level"
+  end
+
+  create_table "epa_milestones", force: :cascade do |t|
+    t.bigint "epa_id", null: false
+    t.string "stage", null: false
+    t.integer "expected_level", null: false
+    t.date "effective_date"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "supervision_level_id"
+    t.index ["epa_id"], name: "index_epa_milestones_on_epa_id"
+    t.index ["supervision_level_id"], name: "index_epa_milestones_on_supervision_level_id"
+    t.check_constraint "expected_level >= 1", name: "chk_epa_milestone_level"
+  end
+
+  create_table "epa_observations", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "epa_id", null: false
+    t.bigint "observer_id", null: false
+    t.bigint "clinical_case_id"
+    t.bigint "clinical_rotation_id"
+    t.bigint "supervision_level_id", null: false
+    t.datetime "observed_at", null: false
+    t.string "complexity", default: "routine", null: false
+    t.text "activity_scope"
+    t.text "narrative", null: false
+    t.text "strengths"
+    t.text "areas_to_improve"
+    t.boolean "safety_flag", default: false, null: false
+    t.string "status", default: "submitted", null: false
+    t.datetime "submitted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "safety_resolution"
+    t.datetime "safety_resolved_at"
+    t.bigint "safety_resolved_by_id"
+    t.index ["clinical_case_id"], name: "index_epa_observations_on_clinical_case_id"
+    t.index ["clinical_rotation_id"], name: "index_epa_observations_on_clinical_rotation_id"
+    t.index ["epa_id"], name: "index_epa_observations_on_epa_id"
+    t.index ["observer_id", "status"], name: "index_epa_observations_on_observer_id_and_status"
+    t.index ["observer_id"], name: "index_epa_observations_on_observer_id"
+    t.index ["safety_resolved_by_id"], name: "index_epa_observations_on_safety_resolved_by_id"
+    t.index ["student_id", "epa_id", "observed_at"], name: "idx_epa_observations_student_epa_date"
+    t.index ["student_id"], name: "index_epa_observations_on_student_id"
+    t.index ["supervision_level_id"], name: "index_epa_observations_on_supervision_level_id"
+    t.check_constraint "complexity::text = ANY (ARRAY['routine'::character varying, 'moderate'::character varying, 'complex'::character varying, 'critical'::character varying]::text[])", name: "chk_epa_observation_complexity"
+    t.check_constraint "safety_resolved_at IS NULL AND safety_resolved_by_id IS NULL AND safety_resolution IS NULL OR safety_resolved_at IS NOT NULL AND safety_resolved_by_id IS NOT NULL AND length(btrim(safety_resolution)) >= 10", name: "chk_epa_safety_resolution"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying, 'recorded'::character varying, 'returned'::character varying, 'voided'::character varying]::text[])", name: "chk_epa_observation_status"
+  end
+
+  create_table "epa_promotion_reviews", force: :cascade do |t|
+    t.bigint "epa_promotion_id", null: false
+    t.bigint "reviewer_id", null: false
+    t.bigint "supervision_level_id"
+    t.string "recommendation", null: false
+    t.text "notes", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["epa_promotion_id", "reviewer_id"], name: "idx_epa_promotion_review_member_once", unique: true
+    t.index ["epa_promotion_id"], name: "index_epa_promotion_reviews_on_epa_promotion_id"
+    t.index ["reviewer_id"], name: "index_epa_promotion_reviews_on_reviewer_id"
+    t.index ["supervision_level_id"], name: "index_epa_promotion_reviews_on_supervision_level_id"
+    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying]::text[])", name: "chk_epa_promotion_review_recommendation"
+  end
+
+  create_table "epa_promotions", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "epa_id", null: false
+    t.bigint "promoted_by_id"
+    t.bigint "reviewed_by_id"
+    t.string "status", default: "ready", null: false
+    t.datetime "eligible_at", null: false
+    t.datetime "promoted_at"
+    t.datetime "reviewed_at"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["epa_id"], name: "index_epa_promotions_on_epa_id"
+    t.index ["promoted_by_id"], name: "index_epa_promotions_on_promoted_by_id"
+    t.index ["reviewed_by_id"], name: "index_epa_promotions_on_reviewed_by_id"
+    t.index ["status", "eligible_at"], name: "index_epa_promotions_on_status_and_eligible_at"
+    t.index ["student_id", "epa_id"], name: "idx_epa_promotions_open_student_epa", unique: true, where: "((status)::text = ANY ((ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying])::text[]))"
+    t.index ["student_id"], name: "index_epa_promotions_on_student_id"
+    t.check_constraint "status::text = ANY (ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'approved'::character varying]::text[])", name: "chk_epa_promotion_status"
+  end
+
+  create_table "epas", force: :cascade do |t|
+    t.bigint "competency_framework_id", null: false
+    t.string "code", null: false
+    t.string "title", null: false
+    t.text "description"
+    t.text "scope"
+    t.text "limitations"
+    t.string "risk_level"
+    t.string "status", default: "draft", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["competency_framework_id", "code"], name: "idx_epas_framework_code", unique: true
+    t.index ["competency_framework_id"], name: "index_epas_on_competency_framework_id"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])", name: "chk_epa_status"
   end
 
   create_table "evaluation_schedules", force: :cascade do |t|
@@ -516,6 +786,61 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.index ["evaluator_id"], name: "index_evaluation_schedules_on_evaluator_id"
     t.index ["student_id", "scheduled_at"], name: "index_evaluation_schedules_on_student_id_and_scheduled_at"
     t.index ["student_id"], name: "index_evaluation_schedules_on_student_id"
+  end
+
+  create_table "evidence_records", force: :cascade do |t|
+    t.bigint "evidence_requirement_id", null: false
+    t.bigint "assessment_instance_id"
+    t.bigint "activity_log_id"
+    t.bigint "reflection_entry_id"
+    t.date "evidence_date", null: false
+    t.string "result", null: false
+    t.decimal "score", precision: 8, scale: 3
+    t.text "feedback"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "epa_observation_id"
+    t.index ["activity_log_id"], name: "index_evidence_records_on_activity_log_id"
+    t.index ["assessment_instance_id"], name: "index_evidence_records_on_assessment_instance_id"
+    t.index ["epa_observation_id"], name: "index_evidence_records_on_epa_observation_id"
+    t.index ["evidence_requirement_id", "activity_log_id"], name: "idx_evidence_record_activity_once", unique: true, where: "(activity_log_id IS NOT NULL)"
+    t.index ["evidence_requirement_id", "assessment_instance_id"], name: "idx_evidence_record_assessment_once", unique: true, where: "(assessment_instance_id IS NOT NULL)"
+    t.index ["evidence_requirement_id", "evidence_date"], name: "idx_evidence_records_requirement_date"
+    t.index ["evidence_requirement_id", "reflection_entry_id"], name: "idx_evidence_record_reflection_once", unique: true, where: "(reflection_entry_id IS NOT NULL)"
+    t.index ["evidence_requirement_id"], name: "index_evidence_records_on_evidence_requirement_id"
+    t.index ["reflection_entry_id"], name: "index_evidence_records_on_reflection_entry_id"
+    t.check_constraint "num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id) = 1", name: "chk_evidence_record_single_source"
+    t.check_constraint "result::text = ANY (ARRAY['pass'::character varying, 'fail'::character varying, 'borderline'::character varying, 'not_assessed'::character varying, 'other'::character varying]::text[])", name: "chk_evidence_record_result"
+  end
+
+  create_table "evidence_requirements", force: :cascade do |t|
+    t.bigint "competency_item_id"
+    t.bigint "competency_indicator_id"
+    t.bigint "epa_id"
+    t.bigint "blueprint_item_id"
+    t.bigint "assessment_method_id"
+    t.string "origin", null: false
+    t.string "source_type", null: false
+    t.integer "required_count", default: 1, null: false
+    t.jsonb "fulfillment_rule", default: {}, null: false
+    t.string "due_stage"
+    t.boolean "is_mandatory", default: true, null: false
+    t.string "status", default: "active", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assessment_method_id"], name: "index_evidence_requirements_on_assessment_method_id"
+    t.index ["blueprint_item_id"], name: "index_evidence_requirements_on_blueprint_item_id"
+    t.index ["competency_indicator_id"], name: "index_evidence_requirements_on_competency_indicator_id"
+    t.index ["competency_item_id"], name: "index_evidence_requirements_on_competency_item_id"
+    t.index ["epa_id"], name: "index_evidence_requirements_on_epa_id"
+    t.check_constraint "competency_indicator_id IS NULL OR competency_item_id IS NOT NULL", name: "chk_evidence_indicator_target"
+    t.check_constraint "competency_item_id IS NOT NULL OR epa_id IS NOT NULL", name: "chk_evidence_requirement_target"
+    t.check_constraint "origin::text = 'blueprint'::text AND blueprint_item_id IS NOT NULL OR origin::text = 'manual'::text AND blueprint_item_id IS NULL", name: "chk_evidence_requirement_origin_source"
+    t.check_constraint "origin::text = ANY (ARRAY['blueprint'::character varying, 'manual'::character varying]::text[])", name: "chk_evidence_requirement_origin"
+    t.check_constraint "required_count > 0", name: "chk_evidence_requirement_count"
+    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying, 'logbook'::character varying, 'portfolio'::character varying, 'reflection'::character varying, 'other'::character varying, 'epa_observation'::character varying]::text[])", name: "chk_evidence_requirement_source"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_evidence_requirement_status"
   end
 
   create_table "exam_imports", force: :cascade do |t|
@@ -795,10 +1120,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
     t.datetime "srq_enabled_at"
     t.bigint "srq_enabled_by_id"
     t.datetime "updated_at", null: false
-    t.index ["competency_framework_id"], name: "index_study_programs_on_competency_framework_id"
     t.index ["code"], name: "index_study_programs_on_code", unique: true
+    t.index ["competency_framework_id"], name: "index_study_programs_on_competency_framework_id"
     t.index ["name"], name: "index_study_programs_on_name", unique: true
     t.index ["srq_enabled_by_id"], name: "index_study_programs_on_srq_enabled_by_id"
+  end
+
+  create_table "supervision_levels", force: :cascade do |t|
+    t.bigint "supervision_scale_version_id", null: false
+    t.integer "ordinal", null: false
+    t.string "code", null: false
+    t.string "label", null: false
+    t.text "description", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["supervision_scale_version_id", "code"], name: "idx_supervision_levels_code", unique: true
+    t.index ["supervision_scale_version_id", "ordinal"], name: "idx_supervision_levels_ordinal", unique: true
+    t.index ["supervision_scale_version_id"], name: "index_supervision_levels_on_supervision_scale_version_id"
+  end
+
+  create_table "supervision_scale_versions", force: :cascade do |t|
+    t.string "code", null: false
+    t.string "name", null: false
+    t.string "version_label", null: false
+    t.string "use_case", null: false
+    t.text "source_reference"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code", "version_label"], name: "idx_supervision_scale_versions_identity", unique: true
+    t.check_constraint "use_case::text = ANY (ARRAY['retrospective_observation'::character varying, 'prospective_entrustment'::character varying]::text[])", name: "chk_supervision_scale_use_case"
   end
 
   create_table "terminology_overrides", force: :cascade do |t|
@@ -914,6 +1265,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
   add_foreign_key "assessment_dimensions", "competency_items"
   add_foreign_key "assessment_events", "academic_periods"
   add_foreign_key "assessment_events", "assessment_form_templates"
+  add_foreign_key "assessment_events", "blueprint_items"
   add_foreign_key "assessment_events", "study_programs"
   add_foreign_key "assessment_events", "users", column: "created_by_id"
   add_foreign_key "assessment_form_answers", "assessment_form_fields"
@@ -931,6 +1283,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
   add_foreign_key "assessment_instances", "users", column: "student_id"
   add_foreign_key "assessment_mappings", "assessment_events"
   add_foreign_key "assessment_mappings", "learning_units"
+  add_foreign_key "blueprint_item_competencies", "blueprint_items"
+  add_foreign_key "blueprint_item_competencies", "competency_indicators"
+  add_foreign_key "blueprint_item_competencies", "competency_items"
+  add_foreign_key "blueprint_item_epas", "blueprint_items"
+  add_foreign_key "blueprint_item_epas", "epas"
+  add_foreign_key "blueprint_item_epas", "supervision_levels"
+  add_foreign_key "blueprint_items", "assessment_methods"
+  add_foreign_key "blueprint_items", "blueprint_versions"
+  add_foreign_key "blueprint_versions", "assessment_blueprints"
+  add_foreign_key "blueprint_versions", "competency_frameworks"
   add_foreign_key "break_glass_accesses", "clinical_cases"
   add_foreign_key "break_glass_accesses", "users"
   add_foreign_key "case_verification_comments", "clinical_cases"
@@ -941,11 +1303,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
   add_foreign_key "clinical_rotations", "academic_periods"
   add_foreign_key "clinical_rotations", "users"
   add_foreign_key "clinical_rotations", "users", column: "preceptor_id"
+  add_foreign_key "competency_attainments", "competency_items"
+  add_foreign_key "competency_attainments", "users", column: "decision_by_id"
+  add_foreign_key "competency_attainments", "users", column: "student_id"
   add_foreign_key "competency_frameworks", "study_programs"
+  add_foreign_key "competency_indicators", "competency_items"
   add_foreign_key "competency_items", "competency_frameworks"
   add_foreign_key "competency_items", "competency_items", column: "parent_id"
   add_foreign_key "competency_milestones", "academic_periods"
   add_foreign_key "competency_milestones", "competency_items"
+  add_foreign_key "competency_progressions", "competency_items", column: "source_competency_id"
+  add_foreign_key "competency_progressions", "competency_items", column: "target_competency_id"
   add_foreign_key "data_export_logs", "users"
   add_foreign_key "device_push_tokens", "users"
   add_foreign_key "dops_evaluations", "clinical_cases", validate: false
@@ -955,11 +1323,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
   add_foreign_key "entrustment_decisions", "clinical_cases"
   add_foreign_key "entrustment_decisions", "competency_items"
   add_foreign_key "entrustment_decisions", "entrustment_decisions", column: "superseded_by_id"
+  add_foreign_key "entrustment_decisions", "epa_promotions"
+  add_foreign_key "entrustment_decisions", "epas"
+  add_foreign_key "entrustment_decisions", "supervision_levels"
   add_foreign_key "entrustment_decisions", "users", column: "decided_by_id"
   add_foreign_key "entrustment_decisions", "users", column: "student_id"
+  add_foreign_key "epa_competencies", "competency_indicators"
+  add_foreign_key "epa_competencies", "competency_items"
+  add_foreign_key "epa_competencies", "epas"
+  add_foreign_key "epa_milestones", "epas"
+  add_foreign_key "epa_milestones", "supervision_levels"
+  add_foreign_key "epa_observations", "clinical_cases"
+  add_foreign_key "epa_observations", "clinical_rotations"
+  add_foreign_key "epa_observations", "epas"
+  add_foreign_key "epa_observations", "supervision_levels"
+  add_foreign_key "epa_observations", "users", column: "observer_id"
+  add_foreign_key "epa_observations", "users", column: "safety_resolved_by_id"
+  add_foreign_key "epa_observations", "users", column: "student_id"
+  add_foreign_key "epa_promotion_reviews", "epa_promotions"
+  add_foreign_key "epa_promotion_reviews", "supervision_levels"
+  add_foreign_key "epa_promotion_reviews", "users", column: "reviewer_id"
+  add_foreign_key "epa_promotions", "epas"
+  add_foreign_key "epa_promotions", "users", column: "promoted_by_id"
+  add_foreign_key "epa_promotions", "users", column: "reviewed_by_id"
+  add_foreign_key "epa_promotions", "users", column: "student_id"
+  add_foreign_key "epas", "competency_frameworks"
   add_foreign_key "evaluation_schedules", "clinical_rotations"
   add_foreign_key "evaluation_schedules", "users", column: "evaluator_id"
   add_foreign_key "evaluation_schedules", "users", column: "student_id"
+  add_foreign_key "evidence_records", "activity_logs"
+  add_foreign_key "evidence_records", "assessment_instances"
+  add_foreign_key "evidence_records", "epa_observations"
+  add_foreign_key "evidence_records", "evidence_requirements"
+  add_foreign_key "evidence_records", "reflection_entries"
+  add_foreign_key "evidence_requirements", "assessment_methods"
+  add_foreign_key "evidence_requirements", "blueprint_items"
+  add_foreign_key "evidence_requirements", "competency_indicators"
+  add_foreign_key "evidence_requirements", "competency_items"
+  add_foreign_key "evidence_requirements", "epas"
   add_foreign_key "exam_imports", "users", column: "imported_by_id"
   add_foreign_key "exam_scores", "exam_imports"
   add_foreign_key "exam_scores", "users", column: "student_id"
@@ -993,6 +1394,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_010001) do
   add_foreign_key "srq_screenings", "users", column: "followed_up_by_id"
   add_foreign_key "study_programs", "competency_frameworks"
   add_foreign_key "study_programs", "users", column: "srq_enabled_by_id"
+  add_foreign_key "supervision_levels", "supervision_scale_versions"
   add_foreign_key "terminology_overrides", "users", column: "updated_by_id"
   add_foreign_key "tutorial_enrollments", "academic_periods"
   add_foreign_key "tutorial_enrollments", "users"

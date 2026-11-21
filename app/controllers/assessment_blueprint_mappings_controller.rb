@@ -9,6 +9,7 @@ class AssessmentBlueprintMappingsController < ApplicationController
 
   def create
     authorize AssessmentBlueprintMapping
+    return redirect_to @assessment_blueprint, alert: "Mapping baru dikelola sebagai komponen pada versi draf blueprint." if @assessment_blueprint.blueprint_versions.exists?
     mapping = @assessment_blueprint.assessment_blueprint_mappings.new(mapping_params)
 
     if mapping.save
@@ -20,6 +21,7 @@ class AssessmentBlueprintMappingsController < ApplicationController
 
   def destroy
     authorize AssessmentBlueprintMapping
+    return redirect_to @assessment_blueprint, alert: "Mapping historis tidak dapat dihapus; kelola komponen pada versi draf." if @assessment_blueprint.blueprint_versions.exists?
     @assessment_blueprint.assessment_blueprint_mappings.find(params[:id]).destroy
     redirect_to assessment_blueprint_path(@assessment_blueprint), notice: "Mapping kompetensi dihapus.", status: :see_other
   end

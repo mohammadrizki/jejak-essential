@@ -1,0 +1,24 @@
+<div class="max-w-xl">
+  <h1 class="text-xl font-bold text-gray-900 mb-2">Sunting kompetensi</h1>
+  <p class="text-sm text-gray-500 mb-6"><%= @competency_item.title %> · <%= @competency_item.domain? ? "Ranah" : "Sub-kompetensi" %></p>
+
+  <%= form_with model: @competency_item,
+        url: competency_framework_competency_item_path(@competency_framework, @competency_item),
+        method: :patch, class: "space-y-4" do |f| %>
+    <% if @competency_item.errors.any? %>
+      <div class="rounded-lg bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 text-sm"><%= @competency_item.errors.full_messages.to_sentence %></div>
+    <% end %>
+    <div>
+      <%= f.label :title, "Nama", class: "block text-sm font-semibold text-gray-700 mb-1" %>
+      <%= f.text_field :title, required: true, class: "block w-full rounded-lg border-gray-300 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :description, "Deskripsi", class: "block text-sm font-semibold text-gray-700 mb-1" %>
+      <%= f.text_area :description, rows: 3, class: "block w-full rounded-lg border-gray-300 text-sm" %>
+    </div>
+    <div class="flex items-center gap-3">
+      <%= f.submit "Simpan perubahan", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer" %>
+      <%= link_to "Batal", competency_framework_path(@competency_framework), class: "text-sm text-gray-500" %>
+    </div>
+  <% end %>
+</div>

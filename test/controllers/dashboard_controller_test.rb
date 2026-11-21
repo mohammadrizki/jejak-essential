@@ -217,7 +217,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Belum ada satu pun kasus", response.body
   end
 
-  test "mahasiswa melihat Pusat Asesmen & Capaian dengan 6 kartu pintasan; dosen tidak" do
+  test "mahasiswa Sarjana melihat 5 kartu pintasan tanpa EPA; dosen tidak" do
     sign_in users(:siti)
     get dashboard_path
     assert_response :success
@@ -226,11 +226,24 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     hub = section("assessment-hub")
     hrefs = hub.css("a").map { |a| a["href"] }
     assert_equal [ exam_scores_path, assessments_path, student_assessments_path, student_feedback_journal_path,
-                   academic_assessments_path, entrustment_decisions_path ], hrefs
+                   academic_assessments_path ], hrefs
     assert_match "menunggu", hub.text if users(:siti).assessment_instances.awaiting_score.exists?
 
     sign_in users(:budi)
     get dashboard_path
     assert_no_match "Pusat Asesmen", response.body
+  end
+
+  test "mahasiswa Profesi mendapat pintasan EPA" do
+    student = users(:siti)
+    student.update!(study_program: study_programs(:profesi_dokter))
+    assert_equal "profesi", student.reload.study_program.level
+    sign_in student
+
+    get dashboard_path
+
+    assert_response :success
+    hub = section("assessment-hub")
+    assert hub.css("a").any? { |link| link["href"].start_with?(entrustment_decisions_path) }, hub.css("a").map { |link| link["href"] }.inspect
   end
 end

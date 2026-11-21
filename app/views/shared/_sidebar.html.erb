@@ -34,9 +34,18 @@
   is_srq_monitor = is_kaprodi && current_user.can_monitor_srq?
   # SRQ-20 baru tampil setelah kaprodi mengaktifkannya untuk prodi mahasiswa ini.
   is_srq_student = is_student && current_user.srq_accessible?
+  student_framework = current_user.study_program&.peta_kompetensi if is_student
+  has_evidence_requirements = if student_framework
+    EvidenceRequirement.where(status: "active")
+      .where(competency_item_id: student_framework.competency_items.select(:id))
+      .or(EvidenceRequirement.where(status: "active", epa_id: student_framework.epas.select(:id))).exists?
+  else
+    false
+  end
   nav_locals = { is_student: is_student, is_instructor: is_instructor, is_verifier: is_verifier,
                  is_config_manager: is_config_manager, is_prodi_manager: is_prodi_manager,
                  is_form_manager: is_form_manager, is_srq_monitor: is_srq_monitor, is_srq_student: is_srq_student,
+                 has_evidence_requirements: has_evidence_requirements,
                  pending_verifications: pending_verifications,
                  pending_activity_verifications: pending_activity_verifications }
 %>

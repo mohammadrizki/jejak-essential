@@ -2,9 +2,16 @@
   <div class="flex items-center justify-between flex-wrap gap-3">
     <div>
       <h1 class="text-xl font-bold text-gray-900"><%= @competency_framework.name %></h1>
+      <p class="text-sm text-gray-400 mt-1">Versi <%= @competency_framework.version %> · <%= @competency_framework.education_stage || @competency_framework.study_program.level_label %> · <%= @competency_framework.status %><%= " · berlaku #{@competency_framework.effective_date}" if @competency_framework.effective_date %></p>
       <p class="text-sm text-gray-400 mt-1"><%= @competency_framework.description %></p>
+      <% if @competency_framework.provenance.present? %>
+        <p class="mt-1 text-xs text-gray-500">Salinan dari <%= @competency_framework.provenance["source_name"] || @competency_framework.provenance["source_framework_name"] %> · versi <%= @competency_framework.provenance["source_version"] || @competency_framework.provenance["source_framework_version"] || @competency_framework.provenance["template_version"] %></p>
+      <% end %>
     </div>
-    <% if policy(@competency_framework).update? %>
+    <% if policy(CompetencyFramework).create? %>
+      <%= link_to "Duplikasi Framework", duplicate_competency_framework_path(@competency_framework), class: "shrink-0 rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" %>
+    <% end %>
+    <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
       <div class="flex items-center gap-2 shrink-0">
         <%= link_to "Sunting", edit_competency_framework_path(@competency_framework), class: "text-sm text-gray-600 hover:text-indigo-600 font-medium" %>
         <%= button_to "Hapus", competency_framework_path(@competency_framework), method: :delete,
@@ -12,34 +19,194 @@
               form: { data: { turbo_confirm: "Hapus peta kompetensi ini beserta seluruh isinya?" } } %>
       </div>
     <% end %>
+    <% if policy(@competency_framework).update? && @competency_framework.status == "published" && !@has_draft_for_program %>
+      <%= button_to "Buat versi baru", new_version_competency_framework_path(@competency_framework), method: :post, class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+    <% elsif policy(@competency_framework).update? && @competency_framework.status == "draft" %>
+      <%= button_to "Terbitkan framework", publish_version_competency_framework_path(@competency_framework), method: :patch, class: "rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white", form: { data: { turbo_confirm: "Terbitkan versi ini dan arsipkan versi sebelumnya?" } } %>
+    <% end %>
   </div>
 
+  <% if @competency_framework.education_stage != "undergraduate" %>
+    <section class="mt-4 rounded-2xl bg-white p-4 ring-1 ring-gray-200">
+      <h2 class="text-sm font-semibold text-gray-800">EPA pada versi ini</h2>
+      <ul class="mt-2 space-y-2">
+        <% @competency_framework.epas.order(:title).each do |epa| %>
+          <li class="flex items-center justify-between text-sm"><span><strong><%= epa.code %></strong> · <%= epa.title %></span>
+            <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %><%= button_to "Hapus", competency_framework_epa_path(@competency_framework, epa), method: :delete, class: "text-xs text-rose-600", form: { data: { turbo_confirm: "Hapus EPA ini?" } } %><% end %></li>
+          <% if epa.epa_competencies.any? %>
+            <li class="ml-3 text-xs text-gray-600">
+              <% epa.epa_competencies.includes(:competency_item, :competency_indicator).each do |mapping| %>
+                <span class="mr-2"><%= mapping.competency_indicator&.code || mapping.competency_item.code %> · <%= mapping.competency_indicator&.description || mapping.competency_item.title %><%= " · prasyarat #{mapping.ksa_dimension&.upcase} ≥ #{mapping.minimum_attainment_level}" if mapping.is_prerequisite? %><%= " · kritis" if mapping.is_critical? %></span>
+              <% end %>
+            </li>
+          <% end %>
+          <% if epa.epa_milestones.any? %>
+            <li class="ml-3 text-xs text-gray-600">
+              <% epa.epa_milestones.includes(:supervision_level).each do |milestone| %>
+                <span class="mr-2"><%= milestone.stage.humanize %>: <%= milestone.supervision_level&.supervision_scale_version&.name || "skala legacy" %> · <%= milestone.supervision_level&.label || "Level #{milestone.expected_level}" %></span>
+                <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %><%= button_to "Hapus target", competency_framework_epa_epa_milestone_path(@competency_framework, epa, milestone), method: :delete, class: "text-rose-600" %><% end %>
+              <% end %>
+            </li>
+          <% end %>
+          <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
+            <li class="ml-3">
+              <%= form_with url: competency_framework_epa_epa_milestones_path(@competency_framework, epa), scope: :epa_milestone, class: "mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2" do |f| %>
+                <%= f.select :stage, [["Profesi", "professional"], ["Spesialis", "specialist"], ["Subspesialis", "subspecialist"]], { prompt: "Jenjang target" }, required: true, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.collection_select :supervision_level_id,
+                    SupervisionLevel.joins(:supervision_scale_version).includes(:supervision_scale_version)
+                      .where(supervision_scale_versions: { active: true, use_case: "prospective_entrustment" }),
+                    :id, ->(level) { "#{level.supervision_scale_version.name} v#{level.supervision_scale_version.version_label} · #{level.ordinal} — #{level.label}" },
+                    { prompt: "Level target" }, required: true, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.text_field :notes, placeholder: "Catatan target", class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.submit "Tambah target", class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+              <% end %>
+            </li>
+          <% end %>
+          <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
+            <li class="ml-3">
+              <%= form_with url: map_competency_competency_framework_epa_path(@competency_framework, epa), scope: :epa_competency, class: "mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2" do |f| %>
+                <%= f.select :competency_item_id, options_from_collection_for_select(@competency_framework.competency_items.order(:position), :id, :title), { prompt: "Kompetensi" }, required: true, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.select :competency_indicator_id, options_from_collection_for_select(@competency_framework.competency_indicators.includes(:competency_item).order(:position), :id, ->(i) { "#{i.competency_item.title} · #{i.code}" }), { include_blank: "Tanpa indikator" }, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.select :ksa_dimension, [["Kognitif", "knowledge"], ["Keterampilan", "skill"], ["Sikap", "attitude"]], { include_blank: "Dimensi KSA (opsional)" }, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.select :contribution, [["Pendukung", "supporting"], ["Penting", "important"], ["Kritis", "critical"]], {}, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.number_field :minimum_attainment_level, min: 1, max: 5, placeholder: "Ambang KSA 1–5 (prasyarat)", class: "rounded-lg border-gray-300 text-xs" %>
+                <label class="text-xs"><%= f.check_box :is_prerequisite %> Prasyarat</label>
+                <label class="text-xs"><%= f.check_box :is_critical %> Komponen kritis</label>
+                <%= f.text_field :notes, placeholder: "Catatan hubungan", class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.submit "Tambah pemetaan", class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+              <% end %>
+            </li>
+          <% end %>
+          <% epa.evidence_requirements.where(origin: "manual", status: "active").each do |requirement| %>
+            <li class="ml-4 flex items-center gap-3 text-xs text-gray-500">Bukti: <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %> × <%= requirement.required_count %>
+              <% if @competency_framework.status == "draft" && policy(@competency_framework).update? %>
+                <%= render "evidence_requirements/actions", edit_path: edit_competency_framework_evidence_requirement_path(@competency_framework, requirement), path: competency_framework_evidence_requirement_path(@competency_framework, requirement) %>
+              <% end %>
+            </li>
+          <% end %>
+          <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
+            <li class="ml-4"><%= form_with url: competency_framework_evidence_requirements_path(@competency_framework), scope: :evidence_requirement, class: "flex flex-wrap gap-2 items-center" do |f| %>
+              <%= f.hidden_field :epa_id, value: epa.id %>
+              <%= f.select :source_type, EvidenceRequirement::SOURCE_TYPES.map { |value| [EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(value), value] }, {}, class: "rounded-lg border-gray-300 text-xs" %>
+              <%= f.number_field :required_count, min: 1, value: 1, placeholder: "Bukti valid minimal", class: "w-28 rounded-lg border-gray-300 text-xs" %>
+              <%= render "evidence_requirements/fulfillment_fields", indicator: false %>
+              <%= f.submit "Tambah syarat bukti", class: "text-xs text-indigo-600 font-semibold cursor-pointer" %>
+            <% end %></li>
+          <% end %>
+        <% end %>
+      </ul>
+      <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
+        <%= form_with url: competency_framework_epas_path(@competency_framework), scope: :epa, class: "mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2" do |f| %>
+          <%= f.text_field :code, placeholder: "Kode EPA", required: true, class: "rounded-lg border-gray-300 text-sm" %>
+          <%= f.text_field :title, placeholder: "Aktivitas profesional", required: true, class: "rounded-lg border-gray-300 text-sm" %>
+          <%= f.select :competency_item_ids, options_from_collection_for_select(@competency_framework.competency_items.order(:position), :id, :title), { include_hidden: false, include_blank: "Kompetensi pendukung" }, { multiple: true, class: "rounded-lg border-gray-300 text-sm sm:col-span-2" } %>
+          <%= f.submit "Tambah EPA", class: "rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white cursor-pointer" %>
+        <% end %>
+      <% end %>
+    </section>
+  <% end %>
+
   <div class="mt-4 space-y-3">
+    <section class="rounded-xl bg-sky-50 px-4 py-3 text-xs text-sky-900">
+      <strong>Syarat bukti</strong> menentukan jenis dan jumlah bukti yang diharapkan untuk kompetensi atau indikator. Mahasiswa menautkan bukti aktual dari asesmen, logbook, atau refleksi di Portfolio. Bukti yang belum dinilai belum dihitung; aturan tambahan juga dapat meminta jumlah kelulusan atau bukti dari kasus/penilai berbeda. Contoh: “asesmen × 2” berarti perlu dua bukti asesmen.
+    </section>
     <% @domains.each do |domain| %>
       <div class="bg-white rounded-2xl ring-1 ring-gray-200 p-4">
         <div class="flex items-center justify-between">
           <p class="font-semibold text-gray-800"><%= domain.title %></p>
-          <% if policy(domain).destroy? %>
-            <%= button_to "Hapus", competency_framework_competency_item_path(@competency_framework, domain), method: :delete,
-                  class: "text-xs text-rose-600 hover:underline",
-                  form: { data: { turbo_confirm: "Hapus ranah ini beserta sub-kompetensinya?" } } %>
+          <% if @competency_framework.status == "draft" && policy(domain).update? %>
+            <div class="flex items-center gap-3">
+              <%= link_to "Sunting", edit_competency_framework_competency_item_path(@competency_framework, domain), class: "text-xs text-indigo-600 hover:underline" %>
+              <% if policy(domain).destroy? %>
+                <%= button_to "Hapus", competency_framework_competency_item_path(@competency_framework, domain), method: :delete,
+                      class: "text-xs text-rose-600 hover:underline",
+                      form: { data: { turbo_confirm: "Hapus ranah ini beserta sub-kompetensinya?" } } %>
+              <% end %>
+            </div>
           <% end %>
         </div>
         <% if domain.description.present? %>
           <p class="text-xs text-gray-400 mt-1"><%= domain.description %></p>
         <% end %>
 
+        <% domain.competency_indicators.each do |indicator| %>
+          <div class="mt-2 flex items-start justify-between gap-3">
+            <p class="text-xs text-gray-600"><span class="font-semibold"><%= indicator.code %></span> <%= indicator.description %><%= " · #{indicator.performance_level}" if indicator.performance_level.present? %></p>
+            <% if @competency_framework.status == "draft" && policy(@competency_framework).update? %>
+              <div class="flex shrink-0 items-center gap-2">
+                <%= link_to "Sunting", edit_competency_item_competency_indicator_path(domain, indicator), class: "text-xs text-indigo-600 hover:underline" %>
+                <%= button_to "Hapus", competency_item_competency_indicator_path(domain, indicator), method: :delete, class: "text-xs text-rose-600 hover:underline", form: { data: { turbo_confirm: "Hapus indikator ini?" } } %>
+              </div>
+            <% end %>
+          </div>
+          <% indicator.evidence_requirements.where(origin: "manual", status: "active").each do |requirement| %>
+            <div class="ml-3 mt-1 flex items-center gap-2 text-[11px] text-gray-500"><span>Bukti: <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %> × <%= requirement.required_count %></span>
+              <% if @competency_framework.status == "draft" && policy(@competency_framework).update? %>
+                <%= render "evidence_requirements/actions", edit_path: edit_competency_framework_evidence_requirement_path(@competency_framework, requirement), path: competency_framework_evidence_requirement_path(@competency_framework, requirement) %>
+              <% end %>
+            </div>
+          <% end %>
+          <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
+            <%= form_with url: competency_framework_evidence_requirements_path(@competency_framework), scope: :evidence_requirement, class: "ml-3 mt-1 flex flex-wrap gap-2 items-center" do |f| %>
+              <%= f.hidden_field :competency_item_id, value: domain.id %><%= f.hidden_field :competency_indicator_id, value: indicator.id %>
+              <%= f.select :source_type, EvidenceRequirement::SOURCE_TYPES.map { |value| [EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(value), value] }, {}, class: "rounded-lg border-gray-300 text-xs" %>
+              <%= f.number_field :required_count, min: 1, value: 1, placeholder: "Bukti valid minimal", class: "w-28 rounded-lg border-gray-300 text-xs" %>
+              <%= render "evidence_requirements/fulfillment_fields", indicator: true %>
+              <%= f.submit "Tambah syarat bukti", class: "text-xs font-semibold text-indigo-600 cursor-pointer" %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% if @competency_framework.status == "draft" && policy(@competency_framework).update? %>
+          <%= form_with url: competency_item_competency_indicators_path(domain), scope: :competency_indicator, class: "mt-2 flex flex-wrap gap-2" do |f| %>
+            <%= f.text_field :code, placeholder: "Kode", class: "w-20 rounded-lg border-gray-300 text-xs" %>
+            <%= f.text_field :description, placeholder: "Indikator terukur", required: true, class: "min-w-[12rem] flex-1 rounded-lg border-gray-300 text-xs" %>
+            <%= f.text_field :performance_level, placeholder: "Standar kinerja", required: true, class: "rounded-lg border-gray-300 text-xs" %>
+            <%= f.submit "Tambah indikator", class: "text-xs font-semibold text-indigo-600 cursor-pointer" %>
+          <% end %>
+        <% end %>
+
+        <% domain.evidence_requirements.where(origin: "manual", status: "active").each do |requirement| %>
+          <div class="mt-2 flex items-center gap-2 text-xs text-gray-500"><span>Bukti: <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %> × <%= requirement.required_count %></span>
+            <% if @competency_framework.status == "draft" && policy(@competency_framework).update? %>
+              <%= render "evidence_requirements/actions", edit_path: edit_competency_framework_evidence_requirement_path(@competency_framework, requirement), path: competency_framework_evidence_requirement_path(@competency_framework, requirement) %>
+            <% end %>
+          </div>
+        <% end %>
         <% if domain.children.any? %>
           <ul class="mt-3 space-y-1.5 pl-4 border-l-2 border-indigo-100">
             <% domain.children.each do |sub| %>
               <li class="flex items-center justify-between text-sm text-gray-600">
                 <span><%= sub.title %></span>
-                <% if policy(sub).destroy? %>
-                  <%= button_to "Hapus", competency_framework_competency_item_path(@competency_framework, sub), method: :delete,
-                        class: "text-xs text-gray-400 hover:text-rose-600 hover:underline",
-                        form: { data: { turbo_confirm: "Hapus sub-kompetensi ini?" } } %>
+                <% if @competency_framework.status == "draft" && policy(sub).update? %>
+                  <div class="flex items-center gap-2">
+                    <%= link_to "Sunting", edit_competency_framework_competency_item_path(@competency_framework, sub), class: "text-xs text-indigo-600 hover:underline" %>
+                    <% if policy(sub).destroy? %>
+                      <%= button_to "Hapus", competency_framework_competency_item_path(@competency_framework, sub), method: :delete,
+                            class: "text-xs text-gray-400 hover:text-rose-600 hover:underline",
+                            form: { data: { turbo_confirm: "Hapus sub-kompetensi ini?" } } %>
+                    <% end %>
+                  </div>
                 <% end %>
               </li>
+              <% sub.competency_indicators.each do |indicator| %>
+                <li class="ml-4 flex items-start justify-between gap-3 text-xs text-gray-500">
+                  <span><%= indicator.code %> · <%= indicator.description %><%= " · #{indicator.performance_level}" if indicator.performance_level.present? %></span>
+                  <% if @competency_framework.status == "draft" && policy(@competency_framework).update? %>
+                    <span class="flex shrink-0 items-center gap-2">
+                      <%= link_to "Sunting", edit_competency_item_competency_indicator_path(sub, indicator), class: "text-indigo-600 hover:underline" %>
+                      <%= button_to "Hapus", competency_item_competency_indicator_path(sub, indicator), method: :delete, class: "text-rose-600 hover:underline", form: { data: { turbo_confirm: "Hapus indikator ini?" } } %>
+                    </span>
+                  <% end %>
+                </li>
+              <% end %>
+              <% if @competency_framework.status == "draft" && policy(@competency_framework).update? %>
+                <li class="ml-4"><%= form_with url: competency_item_competency_indicators_path(sub), scope: :competency_indicator, class: "flex flex-wrap gap-2" do |f| %>
+                  <%= f.text_field :code, placeholder: "Kode", class: "w-20 rounded-lg border-gray-300 text-xs" %>
+                  <%= f.text_field :description, placeholder: "Indikator terukur", required: true, class: "min-w-[12rem] flex-1 rounded-lg border-gray-300 text-xs" %>
+                  <%= f.text_field :performance_level, placeholder: "Standar kinerja", required: true, class: "rounded-lg border-gray-300 text-xs" %>
+                  <%= f.submit "Tambah indikator", class: "text-xs font-semibold text-indigo-600 cursor-pointer" %>
+                <% end %></li>
+              <% end %>
             <% end %>
           </ul>
         <% end %>
@@ -68,7 +235,7 @@
           <% end %>
         <% end %>
 
-        <% if policy(CompetencyItem.new(competency_framework: @competency_framework)).create? %>
+        <% if @competency_framework.status == "draft" && policy(CompetencyItem.new(competency_framework: @competency_framework)).create? %>
           <%= form_with url: competency_framework_competency_items_path(@competency_framework), class: "mt-3 flex gap-2" do |f| %>
             <%= f.hidden_field :parent_id, value: domain.id, name: "competency_item[parent_id]" %>
             <%= f.text_field :title, name: "competency_item[title]", placeholder: "Tambah sub-kompetensi…",
@@ -83,7 +250,7 @@
       <p class="text-sm text-gray-400">Belum ada ranah kompetensi.</p>
     <% end %>
 
-    <% if policy(CompetencyItem.new(competency_framework: @competency_framework)).create? %>
+    <% if @competency_framework.status == "draft" && policy(CompetencyItem.new(competency_framework: @competency_framework)).create? %>
       <div class="bg-indigo-50/50 rounded-2xl ring-1 ring-indigo-100 p-4">
         <p class="text-xs font-semibold text-indigo-500 uppercase mb-2">Tambah Ranah Baru</p>
         <%= form_with url: competency_framework_competency_items_path(@competency_framework), class: "flex gap-2" do |f| %>

@@ -6,7 +6,7 @@
 class CompetencyItemsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_competency_framework
-  before_action :set_competency_item, only: %i[destroy]
+  before_action :set_competency_item, only: %i[edit update destroy]
 
   def create
     authorize CompetencyItem
@@ -16,6 +16,19 @@ class CompetencyItemsController < ApplicationController
       redirect_to competency_framework_path(@competency_framework), notice: "Simpul kompetensi ditambahkan."
     else
       redirect_to competency_framework_path(@competency_framework), alert: @competency_item.errors.full_messages.to_sentence
+    end
+  end
+
+  def edit
+    authorize @competency_item
+  end
+
+  def update
+    authorize @competency_item
+    if @competency_item.update(competency_item_params)
+      redirect_to competency_framework_path(@competency_framework), notice: "Simpul kompetensi diperbarui."
+    else
+      render :edit, status: :unprocessable_entity
     end
   end
 

@@ -9,5 +9,5 @@ osce_blueprint:
 unbalanced_blueprint:
   name: Blueprint Draft Belum Seimbang
   description: Masih disusun, bobot belum genap 100.
-  study_program: sarjana_kedokteran
+  study_program: profesi_dokter
   learning_outcomes: []

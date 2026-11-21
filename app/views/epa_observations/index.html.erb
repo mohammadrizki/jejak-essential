@@ -1,0 +1,30 @@
+<div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+  <div><h1 class="text-2xl font-bold">Observasi EPA</h1><p class="text-sm text-gray-600">Rekam formatif dan status pengajuan panel untuk <%= @student.full_name %>.</p></div>
+  <% if @promotions.any? %>
+    <section class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4"><h2 class="font-semibold text-indigo-950">Status Otoritas Akademik</h2>
+      <% @promotions.each do |promotion| %><p class="mt-2 text-sm"><%= promotion.epa.code %> · <%= promotion.epa.title %> — <%= promotion.status.humanize %></p><% end %>
+    </section>
+  <% end %>
+  <section class="space-y-3">
+    <% @observations.each do |observation| %>
+      <article class="rounded-xl border border-gray-200 bg-white p-4">
+        <div class="flex flex-wrap justify-between gap-2"><strong><%= observation.epa.code %> · <%= observation.epa.title %></strong><span class="text-xs text-gray-500"><%= l(observation.observed_at, format: :long) %> · <%= observation.complexity.humanize %></span></div>
+        <p class="mt-2 text-sm"><%= observation.narrative %></p><p class="mt-2 text-xs text-gray-500">Pengamat: <%= observation.observer.full_name %> · Supervisi: <%= observation.supervision_level.label %></p>
+        <% if observation.safety_flag? %>
+          <% if observation.safety_resolved_at.present? %>
+            <p class="mt-2 text-xs font-semibold text-emerald-700">Tindak lanjut keselamatan dicatat oleh <%= observation.safety_resolved_by.full_name %>: <%= observation.safety_resolution %></p>
+          <% else %>
+            <p class="mt-2 text-xs font-semibold text-rose-700">Perlu tindak lanjut keselamatan; belum dapat dihitung untuk promosi.</p>
+            <% if current_user.has_role?("admin") || (current_user.has_role?("kaprodi") && current_user.study_program_id == observation.student.study_program_id) %>
+              <%= form_with url: resolve_safety_epa_observation_path(observation), method: :patch, class: "mt-2 flex flex-col gap-2 sm:flex-row" do |f| %>
+                <%= f.text_field :safety_resolution, required: true, minlength: 10, placeholder: "Catatan tindak lanjut keselamatan", class: "min-w-0 flex-1 rounded-lg border-gray-300 text-sm" %>
+                <%= f.submit "Catat tindak lanjut", class: "rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white" %>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+      </article>
+    <% end %>
+    <% if @observations.empty? %><p class="rounded-xl bg-white p-5 text-sm text-gray-500">Belum ada observasi EPA.</p><% end %>
+  </section>
+</div>

@@ -1,0 +1,13 @@
+<div data-controller="accordion" data-accordion-open-value="<%= open %>" class="<%= local_assigns[:wrapper_class] || 'mb-1' %>">
+  <button type="button" data-action="click->accordion#toggle" data-accordion-target="trigger"
+          aria-expanded="<%= open %>"
+          class="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors <%= open ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' %>">
+    <span class="flex-1 text-left"><%= label %></span>
+    <svg data-accordion-target="icon" class="h-4 w-4 transition-transform duration-150 <%= 'rotate-180' if open %>" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+    </svg>
+  </button>
+  <div data-accordion-target="content" class="mt-1 pl-3 space-y-1 <%= 'hidden' unless open %> border-l border-slate-700/80 ml-3">
+    <%= yield %>
+  </div>
+</div>

@@ -6,10 +6,20 @@ class AssessmentBlueprint < ApplicationRecord
   has_many :assessment_blueprint_mappings, dependent: :destroy
   has_many :competency_items, through: :assessment_blueprint_mappings
   has_many :learning_units, dependent: :nullify
+  has_many :blueprint_versions, -> { order(version: :desc) }, dependent: :restrict_with_error
 
   validates :name, presence: true
   validates :study_program_id, uniqueness: true
+  validate :program_change_preserves_version_ownership
+  after_create :create_initial_version
 
+  def current_version
+    blueprint_versions.find_by(status: "published") || blueprint_versions.first
+  end
+
+  def draft_version
+    blueprint_versions.find_by(status: "draft")
+  end
 
   # Mapping ditambah satu per satu, jadi total di tengah penyusunan wajar
   # belum 100% — itu ditandai di halaman detail (weights_complete?), bukan
@@ -33,6 +43,21 @@ class AssessmentBlueprint < ApplicationRecord
   # sudah dalam bentuk siap-pakai (bukan JSONB label bebas lagi).
   def weight_by_competency_item
     assessment_blueprint_mappings.includes(:competency_item).index_by(&:competency_item).transform_values { |m| m.weight.to_f }
+  end
+
+  private
+
+  def create_initial_version
+    framework = study_program.peta_kompetensi
+    return if framework.blank?
+
+    blueprint_versions.create!(competency_framework: framework, version: 1, status: "draft")
+  end
+
+  def program_change_preserves_version_ownership
+    return unless persisted? && will_save_change_to_study_program_id? && blueprint_versions.exists?
+
+    errors.add(:study_program, "tidak dapat diubah setelah versi blueprint dibuat")
   end
 
 end

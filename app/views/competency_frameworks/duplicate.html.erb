@@ -1,0 +1,56 @@
+<div class="max-w-3xl">
+  <h1 class="text-xl font-bold text-gray-900">Duplikasi Framework</h1>
+  <p class="mt-1 text-sm text-gray-500">Tinjau framework sumber, pilih program studi tujuan, lalu buat salinan draf yang dapat diubah secara independen.</p>
+
+  <section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Framework sumber</p>
+        <h2 class="mt-1 text-lg font-semibold text-gray-900"><%= @competency_framework.name %></h2>
+        <p class="mt-1 text-xs text-gray-500"><%= @competency_framework.study_program.name %> · versi <%= @competency_framework.version %> · <%= @competency_framework.status %></p>
+      </div>
+      <%= link_to "Lihat detail sumber", competency_framework_path(@competency_framework), class: "text-sm font-medium text-indigo-600 hover:underline" %>
+    </div>
+    <% if @competency_framework.provenance.present? %>
+      <p class="mt-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-900">Provenance: <%= @competency_framework.provenance["attribution"] || @competency_framework.provenance["source_name"] || @competency_framework.provenance["source_framework_name"] %> · versi sumber <%= @competency_framework.provenance["source_version"] || @competency_framework.provenance["source_framework_version"] || @competency_framework.provenance["template_version"] %></p>
+    <% end %>
+    <div class="mt-4 space-y-2">
+      <% @domains.each do |domain| %>
+        <div class="rounded-lg border border-gray-100 p-3">
+          <p class="font-semibold text-gray-800"><%= domain.code %> · <%= domain.title %></p>
+          <% domain.competency_indicators.each do |indicator| %>
+            <p class="ml-4 mt-1 text-xs text-gray-600"><%= indicator.code %> · <%= indicator.description %><%= " · #{indicator.performance_level}" if indicator.performance_level.present? %></p>
+          <% end %>
+          <% domain.children.each do |sub| %>
+            <p class="ml-4 mt-2 text-sm text-gray-700"><%= sub.code %> · <%= sub.title %></p>
+            <% sub.competency_indicators.each do |indicator| %>
+              <p class="ml-8 mt-1 text-xs text-gray-600"><%= indicator.code %> · <%= indicator.description %><%= " · #{indicator.performance_level}" if indicator.performance_level.present? %></p>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+    <h2 class="text-sm font-semibold text-gray-800">Pengaturan salinan</h2>
+    <% if @duplicate_errors.present? %>
+      <p class="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800"><%= @duplicate_errors.to_sentence %></p>
+    <% end %>
+    <%= form_with url: duplicate_competency_framework_path(@competency_framework), method: :post, class: "mt-3 space-y-3" do |f| %>
+      <div>
+        <%= f.label :name, "Nama framework baru", class: "mb-1 block text-sm font-medium text-gray-700" %>
+        <%= f.text_field :name, value: params[:name].presence || "#{@competency_framework.name} (Salinan)", required: true, class: "block w-full rounded-lg border-gray-300 text-sm" %>
+      </div>
+      <div>
+        <%= f.label :study_program_id, "Program studi tujuan", class: "mb-1 block text-sm font-medium text-gray-700" %>
+        <%= f.collection_select :study_program_id, @study_programs, :id, :name, { selected: params[:study_program_id] || @competency_framework.study_program_id, prompt: "Pilih program studi" }, { required: true, class: "block w-full rounded-lg border-gray-300 text-sm" } %>
+      </div>
+      <label class="flex items-start gap-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+        <%= check_box_tag :copy_manual_requirements, "1", params[:copy_manual_requirements] == "1", class: "mt-0.5 rounded border-gray-300 text-indigo-600" %>
+        <span>Salin Syarat Bukti manual yang valid sebagai konfigurasi. Bukti aktual, hasil asesmen, capaian kompetensi, keputusan entrustment, dan Syarat Bukti yang berasal dari Blueprint tidak disalin.</span>
+      </label>
+      <%= f.submit "Buat salinan draf", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 cursor-pointer" %>
+    <% end %>
+  </section>
+</div>

@@ -24,10 +24,12 @@
     { title: term("nav.competency_map"), desc: "Capaian per ranah kompetensi dari hasil ujian & WBA.",
       cta: "Lihat Peta", path: academic_assessments_path(sid), tone: "amber",
       icon: "M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" },
-    { title: term("nav.epa_map"), desc: "Tingkat supervisi mandiri & area yang masih perlu dibimbing.",
+  ]
+  if student.study_program&.level.in?(%w[profesi spesialis subspesialis])
+    hub_cards << { title: term("nav.epa_map"), desc: "Tingkat supervisi mandiri & area yang masih perlu dibimbing.",
       cta: "Lihat Entrustment", path: entrustment_decisions_path(sid), tone: "teal",
       icon: "M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" }
-  ]
+  end
   tones = {
     "sky" => "bg-sky-50 text-sky-600", "emerald" => "bg-emerald-50 text-emerald-600", "violet" => "bg-violet-50 text-violet-600",
     "rose" => "bg-rose-50 text-rose-600", "amber" => "bg-amber-50 text-amber-600", "teal" => "bg-teal-50 text-teal-600"

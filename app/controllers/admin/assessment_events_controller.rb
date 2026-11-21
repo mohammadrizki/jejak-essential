@@ -199,12 +199,20 @@ class Admin::AssessmentEventsController < ApplicationController
     @academic_periods = AcademicPeriod.ordered
     @study_programs = StudyProgram.ordered
     @form_templates = AssessmentFormTemplate.where(is_active: true).order(:name)
+    items = BlueprintItem.joins(blueprint_version: [:assessment_blueprint, :competency_framework])
+                         .where(blueprint_versions: { status: "published" }, competency_frameworks: { status: "published" })
+    items = items.where(assessment_blueprints: { study_program_id: @event.study_program_id }) if @event.study_program_id.present?
+    if @event.blueprint_item_id.present?
+      items = BlueprintItem.where(id: items.select(:id)).or(BlueprintItem.where(id: @event.blueprint_item_id))
+    end
+    @blueprint_items = items.includes(:assessment_method, blueprint_version: :assessment_blueprint).order(:title)
   end
 
   def event_params
     params.require(:assessment_event).permit(
       :name, :assessment_type, :academic_period_id, :study_program_id, :block_name, :exam_date, :status,
-      :max_score, :allow_multiple_attempts, :submission_close_at, :assessment_form_template_id, :description
+      :max_score, :allow_multiple_attempts, :submission_close_at, :assessment_form_template_id, :description,
+      :blueprint_item_id
     )
   end
 

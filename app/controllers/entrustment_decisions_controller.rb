@@ -15,19 +15,8 @@ class EntrustmentDecisionsController < ApplicationController
   end
 
   def create
-    unless can_decide?
-      redirect_to entrustment_decisions_path(student_id: @student.id), alert: "Anda tidak memiliki relasi pembimbingan dengan mahasiswa ini."
-      return
-    end
-
-    item = CompetencyItem.find(params[:competency_item_id])
-    decision = EntrustmentDecision.decide!(student: @student, competency_item: item, level: params[:level].to_i,
-                                           justification: params[:justification].to_s.strip, decided_by: current_user)
-    Notification.notify!(recipient: @student, sender: current_user, notifiable: decision,
-                         title: "Tingkat entrustment #{item.title} diperbarui", message: "Level #{decision.level} — #{decision.level_label}")
-    redirect_to entrustment_decisions_path(student_id: @student.id), notice: "Penilaian #{item.title} tersimpan (level #{decision.level})."
-  rescue ActiveRecord::RecordInvalid => e
-    redirect_to entrustment_decisions_path(student_id: @student.id), alert: e.record.errors.full_messages.to_sentence
+    redirect_to entrustment_decisions_path(student_id: @student.id),
+      alert: "Keputusan entrustment dibuat melalui tinjauan Otoritas Akademik. Catat penilaian formatif sebagai observasi EPA."
   end
 
   private

@@ -21,6 +21,18 @@ end
   sp.save!
 end
 
+[
+  ["cbt", "Computer-based test", "written"], ["osce", "OSCE", "practical"],
+  ["mini_cex", "Mini-CEX", "workplace"], ["dops", "DOPS", "workplace"],
+  ["cbd", "Case-based discussion", "case"], ["portfolio", "Portfolio review", "portfolio"],
+  ["reflection", "Refleksi", "reflection"]
+].each do |code, name, type|
+  AssessmentMethod.find_or_create_by!(code: code) do |method|
+    method.name = name
+    method.assessment_type = type
+  end
+end
+
 # Taksonomi Logbook Kegiatan (Domain → Subdomain → Bentuk Kegiatan). Hanya
 # mengisi basis data yang belum punya domain sama sekali —
 # domain yang dihapus admin tidak muncul lagi di deploy berikutnya.
@@ -104,6 +116,7 @@ if framework.domains.none?
     sub_names.each { |sub_name| framework.competency_items.create!(title: sub_name, parent: domain) }
   end
 end
+framework.publish! if framework.status == "draft"
 
 profession_framework = CompetencyFramework.find_or_initialize_by(study_program: profesi)
 if profession_framework.new_record?
@@ -117,6 +130,7 @@ if profession_framework.new_record?
     end
   end
 end
+profession_framework.publish! if profession_framework.status == "draft"
 
 osce_blueprint = AssessmentBlueprint.find_or_create_by!(name: "Blueprint OSCE Komprehensif") do |b|
   b.study_program = profesi
@@ -141,6 +155,27 @@ if osce_blueprint.assessment_blueprint_mappings.none? && blueprint_framework
     item = blueprint_framework.competency_items.find_by(title: domain_name, parent_id: nil)
     osce_blueprint.assessment_blueprint_mappings.create!(competency_item: item, weight: weight) if item
   end
+end
+
+if blueprint_framework && osce_blueprint.blueprint_versions.none? { |version| version.blueprint_items.exists? }
+  blueprint_version = osce_blueprint.draft_version || osce_blueprint.blueprint_versions.create!(
+    competency_framework: blueprint_framework,
+    version: (osce_blueprint.blueprint_versions.maximum(:version) || 0) + 1,
+    status: "draft", change_notes: "Pemetaan awal ke komponen asesmen"
+  )
+  if blueprint_version.blueprint_items.empty?
+    osce_method = AssessmentMethod.find_by!(code: "osce")
+    component = blueprint_version.blueprint_items.create!(
+      assessment_method: osce_method, code: "OSCE-CORE", title: "OSCE Komprehensif",
+      assessment_context: "Blueprint OSCE keseluruhan program studi", weight: 100, position: 1
+    )
+    osce_blueprint.assessment_blueprint_mappings.includes(:competency_item).each do |mapping|
+      component.blueprint_item_competencies.create!(
+        competency_item: mapping.competency_item, assessment_weight: mapping.weight
+      )
+    end
+  end
+  blueprint_version.publish! if blueprint_version.status == "draft"
 end
 
 # Fase 24 — Master Diagnosis (SKDI 2012 / ICD-10) & Keterampilan Klinis —
@@ -279,3 +314,46 @@ end
 # Instalasi baru mulai dengan pendaftaran mandiri tertutup: akun dibuat admin
 # lewat impor CSV. Instalasi lama (sudah ada akun) tidak diubah.
 AppSetting.set_registration_open!(false, by: nil) if User.none? && !AppSetting.exists?(key: AppSetting::REGISTRATION_KEY)
+
+# Instrumen supervisi disimpan terpisah menurut versi dan tujuan penggunaan.
+# Chen dipakai untuk rekomendasi supervisi prospektif; Ottawa untuk bantuan
+# yang benar-benar diberikan pada observasi retrospektif. Level tidak dipetakan
+# menjadi padanan satu sama lain.
+[
+  {
+    code: "chen_ume", name: "Chen entrustment scale (UME)", version_label: "2015",
+    use_case: "prospective_entrustment",
+    source_reference: "Chen et al. Acad Med. 2016;91:247-255. doi:10.1097/ACM.0000000000000988",
+    levels: [
+      ["not_allowed", "Belum diizinkan melakukan EPA", "Mahasiswa belum diizinkan melakukan aktivitas ini."],
+      ["proactive_full", "Supervisi proaktif penuh", "Aktivitas dilakukan dengan supervisi penuh yang proaktif."],
+      ["reactive_on_demand", "Supervisi reaktif/on-demand", "Supervisor segera tersedia saat diminta."],
+      ["unsupervised", "Tanpa supervisi", "Aktivitas dapat dilakukan tanpa supervisi."],
+      ["supervise_others", "Mensupervisi orang lain", "Dapat mensupervisi orang lain melakukan aktivitas."]
+    ]
+  },
+  {
+    code: "ottawa_oscore", name: "Ottawa O-SCORE entrustability scale", version_label: "2012",
+    use_case: "retrospective_observation",
+    source_reference: "Goffin et al. Acad Med. 2012;87(10):1401-1407. doi:10.1097/ACM.0b013e3182677805",
+    levels: [
+      ["did_for_learner", "Supervisor harus melakukan", "Supervisor mengambil alih atau melakukan aktivitas."],
+      ["talked_through", "Supervisor memberi arahan terus-menerus", "Mahasiswa memerlukan arahan berkelanjutan selama aktivitas."],
+      ["prompted", "Supervisor sesekali memberi prompt", "Mahasiswa bekerja cukup mandiri dengan prompt sesekali."],
+      ["in_room_just_in_case", "Supervisor berada di ruangan", "Mahasiswa cukup mandiri; supervisor tetap hadir untuk keselamatan."],
+      ["not_needed_present", "Supervisor tidak perlu hadir", "Mahasiswa bekerja mandiri dan menangani risiko dengan aman."]
+    ]
+  }
+].each do |scale|
+  levels = scale.delete(:levels)
+  record = SupervisionScaleVersion.find_or_initialize_by(code: scale[:code], version_label: scale[:version_label])
+  record.assign_attributes(scale)
+  record.save!
+  levels.each_with_index do |(code, label, description), index|
+    record.supervision_levels.find_or_create_by!(code: code) do |level|
+      level.ordinal = index + 1
+      level.label = label
+      level.description = description
+    end
+  end
+end

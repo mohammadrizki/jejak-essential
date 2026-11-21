@@ -37,6 +37,9 @@ class User < ApplicationRecord
   has_many :assessment_instances, foreign_key: :student_id, inverse_of: :student, dependent: :destroy
   has_many :examined_assessment_instances, class_name: "AssessmentInstance", foreign_key: :examiner_id, inverse_of: :examiner, dependent: :nullify
   has_many :entrustment_decisions, foreign_key: :student_id, inverse_of: :student, dependent: :destroy
+  has_many :epa_observations, foreign_key: :student_id, inverse_of: :student, dependent: :restrict_with_error
+  has_many :epa_promotions, foreign_key: :student_id, inverse_of: :student, dependent: :restrict_with_error
+  has_many :competency_attainments, foreign_key: :student_id, inverse_of: :student, dependent: :destroy
   has_many :data_export_logs, dependent: :destroy
   has_many :srq_screenings, dependent: :destroy
   has_many :followed_up_srq_screenings, class_name: "SrqScreening", foreign_key: :followed_up_by_id,

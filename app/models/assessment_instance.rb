@@ -16,6 +16,7 @@ class AssessmentInstance < ApplicationRecord
   belongs_to :assessment_form_submission, optional: true
 
   has_many :assessment_dimension_scores, dependent: :destroy
+  has_many :evidence_records, dependent: :restrict_with_error
   has_many :assessment_dimensions, through: :assessment_dimension_scores
   # Station OSCE dari impor Glide; nilai percobaan ini rangkumannya.
   has_many :osce_station_scores, -> { ordered }, dependent: :destroy, inverse_of: :assessment_instance

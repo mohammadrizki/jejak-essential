@@ -1,0 +1,335 @@
+# Add new built-in templates here. Indicators are local examples and should
+# never be presented as official CanMEDS competencies.
+canmeds_undergraduate_v1:
+  name: "CanMEDS 2015 — Adaptasi Lokal Sarjana (Lengkap)"
+  description: "Kerangka siap pakai sebagai titik awal kurikulum Sarjana: tujuh domain, subkompetensi, indikator terukur, dan standar kinerja lokal JEJAK Essential."
+  source_name: "CanMEDS 2015 Physician Competency Framework"
+  source_version: "2015"
+  template_version: "2.0.0"
+  attribution: "Struktur tujuh peran mengacu pada CanMEDS 2015. Nama subkompetensi, seluruh indikator, dan standar kinerja pada template ini dirumuskan sebagai adaptasi lokal JEJAK Essential untuk tahap Sarjana; bukan indikator resmi, terjemahan resmi, atau pengganti penetapan CPL oleh program studi."
+  education_stage: undergraduate
+  domains:
+    - code: ME
+      title: "Ahli Medis (Medical Expert)"
+      description: "Mengintegrasikan ilmu biomedik, klinik, dan kesehatan masyarakat untuk memahami masalah kesehatan serta menyusun rencana awal yang aman dalam batas kompetensi mahasiswa."
+      subcompetencies:
+        - code: ME-KLIN
+          title: "Pengkajian klinis dasar"
+          description: "Mengumpulkan dan memverifikasi informasi pasien secara sistematis dalam konteks pembelajaran klinik."
+          indicators:
+            - code: ME-KLIN-01
+              description: "Melakukan anamnesis terarah yang mencakup keluhan utama, riwayat terkait, obat, alergi, dan faktor risiko sesuai kasus."
+              performance_level: "Menggunakan pertanyaan runtut dan relevan, mengonfirmasi informasi penting, serta meminta supervisi ketika data atau kondisi pasien tidak jelas."
+            - code: ME-KLIN-02
+              description: "Melakukan pemeriksaan fisik dasar yang relevan dengan masalah pasien dan menjaga kenyamanan serta privasi."
+              performance_level: "Menjelaskan tindakan, meminta persetujuan, menerapkan kebersihan tangan, dan melaporkan temuan secara objektif kepada pembimbing."
+        - code: ME-NALAR
+          title: "Penalaran dan pemecahan masalah kesehatan"
+          description: "Menghubungkan temuan klinis dengan konsep ilmu dasar untuk menjelaskan masalah pasien."
+          indicators:
+            - code: ME-NALAR-01
+              description: "Merangkum masalah pasien dengan representasi klinis singkat berdasarkan temuan yang tersedia."
+              performance_level: "Membedakan data positif dan negatif yang relevan serta menyampaikan ringkasan yang dapat ditelusuri kembali ke sumbernya."
+            - code: ME-NALAR-02
+              description: "Menyusun kemungkinan penyebab masalah kesehatan dan menjelaskan alasan yang mendukung atau melemahkan tiap kemungkinan."
+              performance_level: "Mengaitkan alasan dengan data kasus dan ilmu yang dipelajari, menyatakan ketidakpastian, serta tidak menyampaikan dugaan sebagai diagnosis pasti."
+        - code: ME-RENCANA
+          title: "Perencanaan awal dan kesinambungan asuhan"
+          description: "Mengenali kebutuhan pasien, tujuan awal, tindak lanjut, dan batas rujukan dengan supervisi."
+          indicators:
+            - code: ME-RENCANA-01
+              description: "Mengusulkan pemeriksaan atau langkah awal yang relevan untuk menjawab masalah pasien dalam diskusi kasus."
+              performance_level: "Menjelaskan tujuan, manfaat, risiko dasar, dan keterbatasan usulan serta memperoleh persetujuan pembimbing sebelum tindakan klinis."
+            - code: ME-RENCANA-02
+              description: "Mengidentifikasi kebutuhan tindak lanjut, konsultasi, atau rujukan berdasarkan risiko dan batas kompetensi."
+              performance_level: "Menyebutkan tanda bahaya dan waktu eskalasi yang sesuai, lalu menyampaikan kebutuhan bantuan kepada tenaga yang berwenang."
+        - code: ME-AMAN
+          title: "Keselamatan pasien dan prosedur dasar"
+          description: "Menerapkan prinsip keselamatan dan mempraktikkan keterampilan dasar hanya dalam lingkungan serta tingkat supervisi yang ditetapkan."
+          indicators:
+            - code: ME-AMAN-01
+              description: "Mengidentifikasi risiko keselamatan pasien yang tampak dalam skenario atau kegiatan klinik."
+              performance_level: "Menghentikan langkah yang diragukan, menjaga identitas pasien, dan segera melaporkan risiko atau insiden kepada pembimbing."
+            - code: ME-AMAN-02
+              description: "Mempraktikkan keterampilan atau prosedur dasar pada simulasi sesuai daftar tilik dan instruksi pembimbing."
+              performance_level: "Menyiapkan alat dan lingkungan dengan benar, menjelaskan langkah, mengikuti pencegahan infeksi, dan tidak melakukan prosedur di luar otorisasi."
+
+    - code: COM
+      title: "Komunikator (Communicator)"
+      description: "Membangun hubungan yang menghormati pasien serta menyampaikan dan menerima informasi secara jelas, empatik, aman, dan sesuai konteks."
+      subcompetencies:
+        - code: COM-HUB
+          title: "Hubungan terapeutik dan komunikasi berpusat pada pasien"
+          description: "Mendengarkan pasien dan membangun interaksi yang menghargai nilai, kebutuhan, dan otonomi."
+          indicators:
+            - code: COM-HUB-01
+              description: "Membuka percakapan dengan memperkenalkan diri, memastikan identitas pasien sesuai prosedur, dan menjelaskan tujuan interaksi."
+              performance_level: "Melakukan langkah secara sopan dan konsisten, menjaga privasi, serta meminta izin sebelum memulai pengkajian."
+            - code: COM-HUB-02
+              description: "Mendengarkan keluhan tanpa menghakimi dan menggunakan pertanyaan terbuka serta klarifikasi yang relevan."
+              performance_level: "Memberi kesempatan pasien menyelesaikan cerita, merangkum pemahaman, dan mengonfirmasi kembali hal yang belum jelas."
+        - code: COM-INFORM
+          title: "Pertukaran informasi klinis"
+          description: "Menyampaikan informasi dengan struktur yang dapat dipahami dan ditindaklanjuti."
+          indicators:
+            - code: COM-INFORM-01
+              description: "Menyampaikan ringkasan kasus kepada pembimbing atau anggota tim dengan format yang disepakati."
+              performance_level: "Menyebutkan masalah utama, temuan relevan, dan pertanyaan yang memerlukan bantuan tanpa menghilangkan informasi keselamatan."
+            - code: COM-INFORM-02
+              description: "Menggunakan komunikasi tertulis atau lisan yang jelas saat serah terima dalam simulasi atau kegiatan terawasi."
+              performance_level: "Informasi terurut, faktual, mencantumkan hal yang perlu ditindaklanjuti, dan menjaga kerahasiaan."
+        - code: COM-EDUK
+          title: "Edukasi dan pengambilan keputusan bersama"
+          description: "Membantu pasien memahami informasi kesehatan sesuai tingkat pemahaman dan konteksnya."
+          indicators:
+            - code: COM-EDUK-01
+              description: "Menjelaskan istilah atau rencana pemeriksaan dengan bahasa sederhana dan sesuai kebutuhan pasien."
+              performance_level: "Menghindari jargon yang tidak dijelaskan dan memberi ruang untuk pertanyaan."
+            - code: COM-EDUK-02
+              description: "Memeriksa pemahaman pasien dengan meminta pasien mengulang inti informasi menggunakan kata-katanya sendiri."
+              performance_level: "Mengklarifikasi bagian yang belum dipahami tanpa menyalahkan pasien dan melaporkan kebutuhan edukasi lanjutan kepada pembimbing."
+        - code: COM-DOK
+          title: "Dokumentasi dan komunikasi digital yang aman"
+          description: "Mencatat dan membagikan informasi sesuai tujuan, kewenangan, dan aturan kerahasiaan."
+          indicators:
+            - code: COM-DOK-01
+              description: "Menyusun catatan pembelajaran atau ringkasan kasus yang faktual, relevan, dan dapat dibaca."
+              performance_level: "Membedakan temuan, interpretasi, dan rencana; tidak mencantumkan identitas pasien pada media yang tidak berwenang."
+            - code: COM-DOK-02
+              description: "Memilih saluran komunikasi yang sesuai untuk berbagi informasi kesehatan dalam kegiatan pembelajaran."
+              performance_level: "Mengikuti kebijakan institusi, membatasi informasi pada kebutuhan tugas, dan meminta arahan jika keamanan saluran diragukan."
+
+    - code: COL
+      title: "Kolaborator (Collaborator)"
+      description: "Berpartisipasi secara aman dan saling menghormati dalam kerja tim lintas profesi dengan memahami peran dan batas kewenangan."
+      subcompetencies:
+        - code: COL-PERAN
+          title: "Pemahaman peran dan kerja tim"
+          description: "Mengenali kontribusi diri, pasien, keluarga, dan profesi lain dalam pembelajaran serta pelayanan."
+          indicators:
+            - code: COL-PERAN-01
+              description: "Menjelaskan peran anggota tim yang terlibat dalam skenario pelayanan atau diskusi kasus."
+              performance_level: "Menyebutkan kontribusi dan batas kewenangan secara tepat serta tidak mengambil alih keputusan profesi lain."
+            - code: COL-PERAN-02
+              description: "Berbagi tugas dalam kegiatan kelompok dan menyelesaikan bagian yang disepakati."
+              performance_level: "Menyampaikan kemajuan atau kendala tepat waktu serta menghargai kontribusi anggota lain."
+        - code: COL-KOM
+          title: "Komunikasi kolaboratif dan serah terima"
+          description: "Menyampaikan informasi yang dibutuhkan tim secara ringkas, akurat, dan tepat waktu."
+          indicators:
+            - code: COL-KOM-01
+              description: "Menyampaikan perubahan kondisi atau temuan penting kepada pembimbing dan tim melalui jalur yang ditetapkan."
+              performance_level: "Memprioritaskan informasi yang berdampak pada keselamatan dan mengonfirmasi bahwa pesan diterima."
+            - code: COL-KOM-02
+              description: "Berpartisipasi dalam serah terima simulasi dengan mencatat tanggung jawab dan tindak lanjut yang belum selesai."
+              performance_level: "Menggunakan struktur komunikasi yang disepakati dan meminta klarifikasi bila informasi belum lengkap."
+        - code: COL-RUJUK
+          title: "Konsultasi dan rujukan"
+          description: "Mengenali kapan bantuan profesi lain atau eskalasi diperlukan."
+          indicators:
+            - code: COL-RUJUK-01
+              description: "Mengidentifikasi situasi dalam kasus yang memerlukan konsultasi atau eskalasi kepada tenaga berwenang."
+              performance_level: "Menjelaskan alasan eskalasi dan menyampaikannya segera kepada pembimbing, tanpa menunda karena mencoba bertindak di luar kewenangan."
+            - code: COL-RUJUK-02
+              description: "Menyiapkan informasi relevan saat meminta konsultasi pada latihan atau diskusi klinis."
+              performance_level: "Menyampaikan pertanyaan spesifik, ringkasan temuan, dan tindakan yang telah dilakukan secara jujur."
+        - code: COL-KONFLIK
+          title: "Saling menghormati dan penyelesaian perbedaan"
+          description: "Menjaga lingkungan kolaborasi ketika terjadi perbedaan pendapat atau hambatan kerja."
+          indicators:
+            - code: COL-KONFLIK-01
+              description: "Menyampaikan perbedaan pendapat dengan alasan yang relevan dan bahasa profesional."
+              performance_level: "Mendengarkan tanggapan, memisahkan isu dari pribadi, serta meminta fasilitasi pembimbing bila keselamatan atau kerja sama terganggu."
+            - code: COL-KONFLIK-02
+              description: "Memberikan dan menerima umpan balik dalam kerja kelompok secara konstruktif."
+              performance_level: "Menyebutkan perilaku yang dapat diamati, menerima koreksi tanpa merendahkan pihak lain, dan menyepakati langkah perbaikan."
+
+    - code: LEAD
+      title: "Pemimpin (Leader)"
+      description: "Menggunakan sumber daya secara bertanggung jawab, mengelola tugas belajar, dan berkontribusi pada mutu serta keselamatan dalam lingkup mahasiswa."
+      subcompetencies:
+        - code: LEAD-MUTU
+          title: "Mutu dan keselamatan"
+          description: "Mengenali peluang perbaikan sederhana dan berpartisipasi dalam budaya keselamatan."
+          indicators:
+            - code: LEAD-MUTU-01
+              description: "Mengidentifikasi satu risiko atau hambatan mutu pada skenario pembelajaran atau alur pelayanan."
+              performance_level: "Menjelaskan dampak potensial dengan contoh spesifik dan menyampaikan temuan kepada pembimbing melalui jalur yang benar."
+            - code: LEAD-MUTU-02
+              description: "Mengusulkan perbaikan sederhana berdasarkan data atau umpan balik yang tersedia."
+              performance_level: "Usulan memiliki tujuan, indikator pemantauan dasar, dan batas pelaksanaan yang memerlukan persetujuan supervisor."
+        - code: LEAD-SUMBER
+          title: "Penggunaan sumber daya yang bertanggung jawab"
+          description: "Memahami bahwa waktu, fasilitas, obat, dan sumber daya pelayanan perlu digunakan secara tepat."
+          indicators:
+            - code: LEAD-SUMBER-01
+              description: "Menyebutkan pertimbangan manfaat, risiko, dan ketersediaan sumber daya dalam diskusi kasus."
+              performance_level: "Tidak mengusulkan penggunaan yang tidak perlu dan mengakui bahwa keputusan akhir berada pada tenaga berwenang."
+            - code: LEAD-SUMBER-02
+              description: "Menggunakan alat dan fasilitas pembelajaran sesuai prosedur serta mengembalikannya dalam kondisi yang ditetapkan."
+              performance_level: "Mematuhi aturan penggunaan, melaporkan kerusakan atau kekurangan, dan menjaga akses yang adil bagi pengguna lain."
+        - code: LEAD-KELOLA
+          title: "Pengelolaan waktu dan tugas"
+          description: "Mengatur prioritas akademik dan tanggung jawab dalam tim sesuai arahan."
+          indicators:
+            - code: LEAD-KELOLA-01
+              description: "Menyusun prioritas tugas berdasarkan tenggat, kepentingan pembelajaran, dan instruksi supervisor."
+              performance_level: "Menyelesaikan tugas yang disepakati atau meminta penyesuaian sebelum tenggat saat terdapat hambatan."
+            - code: LEAD-KELOLA-02
+              description: "Mencatat dan menindaklanjuti tanggung jawab yang diberikan dalam kegiatan kelompok atau klinik terawasi."
+              performance_level: "Status pekerjaan dapat diketahui tim dan masalah yang berisiko menghambat kegiatan dieskalasikan tepat waktu."
+        - code: LEAD-INFORM
+          title: "Informasi kesehatan dan tata kelola data"
+          description: "Menggunakan sistem informasi pembelajaran dan data kesehatan secara aman serta bertanggung jawab."
+          indicators:
+            - code: LEAD-INFORM-01
+              description: "Memasukkan atau memperbarui data kegiatan pembelajaran pada sistem yang ditetapkan secara akurat."
+              performance_level: "Mengikuti petunjuk, memeriksa ketepatan sebelum menyimpan, dan tidak mengubah data di luar kewenangan."
+            - code: LEAD-INFORM-02
+              description: "Mengenali risiko privasi atau keamanan saat menggunakan perangkat dan informasi kesehatan."
+              performance_level: "Mengamankan akses, tidak berbagi kredensial, dan segera melapor jika terjadi salah kirim atau akses tidak semestinya."
+
+    - code: HA
+      title: "Advokat Kesehatan (Health Advocate)"
+      description: "Mengenali faktor individu, sosial, budaya, dan lingkungan yang memengaruhi kesehatan serta mendukung upaya promotif-preventif secara etis."
+      subcompetencies:
+        - code: HA-DETER
+          title: "Determinan kesehatan dan konteks pasien"
+          description: "Memahami bagaimana keadaan sosial dan lingkungan berhubungan dengan kebutuhan kesehatan."
+          indicators:
+            - code: HA-DETER-01
+              description: "Mengidentifikasi faktor sosial, ekonomi, budaya, atau lingkungan yang relevan pada kasus atau komunitas."
+              performance_level: "Mendasarkan identifikasi pada informasi yang tersedia, tidak membuat asumsi stereotip, dan mengomunikasikan keterbatasan data."
+            - code: HA-DETER-02
+              description: "Menjelaskan bagaimana faktor konteks dapat memengaruhi kemampuan pasien mengakses atau mengikuti rencana kesehatan."
+              performance_level: "Memberikan contoh yang sesuai kasus dan mengusulkan pembahasan lebih lanjut dengan supervisor."
+        - code: HA-PROMO
+          title: "Promosi kesehatan dan pencegahan"
+          description: "Menerapkan prinsip promosi kesehatan yang sesuai kebutuhan individu atau komunitas."
+          indicators:
+            - code: HA-PROMO-01
+              description: "Mengidentifikasi peluang edukasi atau pencegahan yang sesuai dengan masalah kesehatan dalam kasus."
+              performance_level: "Usulan sesuai bukti dan konteks, tidak menyalahkan pasien, serta dikonsultasikan dengan pembimbing."
+            - code: HA-PROMO-02
+              description: "Menyusun pesan kesehatan sederhana untuk sasaran yang ditentukan dalam kegiatan pembelajaran."
+              performance_level: "Pesan akurat, dapat dipahami sasaran, sensitif budaya, dan mencantumkan kapan bantuan profesional diperlukan."
+        - code: HA-ADVOK
+          title: "Advokasi kebutuhan dan akses pasien"
+          description: "Membantu menyuarakan kebutuhan pasien melalui jalur dan kewenangan yang sesuai."
+          indicators:
+            - code: HA-ADVOK-01
+              description: "Mengenali hambatan yang dilaporkan pasien dalam memperoleh layanan atau mengikuti rencana kesehatan."
+              performance_level: "Mendokumentasikan atau melaporkan hambatan secara hormat, menjaga kerahasiaan, dan tidak menjanjikan solusi di luar kewenangan."
+            - code: HA-ADVOK-02
+              description: "Mengidentifikasi sumber dukungan atau layanan yang mungkin relevan bagi pasien atau keluarga."
+              performance_level: "Memeriksa kesesuaian sumber bersama pembimbing dan menjelaskan pilihan tanpa memaksa pasien."
+        - code: HA-MASY
+          title: "Kesehatan masyarakat dan pemerataan"
+          description: "Memahami kebutuhan kesehatan kelompok dan prinsip pemerataan dalam kegiatan akademik."
+          indicators:
+            - code: HA-MASY-01
+              description: "Membaca data kesehatan populasi dasar dan menyebutkan satu kebutuhan kesehatan prioritas."
+              performance_level: "Membedakan temuan data dari interpretasi, menyebutkan keterbatasan sumber, dan menghindari generalisasi tanpa dasar."
+            - code: HA-MASY-02
+              description: "Menjelaskan bagaimana intervensi promotif atau preventif dapat disesuaikan untuk kelompok dengan kebutuhan berbeda."
+              performance_level: "Mempertimbangkan aksesibilitas dan konteks sasaran, lalu mendiskusikan rancangan dengan pembimbing."
+
+    - code: SCH
+      title: "Akademisi (Scholar)"
+      description: "Mengembangkan pengetahuan melalui pembelajaran berkelanjutan, penilaian bukti, refleksi, dan komunikasi ilmu yang bertanggung jawab."
+      subcompetencies:
+        - code: SCH-BUKTI
+          title: "Literasi informasi dan praktik berbasis bukti"
+          description: "Merumuskan pertanyaan dan menilai sumber ilmiah untuk mendukung pembelajaran."
+          indicators:
+            - code: SCH-BUKTI-01
+              description: "Merumuskan pertanyaan terfokus dari masalah pembelajaran atau kasus."
+              performance_level: "Pertanyaan menyebutkan aspek yang ingin diketahui dan cukup spesifik untuk ditelusuri."
+            - code: SCH-BUKTI-02
+              description: "Menilai relevansi, kredibilitas, dan keterbatasan sumber ilmiah yang digunakan."
+              performance_level: "Menyebutkan jenis sumber, alasan pemilihan, dan setidaknya satu keterbatasan sebelum mendiskusikan penerapannya dengan pembimbing."
+        - code: SCH-REF
+          title: "Refleksi dan perbaikan diri"
+          description: "Menggunakan umpan balik dan pengalaman untuk menetapkan kebutuhan belajar."
+          indicators:
+            - code: SCH-REF-01
+              description: "Menulis refleksi yang menghubungkan pengalaman belajar, respons diri, dan pembelajaran yang diperoleh."
+              performance_level: "Refleksi menggunakan contoh spesifik, menjaga identitas pihak terkait, dan menghindari klaim yang tidak didukung pengalaman."
+            - code: SCH-REF-02
+              description: "Menetapkan sasaran perbaikan belajar yang dapat ditindaklanjuti dari umpan balik."
+              performance_level: "Sasaran menyebutkan tindakan dan waktu tinjau ulang serta dibahas bersama pembimbing bila menyangkut keselamatan klinik."
+        - code: SCH-AJAR
+          title: "Pembelajaran sejawat dan berbagi pengetahuan"
+          description: "Berpartisipasi dalam pembelajaran bersama dan menyampaikan pengetahuan secara bertanggung jawab."
+          indicators:
+            - code: SCH-AJAR-01
+              description: "Menjelaskan topik yang telah dipelajari kepada sejawat dengan sumber yang dapat ditelusuri."
+              performance_level: "Penyampaian terstruktur, membedakan fakta dari opini, dan mengakui bagian yang belum diketahui."
+            - code: SCH-AJAR-02
+              description: "Memberikan kontribusi dan umpan balik yang membantu dalam diskusi kelompok."
+              performance_level: "Kontribusi relevan, menghargai perbedaan, dan menyertakan alasan atau rujukan bila mengoreksi informasi."
+        - code: SCH-RISET
+          title: "Etika riset dan penggunaan data"
+          description: "Memahami tanggung jawab dasar saat membaca, mengumpulkan, atau menyajikan data pembelajaran dan penelitian."
+          indicators:
+            - code: SCH-RISET-01
+              description: "Mencantumkan sumber dan membedakan kutipan, parafrasa, serta gagasan sendiri pada tugas akademik."
+              performance_level: "Rujukan dapat ditelusuri dan tidak ada data atau hasil yang direkayasa."
+            - code: SCH-RISET-02
+              description: "Mengidentifikasi kebutuhan persetujuan, kerahasiaan, atau telaah etik pada contoh kegiatan penelitian."
+              performance_level: "Mengenali batas kegiatan mahasiswa dan meminta arahan sebelum mengumpulkan atau membagikan data sensitif."
+
+    - code: PROF
+      title: "Profesional (Professional)"
+      description: "Menunjukkan integritas, kepedulian, tanggung jawab, dan penghormatan pada pasien, masyarakat, profesi, serta batas kompetensi mahasiswa."
+      subcompetencies:
+        - code: PROF-ETIK
+          title: "Etika, persetujuan, dan kerahasiaan"
+          description: "Menerapkan prinsip etika dasar serta menghormati hak dan privasi pasien."
+          indicators:
+            - code: PROF-ETIK-01
+              description: "Menjelaskan tujuan kegiatan dan meminta persetujuan sesuai prosedur sebelum wawancara, pemeriksaan, atau penggunaan data."
+              performance_level: "Menghormati penolakan, menghentikan kegiatan bila persetujuan tidak ada, dan meminta bantuan pembimbing bila situasi tidak jelas."
+            - code: PROF-ETIK-02
+              description: "Menjaga kerahasiaan informasi pasien dalam percakapan, catatan, presentasi, dan media digital."
+              performance_level: "Menggunakan informasi seminimal mungkin untuk tujuan pembelajaran, menghilangkan identitas pada materi, serta segera melaporkan dugaan pelanggaran."
+        - code: PROF-INTEG
+          title: "Integritas dan akuntabilitas"
+          description: "Bertindak jujur dan bertanggung jawab atas tugas, catatan, serta keterbatasan diri."
+          indicators:
+            - code: PROF-INTEG-01
+              description: "Mencatat kegiatan dan hasil belajar secara akurat tanpa mengubah, mengarang, atau mengklaim pekerjaan orang lain."
+              performance_level: "Koreksi dicatat secara transparan, sumber kontribusi diakui, dan kesalahan dilaporkan kepada pihak yang tepat."
+            - code: PROF-INTEG-02
+              description: "Menepati komitmen akademik atau tim dan mengomunikasikan ketidakhadiran atau kendala melalui prosedur yang berlaku."
+              performance_level: "Pemberitahuan dilakukan sesegera mungkin dan disertai langkah untuk menyelesaikan tanggung jawab yang tertunda."
+        - code: PROF-BATAS
+          title: "Batas kompetensi dan perilaku profesional"
+          description: "Mengenali batas peran mahasiswa, meminta supervisi, dan menjaga hubungan profesional."
+          indicators:
+            - code: PROF-BATAS-01
+              description: "Menyatakan keterbatasan pengetahuan atau keterampilan dan meminta supervisi sebelum mengambil tindakan klinis."
+              performance_level: "Tidak melakukan tindakan di luar izin atau kompetensi dan segera mengeskalasi kondisi yang mendesak."
+            - code: PROF-BATAS-02
+              description: "Menjaga batas hubungan profesional dengan pasien, keluarga, sejawat, dan tenaga kesehatan."
+              performance_level: "Mengikuti aturan institusi, menggunakan komunikasi yang pantas, dan meminta arahan ketika menghadapi konflik kepentingan."
+        - code: PROF-SEHAT
+          title: "Kesejahteraan dan kesiapan belajar"
+          description: "Mengenali pengaruh kondisi diri terhadap pembelajaran dan keselamatan."
+          indicators:
+            - code: PROF-SEHAT-01
+              description: "Mengenali kondisi kelelahan, stres, atau keterbatasan diri yang dapat memengaruhi kinerja."
+              performance_level: "Mengambil langkah mencari dukungan atau melapor kepada pihak yang tepat sebelum kondisi berdampak pada keselamatan."
+            - code: PROF-SEHAT-02
+              description: "Menanggapi umpan balik tentang perilaku profesional dengan rencana perbaikan yang spesifik."
+              performance_level: "Mendengarkan tanpa defensif, mengklarifikasi harapan, dan meninjau tindak lanjut bersama pembimbing."
+
+empty_v1:
+  name: "Kerangka Kosong"
+  description: "Mulai dari kerangka kosong dan susun ranah, subkompetensi, serta indikator sesuai kurikulum program studi."
+  source_name: "JEJAK Essential"
+  source_version: "1"
+  template_version: "1.0.0"
+  attribution: "Template kosong; tidak menyertakan isi kurikulum, Blueprint Asesmen, EPA, maupun Syarat Bukti."
+  education_stage: null
+  domains: []

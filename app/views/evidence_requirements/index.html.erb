@@ -1,0 +1,56 @@
+<% content_for :title, "Syarat Bukti" %>
+<div class="max-w-6xl">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h1 class="text-xl font-bold text-gray-900">Syarat Bukti</h1>
+      <p class="mt-1 text-sm text-gray-500">Konfigurasi bukti yang diturunkan dari indikator, EPA, atau komponen Blueprint Asesmen.</p>
+    </div>
+    <%= link_to "Peta Artefak", artifact_map_path, class: "rounded-lg border border-indigo-200 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" %>
+  </div>
+
+  <% if @requirements.any? %>
+    <div class="mt-4 overflow-x-auto rounded-2xl bg-white ring-1 ring-gray-200">
+      <table class="w-full text-left text-sm">
+        <thead class="border-b border-gray-100 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+          <tr><th class="px-4 py-3">Program / sumber</th><th class="px-4 py-3">Target</th><th class="px-4 py-3">Aturan</th><th class="px-4 py-3">Status</th></tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @requirements.each do |requirement| %>
+            <% framework = requirement.competency_item&.competency_framework || requirement.epa&.competency_framework || requirement.blueprint_item&.blueprint_version&.competency_framework %>
+            <% rule = requirement.fulfillment_rule || {} %>
+            <tr>
+              <td class="px-4 py-3">
+                <p class="font-medium text-gray-800"><%= framework&.study_program&.name || "—" %></p>
+                <p class="mt-1 text-xs text-gray-500"><%= requirement.origin == "blueprint" ? "Blueprint Asesmen" : "Manual" %> · <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %></p>
+              </td>
+              <td class="px-4 py-3 text-gray-700">
+                <% target_path = if requirement.origin == "blueprint" && requirement.blueprint_item
+                  assessment_blueprint_path(requirement.blueprint_item.blueprint_version.assessment_blueprint)
+                elsif framework
+                  competency_framework_path(framework)
+                end %>
+                <% target_label = requirement.competency_indicator&.description || requirement.competency_item&.title || requirement.epa&.title || requirement.blueprint_item&.title || "Target tidak tersedia" %>
+                <%= target_path ? link_to(target_label, target_path, class: "font-medium text-indigo-700 hover:underline") : target_label %>
+                <% if requirement.competency_indicator %><span class="block text-xs text-gray-400"><%= requirement.competency_indicator.code %></span><% end %>
+              </td>
+              <td class="px-4 py-3 text-xs text-gray-600">
+                <%= requirement.required_count %> bukti valid minimum
+                <% if rule["minimum_pass"].to_i.positive? %><span class="block">Lulus minimal <%= rule["minimum_pass"] %></span><% end %>
+                <% if rule["minimum_distinct_cases"].to_i.positive? %><span class="block">Kasus berbeda <%= rule["minimum_distinct_cases"] %></span><% end %>
+                <% if rule["minimum_distinct_assessors"].to_i.positive? %><span class="block">Penilai berbeda <%= rule["minimum_distinct_assessors"] %></span><% end %>
+                <% if rule["minimum_distinct_dates"].to_i.positive? %><span class="block">Tanggal berbeda <%= rule["minimum_distinct_dates"] %></span><% end %>
+                <% if rule["minimum_span_days"].to_i.positive? %><span class="block">Rentang waktu <%= rule["minimum_span_days"] %> hari</span><% end %>
+                <% if rule["minimum_distinct_opportunities"].to_i.positive? %><span class="block">Kesempatan berbeda <%= rule["minimum_distinct_opportunities"] %></span><% end %>
+                <% if rule["critical"] %><span class="mt-1 inline-block rounded bg-rose-50 px-1.5 py-0.5 font-semibold text-rose-700">Kritis</span><% end %>
+                <% if rule["additional_criteria"].present? %><span class="mt-1 block"><%= rule["additional_criteria"] %></span><% end %>
+              </td>
+              <td class="px-4 py-3 text-xs text-gray-500"><%= requirement.status.humanize %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="mt-4 rounded-xl bg-white p-5 text-sm text-gray-500 ring-1 ring-gray-200">Belum ada Syarat Bukti. Aturan dapat ditambahkan pada indikator di Peta Kompetensi atau pada Blueprint Asesmen.</p>
+  <% end %>
+</div>

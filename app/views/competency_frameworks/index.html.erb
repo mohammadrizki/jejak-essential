@@ -1,20 +1,31 @@
 <div class="flex items-center justify-between">
   <h1 class="text-xl font-bold text-gray-900">Peta Kompetensi</h1>
-  <% if policy(CompetencyFramework).new? %>
-    <%= link_to "+ Peta Baru", new_competency_framework_path,
-          class: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
-  <% end %>
+  <div class="flex items-center gap-2">
+    <%= link_to "Pustaka Template", competency_framework_templates_path, class: "rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+    <% if policy(CompetencyFramework).new? %>
+      <%= link_to "+ Peta Baru", new_competency_framework_path,
+            class: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
+    <% end %>
+  </div>
 </div>
 
 <div class="mt-4 space-y-2">
   <% @competency_frameworks.each do |framework| %>
-    <%= link_to competency_framework_path(framework), class: "block bg-white rounded-2xl ring-1 ring-gray-200 p-4 hover:ring-indigo-300" do %>
-      <p class="font-semibold text-gray-800"><%= framework.name %></p>
-      <p class="text-xs text-gray-400 mt-1"><%= framework.study_program.name %> · <%= pluralize(framework.domains.count, "ranah") %> · <%= framework.description %></p>
-      <% if framework.epa_programs.any? %>
-        <p class="text-xs font-medium text-indigo-700 mt-1">Dipakai Peta EPA: <%= framework.epa_programs.map(&:name).to_sentence %></p>
+    <div class="flex items-center justify-between gap-3 bg-white rounded-2xl ring-1 ring-gray-200 p-4 hover:ring-indigo-300">
+      <%= link_to competency_framework_path(framework), class: "min-w-0 flex-1" do %>
+        <p class="font-semibold text-gray-800"><%= framework.name %></p>
+        <p class="text-xs text-gray-400 mt-1"><%= framework.study_program.name %> · versi <%= framework.version %> · <%= framework.status %> · <%= pluralize(framework.domains.count, "ranah") %> · <%= framework.description %></p>
+        <% if framework.provenance.present? %>
+          <p class="text-xs text-gray-500 mt-1">Sumber: <%= framework.provenance["source_name"] || framework.provenance["source_framework_name"] || framework.provenance["kind"] %> · versi <%= framework.provenance["source_version"] || framework.provenance["source_framework_version"] || framework.provenance["template_version"] %></p>
+        <% end %>
+        <% if framework.epa_programs.any? %>
+          <p class="text-xs font-medium text-indigo-700 mt-1">Dipakai Peta EPA: <%= framework.epa_programs.map(&:name).to_sentence %></p>
+        <% end %>
       <% end %>
-    <% end %>
+      <% if policy(CompetencyFramework).create? %>
+        <%= link_to "Duplikasi", duplicate_competency_framework_path(framework), class: "shrink-0 rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" %>
+      <% end %>
+    </div>
   <% end %>
   <% if @competency_frameworks.empty? %>
     <p class="text-sm text-gray-400">Belum ada peta kompetensi.</p>

@@ -14,6 +14,78 @@
     <% end %>
   </div>
 
+  <% if @blueprint_version %>
+    <section class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 p-5">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm font-semibold text-gray-800">Komponen asesmen · versi <%= @blueprint_version.version %> · <%= @blueprint_version.status %></h2>
+          <% if @blueprint_version.change_notes.present? %><p class="mt-1 text-xs text-gray-500"><%= @blueprint_version.change_notes %></p><% end %>
+        </div>
+        <% if policy(@assessment_blueprint).update? && @assessment_blueprint.draft_version.nil? %>
+          <%= button_to "Buat versi baru", new_version_assessment_blueprint_path(@assessment_blueprint), method: :post, class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+        <% end %>
+        <% if policy(@assessment_blueprint).update? && @blueprint_version.status == "draft" %>
+          <%= button_to "Terbitkan versi ini", publish_version_assessment_blueprint_path(@assessment_blueprint), method: :patch, class: "rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white", form: { data: { turbo_confirm: "Terbitkan versi ini dan arsipkan versi sebelumnya?" } } %>
+        <% end %>
+      </div>
+      <p class="mt-2 text-xs text-gray-500">Syarat bukti menetapkan jenis dan jumlah bukti yang perlu ditautkan mahasiswa di Portfolio untuk komponen asesmen ini.</p>
+      <div class="mt-3 divide-y divide-gray-100">
+        <% @blueprint_version.blueprint_items.includes(:assessment_method, :competency_items, :epas).each do |item| %>
+          <div class="flex justify-between gap-3 py-3 text-sm">
+            <div><p class="font-medium text-gray-800"><%= item.title %> <span class="text-xs text-gray-400">(<%= item.code %> · <%= item.assessment_method.name %>)</span></p>
+              <p class="mt-1 text-xs text-gray-500"><%= item.competency_items.map(&:title).join(", ").presence || "Belum dipetakan" %><%= " · EPA: #{item.epas.map(&:title).join(', ')}" if item.epas.any? %></p></div>
+            <% if @blueprint_version.status == "draft" && policy(@assessment_blueprint).update? %>
+              <%= button_to "Hapus", assessment_blueprint_blueprint_item_path(@assessment_blueprint, item), method: :delete, class: "text-xs text-rose-600" %>
+            <% end %>
+          </div>
+          <% if @blueprint_version.status == "draft" && policy(@assessment_blueprint).update? %>
+            <%= form_with url: blueprint_item_evidence_requirements_path(item), scope: :evidence_requirement, class: "mb-2 flex flex-wrap gap-2 items-center" do |f| %>
+              <% if item.competency_items.first %>
+                <%= f.hidden_field :competency_item_id, value: item.competency_items.first.id %>
+                <% indicator_options = item.blueprint_item_competencies.includes(:competency_item, :competency_indicator).filter_map { |mapping| ["#{mapping.competency_item.title} · #{mapping.competency_indicator.code}", mapping.competency_indicator_id] if mapping.competency_indicator } %>
+                <% if indicator_options.any? %><%= f.select :competency_indicator_id, options_for_select(indicator_options), { include_blank: "Indikator (opsional)" }, class: "rounded-lg border-gray-300 text-xs" %><% end %>
+              <% elsif item.epas.first %>
+                <%= f.hidden_field :epa_id, value: item.epas.first.id %>
+              <% end %>
+              <%= f.select :source_type, EvidenceRequirement::SOURCE_TYPES.map { |value| [EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(value), value] }, {}, class: "rounded-lg border-gray-300 text-xs" %>
+              <%= f.number_field :required_count, min: 1, value: 1, placeholder: "Bukti valid minimal", class: "w-28 rounded-lg border-gray-300 text-xs" %>
+              <%= render "evidence_requirements/fulfillment_fields", indicator: indicator_options&.any? %>
+              <%= f.submit "Tambah syarat bukti", class: "text-xs text-indigo-600 font-semibold cursor-pointer" %>
+            <% end %>
+          <% end %>
+          <% item.evidence_requirements.each do |requirement| %>
+            <div class="mb-2 flex items-center gap-2 text-xs text-gray-500"><span>Bukti: <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %> × <%= requirement.required_count %></span>
+              <% if @blueprint_version.status == "draft" && policy(@assessment_blueprint).update? %>
+                <%= render "evidence_requirements/actions", edit_path: edit_blueprint_item_evidence_requirement_path(item, requirement), path: blueprint_item_evidence_requirement_path(item, requirement) %>
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+      <% if @blueprint_version.status == "draft" && policy(@assessment_blueprint).update? %>
+        <%= form_with url: assessment_blueprint_blueprint_items_path(@assessment_blueprint), scope: :blueprint_item, class: "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-gray-100 pt-4" do |f| %>
+          <%= f.text_field :code, placeholder: "Kode komponen", required: true, class: "rounded-lg border-gray-300 text-sm" %>
+          <%= f.text_field :title, placeholder: "Nama komponen asesmen", required: true, class: "rounded-lg border-gray-300 text-sm" %>
+          <%= f.collection_select :assessment_method_id, @assessment_methods, :id, :name, { prompt: "Metode asesmen" }, { required: true, class: "rounded-lg border-gray-300 text-sm" } %>
+          <%= f.number_field :target_count, min: 1, placeholder: "Jumlah target", class: "rounded-lg border-gray-300 text-sm" %>
+          <%= f.select :competency_item_ids, options_from_collection_for_select(@blueprint_version.competency_framework.competency_items.order(:position), :id, :title), { include_hidden: false, include_blank: "Pilih kompetensi" }, { multiple: true, class: "rounded-lg border-gray-300 text-sm" } %>
+          <%= f.select :competency_indicator_ids, options_from_collection_for_select(@blueprint_version.competency_framework.competency_indicators.includes(:competency_item).order(:position), :id, ->(indicator) { "#{indicator.competency_item.title} · #{indicator.code || indicator.description.truncate(50)}" }), { include_hidden: false, include_blank: "Pilih indikator" }, { multiple: true, class: "rounded-lg border-gray-300 text-sm" } %>
+          <% if @available_epas.any? %>
+            <%= f.select :epa_ids, options_from_collection_for_select(@available_epas, :id, :title), { include_hidden: false, include_blank: "Pilih EPA" }, { multiple: true, class: "rounded-lg border-gray-300 text-sm" } %>
+            <%= f.select :epa_purpose, BlueprintItemEpa::PURPOSES.map { |value| [value.humanize, value] }, {}, class: "rounded-lg border-gray-300 text-sm" %>
+            <%= f.number_field :epa_expected_level, min: 1, max: 5, placeholder: "Level EPA", class: "rounded-lg border-gray-300 text-sm" %>
+            <%= f.collection_select :epa_supervision_level_id,
+                SupervisionLevel.joins(:supervision_scale_version).includes(:supervision_scale_version)
+                  .where(supervision_scale_versions: { active: true, use_case: "prospective_entrustment" }),
+                :id, ->(level) { "#{level.supervision_scale_version.name} v#{level.supervision_scale_version.version_label} · #{level.ordinal} — #{level.label}" },
+                { include_blank: "Skala target entrustment (opsional)" }, class: "rounded-lg border-gray-300 text-sm" %>
+          <% end %>
+          <%= f.submit "Tambah komponen", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer" %>
+        <% end %>
+      <% end %>
+    </section>
+  <% end %>
+
   <div class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 p-5">
     <div class="flex items-center justify-between mb-3">
       <p class="text-sm font-semibold text-gray-700">Peta Bobot Kompetensi</p>
@@ -39,11 +111,6 @@
             <span class="text-gray-700"><%= mapping.competency_item.title %></span>
             <div class="flex items-center gap-2">
               <span class="font-semibold text-gray-800"><%= mapping.weight.to_f.round(1) %>%</span>
-              <% if policy(mapping).destroy? %>
-                <%= button_to "✕", assessment_blueprint_assessment_blueprint_mapping_path(@assessment_blueprint, mapping), method: :delete,
-                      class: "text-xs text-gray-400 hover:text-rose-600",
-                      form: { data: { turbo_confirm: "Hapus mapping ini?" } } %>
-              <% end %>
             </div>
           </li>
         <% end %>
@@ -52,21 +119,7 @@
       <p class="text-sm text-gray-400">Belum ada peta bobot.</p>
     <% end %>
 
-    <% if policy(AssessmentBlueprintMapping.new).create? && @available_competency_items.any? %>
-      <%= form_with url: assessment_blueprint_assessment_blueprint_mappings_path(@assessment_blueprint), scope: :assessment_blueprint_mapping, class: "mt-4 flex flex-wrap gap-2 items-end" do |f| %>
-        <div class="flex-1 min-w-[10rem]">
-          <%= f.label :competency_item_id, "Kompetensi", class: "block text-xs font-semibold text-gray-600 mb-1" %>
-          <%= f.collection_select :competency_item_id, @available_competency_items, :id, :title, {},
-                class: "block w-full rounded-lg border-0 py-2 px-3 text-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-500" %>
-        </div>
-        <div class="w-24">
-          <%= f.label :weight, "Bobot (%)", class: "block text-xs font-semibold text-gray-600 mb-1" %>
-          <%= f.number_field :weight, step: 0.5, min: 0, max: 100,
-                class: "block w-full rounded-lg border-0 py-2 px-3 text-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-500" %>
-        </div>
-        <%= f.submit "Tambah", class: "px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold cursor-pointer" %>
-      <% end %>
-    <% end %>
+    <p class="mt-3 text-xs text-gray-400">Bobot lama dipertahankan sebagai riwayat. Komponen asesmen dan pemetaan baru dikelola pada versi blueprint.</p>
   </div>
 
   <% if @assessment_blueprint.learning_outcomes.present? %>

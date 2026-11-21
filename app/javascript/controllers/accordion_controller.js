@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="accordion"
 export default class extends Controller {
-  static targets = ["content", "icon"]
+  static targets = ["content", "icon", "trigger"]
   static values = { open: { type: Boolean, default: false } }
 
   connect() {
@@ -20,6 +20,7 @@ export default class extends Controller {
 
   show() {
     this.contentTarget.classList.remove("hidden")
+    if (this.hasTriggerTarget) this.triggerTarget.setAttribute("aria-expanded", "true")
     if (this.hasIconTarget) {
       this.iconTarget.classList.add("rotate-180")
     }
@@ -27,6 +28,7 @@ export default class extends Controller {
 
   hide() {
     this.contentTarget.classList.add("hidden")
+    if (this.hasTriggerTarget) this.triggerTarget.setAttribute("aria-expanded", "false")
     if (this.hasIconTarget) {
       this.iconTarget.classList.remove("rotate-180")
     }

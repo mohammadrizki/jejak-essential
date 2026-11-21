@@ -183,8 +183,7 @@ class ClinicalCasesController < ApplicationController
     authorize @clinical_case
     @clinical_case.verify!(
       by: current_user, entrustment_level: params[:entrustment_level],
-      recommend_remediation: ActiveModel::Type::Boolean.new.cast(params[:recommend_remediation]) || false, comment: params[:comment],
-      epa_item_ids: Array(params[:epa_item_ids]).reject(&:blank?)
+      recommend_remediation: ActiveModel::Type::Boolean.new.cast(params[:recommend_remediation]) || false, comment: params[:comment]
     )
     redirect_to @clinical_case, notice: "Kasus klinis diverifikasi."
   end

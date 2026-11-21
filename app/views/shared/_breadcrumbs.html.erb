@@ -1,0 +1,15 @@
+<% crumbs = navigation_breadcrumbs %>
+<nav aria-label="Breadcrumb" class="border-b border-slate-100 bg-white px-4 py-2 sm:px-6 lg:px-8">
+  <ol class="mx-auto flex max-w-7xl flex-wrap items-center gap-2 text-xs text-slate-500">
+    <% crumbs.each_with_index do |(label, path), index| %>
+      <% if index.positive? %><li aria-hidden="true" class="text-slate-300">/</li><% end %>
+      <li>
+        <% if path.present? && index < crumbs.size - 1 %>
+          <%= link_to label, path, class: "hover:text-indigo-600" %>
+        <% else %>
+          <span <%= 'aria-current="page"'.html_safe if index == crumbs.size - 1 %> class="<%= 'font-semibold text-slate-700' if index == crumbs.size - 1 %>"><%= label %></span>
+        <% end %>
+      </li>
+    <% end %>
+  </ol>
+</nav>

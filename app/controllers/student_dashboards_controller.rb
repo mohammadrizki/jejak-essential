@@ -25,6 +25,16 @@ class StudentDashboardsController < ApplicationController
     @activity_count = @student.activity_logs.count
     @verified_case_count = @student.clinical_cases.where(status: "verified").count
     @can_edit = current_user.has_role?("admin")
+    @framework = @student.study_program&.peta_kompetensi
+    @competency_attainments = if @framework
+      @student.competency_attainments.where(competency_item_id: @framework.competency_items.select(:id))
+        .includes(:decision_by).order(decision_date: :desc, id: :desc)
+        .each_with_object({}) { |record, latest| latest[record.competency_item_id] ||= record }
+    else
+      {}
+    end
+    @can_decide_attainment = current_user.has_role?("admin") ||
+      (current_user.instructor? && @student.supervised_by?(current_user))
   end
 
   private
