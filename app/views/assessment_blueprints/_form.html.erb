@@ -7,8 +7,23 @@
 
   <div>
     <%= f.label :study_program_id, "Program Studi", class: "block text-sm font-semibold text-gray-700 mb-1" %>
-    <%= f.collection_select :study_program_id, @study_programs, :id, :name, { prompt: "Pilih program studi" }, class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-sm ring-1 ring-inset ring-gray-300" %>
+    <% if @study_programs.one? %>
+      <%= f.hidden_field :study_program_id %>
+      <p class="rounded-xl bg-gray-50 px-3.5 py-2.5 text-sm text-gray-700 ring-1 ring-inset ring-gray-200"><%= @study_programs.first.name %></p>
+    <% else %>
+      <%= f.collection_select :study_program_id, @study_programs, :id, :name, { prompt: "Pilih program studi" }, { required: true, class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-sm ring-1 ring-inset ring-gray-300" } %>
+    <% end %>
   </div>
+
+  <% unless assessment_blueprint.persisted? %>
+    <div>
+      <%= f.label :initial_competency_framework_id, "Peta Kompetensi induk", class: "block text-sm font-semibold text-gray-700 mb-1" %>
+      <%= f.select :initial_competency_framework_id, options_for_select([["Pilih Peta Kompetensi terbit", ""]] + @competency_framework_options, assessment_blueprint.initial_competency_framework_id), {}, required: true, class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-sm ring-1 ring-inset ring-gray-300" %>
+      <p class="mt-1 text-xs text-gray-500">Pilih peta terbit milik program studi yang sama. Komponen awal dibuat dari Syarat Bukti aktif yang secara eksplisit menetapkan metode asesmen; sistem tidak menebak metode.</p>
+    </div>
+  <% else %>
+    <p class="text-xs text-gray-500">Peta Kompetensi induk ditetapkan pada versi blueprint dan tidak dapat diganti pada formulir ini.</p>
+  <% end %>
 
   <div>
     <%= f.label :name, "Nama Blueprint", class: "block text-sm font-semibold text-gray-700 mb-1" %>

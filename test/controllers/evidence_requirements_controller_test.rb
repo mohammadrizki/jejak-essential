@@ -7,7 +7,7 @@ class EvidenceRequirementsControllerTest < ActionDispatch::IntegrationTest
     own_requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
       source_type: "wpba", required_count: 1)
     other_framework = CompetencyFramework.create!(name: "Peta Profesi Terpisah", study_program: study_programs(:profesi_dokter),
-      education_stage: "professional")
+      education_stage: "profesi")
     other_domain = other_framework.competency_items.create!(title: "Kompetensi Program Lain")
     other_requirement = EvidenceRequirement.create!(origin: "manual", competency_item: other_domain,
       source_type: "wpba", required_count: 1)

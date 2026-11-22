@@ -82,7 +82,13 @@ class UserCsvImporter
 
       User.transaction do
         user.save!
-        roles.each { |r| user.roles << r unless user.roles.include?(r) }
+        roles.each do |role|
+          next if role.code == "superadmin"
+
+          scope = role.code == "admin" ? (user.study_program_id.present? ? "study_program" : "unassigned") : "system"
+          program = scope == "study_program" ? user.study_program : nil
+          user.user_roles.find_or_create_by!(role: role, scope_level: scope, study_program: program)
+        end
         user.update_column(:active_role_id, roles.first.id) if user.active_role_id.nil?
       end
 
@@ -125,6 +131,7 @@ class UserCsvImporter
     codes = [ "mahasiswa" ] if codes.empty?
     roles = Role.where(code: codes).to_a
     return nil if roles.size != codes.uniq.size
+    return nil if roles.any? { |role| role.code == "superadmin" }
 
     codes.map { |c| roles.find { |r| r.code == c } }
   end

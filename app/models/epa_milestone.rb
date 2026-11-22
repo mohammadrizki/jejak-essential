@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class EpaMilestone < ApplicationRecord
-  STAGES = %w[undergraduate professional specialist subspecialist].freeze
+  STAGES = StudyProgram::LEVELS.keys.freeze
 
   belongs_to :epa
   belongs_to :supervision_level, optional: true

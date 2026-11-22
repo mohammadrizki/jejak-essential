@@ -11,6 +11,7 @@ class AssessmentAssignment
     return false unless rotation.user_id == student.id
     assessed_on = assessed_at.to_date
     return false unless rotation.start_date <= assessed_on && rotation.end_date >= assessed_on
+    return false unless assessor.has_permission?("assessment.review", study_program: student.study_program)
 
     built_in = (assessor.has_role?("dosen") || assessor.has_role?("preseptor")) && rotation.preceptor_id == assessor.id
     assigned = UserAssignment.active.where(user: assessor, assignment_role: "wpba_assessor").any? do |assignment|
@@ -23,7 +24,13 @@ class AssessmentAssignment
     return ClinicalRotation.none if assessor.blank?
 
     academic_assessor = assessor.has_role?("dosen") || assessor.has_role?("preseptor")
-    rotations = academic_assessor ? ClinicalRotation.where(preceptor_id: assessor.id) : ClinicalRotation.none
+    rotations = if academic_assessor
+      ClinicalRotation.where(preceptor_id: assessor.id).select do |rotation|
+        assessor.has_permission?("assessment.review", study_program: rotation.user.study_program)
+      end.then { |items| ClinicalRotation.where(id: items.map(&:id)) }
+    else
+      ClinicalRotation.none
+    end
     assignments = UserAssignment.active.where(user: assessor, assignment_role: "wpba_assessor")
     ids = assignments.filter_map do |assignment|
       case assignment.scope_type
@@ -34,7 +41,12 @@ class AssessmentAssignment
         .where(users: { study_program_id: assignment.study_program_id }).pluck(:id)
       end
     end.flatten
-    rotations.or(ClinicalRotation.where(id: ids)).distinct
+    candidate_ids = rotations.or(ClinicalRotation.where(id: ids)).distinct.pluck(:id)
+    permitted_ids = candidate_ids.select do |id|
+      rotation = ClinicalRotation.includes(:user).find(id)
+      assessor.has_permission?("assessment.review", study_program: rotation.user.study_program)
+    end
+    ClinicalRotation.where(id: permitted_ids)
   end
 
   def self.wpba_enabled_rotations_for(assessor)

@@ -61,7 +61,7 @@ class EpaPromotion < ApplicationRecord
   def epa_matches_student
     return if epa.blank? || student.blank?
     return if epa.competency_framework.study_program_id == student.study_program_id &&
-              epa.competency_framework.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
+              epa.competency_framework.education_stage.in?(StudyProgram::LEVELS.keys) &&
               ModuleConfiguration.for(student.study_program).enabled?("epa") &&
               epa.competency_framework.status == "published" && epa.status == "published"
 

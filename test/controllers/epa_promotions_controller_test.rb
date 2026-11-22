@@ -13,7 +13,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
       assignment_role: "epa_panel_member", scope_type: "User", scope_id: @student.id,
       reason: "Ditunjuk sebagai otoritas panel EPA mahasiswa.")
     framework = CompetencyFramework.create!(study_program: study_programs(:profesi_dokter),
-      name: "Framework Promosi EPA", version: "91", education_stage: "professional")
+      name: "Framework Promosi EPA", version: "91", education_stage: "profesi")
     framework.competency_items.create!(title: "Kompetensi klinis", code: "D-01", level_type: "domain")
     epa = framework.epas.create!(code: "EPA-P1", title: "Melakukan asesmen klinis")
     @unpromoted_epa = framework.epas.create!(code: "EPA-P2", title: "Mengelola tindak lanjut klinis")

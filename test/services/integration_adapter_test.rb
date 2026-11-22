@@ -48,7 +48,7 @@ class IntegrationAdapterTest < ActiveSupport::TestCase
       password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: program)
     student.roles << roles(:mahasiswa)
     framework = CompetencyFramework.create!(study_program: program,
-      name: "Framework WPBA Eksternal", version: "1", education_stage: "professional")
+      name: "Framework WPBA Eksternal", version: "1", education_stage: "profesi")
     epa = framework.epas.create!(code: "EPA-EXT", title: "Melakukan prosedur klinis")
     requirement = EvidenceRequirement.create!(epa: epa, origin: "manual", source_type: "external", required_count: 1)
     admin = users(:budi)

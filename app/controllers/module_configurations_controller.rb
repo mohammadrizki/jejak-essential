@@ -6,7 +6,7 @@ class ModuleConfigurationsController < ApplicationController
 
   def edit
     @configuration = ModuleConfiguration.for(@study_program)
-    @study_programs = StudyProgram.ordered if current_user.has_role?("admin")
+    @study_programs = manageable_programs
     @history = ModuleConfigurationChange.where(study_program: @study_program)
       .includes(:actor).order(created_at: :desc).limit(20)
   end
@@ -23,16 +23,21 @@ class ModuleConfigurationsController < ApplicationController
   private
 
   def set_study_program
-    if current_user.has_role?("admin")
-      @study_program = StudyProgram.find(params.require(:study_program_id))
-    elsif current_user.has_role?("kaprodi") && current_user.study_program_id.present?
-      @study_program = current_user.study_program
-      if params[:study_program_id].present? && params[:study_program_id].to_i != @study_program.id
-        return redirect_to dashboard_path, alert: "Kaprodi hanya dapat mengatur modul program studinya."
-      end
+    if params[:study_program_id].present?
+      @study_program = StudyProgram.find(params[:study_program_id])
     else
-      redirect_to dashboard_path, alert: "Anda tidak berwenang mengatur modul program studi."
+      @study_program = manageable_programs.first
     end
+    return if @study_program && (current_user.has_role?("superadmin") ||
+      current_user.has_permission?("modules.manage", study_program: @study_program))
+
+    redirect_to dashboard_path, alert: "Permission aktivasi modul pada program studi ini diperlukan."
+  end
+
+  def manageable_programs
+    return StudyProgram.ordered if current_user.has_role?("superadmin")
+
+    StudyProgram.ordered.select { |program| current_user.has_permission?("modules.manage", study_program: program) }
   end
 
   def configuration_params

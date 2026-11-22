@@ -2,19 +2,28 @@
 
 class CompetencyFrameworksController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_competency_framework, only: %i[show edit update destroy new_version publish_version duplicate]
+  before_action :set_competency_framework, only: %i[show edit update destroy new_version publish_version unpublish duplicate]
 
   def index
     authorize CompetencyFramework
     scope = CompetencyFramework.all
-    scope = scope.where(study_program_id: current_user.study_program_id) unless current_user.has_role?("admin")
+    unless current_user.has_role?("superadmin")
+      if current_user.has_role?("mahasiswa")
+        scope = scope.where(study_program_id: current_user.study_program_id)
+      else
+      program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
+      scope = scope.where(study_program_id: program_ids)
+      end
+    end
     @competency_frameworks = scope.includes(:study_program, :epa_programs).order(:name)
   end
 
   def show
     authorize @competency_framework
     @domains = @competency_framework.domains.includes(:children, :competency_milestones)
-    @has_draft_for_program = @competency_framework.study_program.framework_versions.exists?(status: "draft")
+    @draft_framework = @competency_framework.study_program.framework_versions.find_by(status: "draft")
+    @has_draft_for_program = @draft_framework.present?
+    @framework_lifecycle = CompetencyFrameworkLifecycle.new(@competency_framework)
     @academic_periods = AcademicPeriod.ordered
   end
 
@@ -27,8 +36,9 @@ class CompetencyFrameworksController < ApplicationController
   def create
     authorize CompetencyFramework
     @competency_framework = CompetencyFramework.new(competency_framework_params)
-    return redirect_to competency_frameworks_path, alert: "Kaprodi hanya dapat membuat peta untuk program studinya." if
-      current_user.has_role?("kaprodi") && @competency_framework.study_program_id != current_user.study_program_id
+    unless current_user.has_role?("superadmin") || current_user.has_permission?("curriculum.manage", study_program: @competency_framework.study_program)
+      return redirect_to competency_frameworks_path, alert: "Hak akses kelola kurikulum untuk program studi tujuan diperlukan."
+    end
 
     if @competency_framework.save
       redirect_to competency_framework_path(@competency_framework), notice: "Peta kompetensi ditambahkan."
@@ -40,11 +50,20 @@ class CompetencyFrameworksController < ApplicationController
 
   def edit
     authorize @competency_framework
+    return redirect_to @competency_framework, alert: "Framework published tidak dapat disunting langsung. Buat atau buka versi draf terlebih dahulu." unless @competency_framework.status == "draft"
+
     load_study_programs
   end
 
   def update
     authorize @competency_framework
+    return redirect_to @competency_framework, alert: "Framework published tidak dapat disimpan langsung. Buat atau buka versi draf terlebih dahulu." unless @competency_framework.status == "draft"
+
+    target_program_id = params.dig(:competency_framework, :study_program_id).presence || @competency_framework.study_program_id
+    target_program = StudyProgram.find_by(id: target_program_id)
+    unless target_program && (current_user.has_role?("superadmin") || current_user.has_permission?("curriculum.manage", study_program: target_program))
+      return redirect_to @competency_framework, alert: "Hak akses kelola kurikulum untuk program studi tujuan diperlukan."
+    end
     if @competency_framework.update(competency_framework_params)
       redirect_to competency_framework_path(@competency_framework), notice: "Peta kompetensi diperbarui."
     else
@@ -55,12 +74,12 @@ class CompetencyFrameworksController < ApplicationController
 
   def destroy
     authorize @competency_framework
-    if @competency_framework.destroy
-      redirect_to competency_frameworks_path, notice: "Peta kompetensi dihapus.", status: :see_other
-    else
-      redirect_to competency_framework_path(@competency_framework), status: :see_other,
-                  alert: "Peta kompetensi “#{@competency_framework.name}” tidak dapat dihapus: #{@competency_framework.errors.full_messages.to_sentence}."
-    end
+    CompetencyFrameworkLifecycle.new(@competency_framework).destroy!
+    redirect_to competency_frameworks_path, notice: "Peta kompetensi dihapus beserta konfigurasi bukti yang belum memiliki evidence.", status: :see_other
+  rescue CompetencyFrameworkLifecycle::Blocked, ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordInvalid => e
+    reason = e.respond_to?(:reasons) ? e.reasons.to_sentence : e.message
+    redirect_to competency_framework_path(@competency_framework), status: :see_other,
+      alert: "Peta Kompetensi tidak dapat dihapus karena masih memiliki dampak atau dependensi: #{reason}."
   end
 
   def new_version
@@ -155,8 +174,9 @@ class CompetencyFrameworksController < ApplicationController
     return unless request.post?
 
     target_program = StudyProgram.find(params.require(:study_program_id))
-    return redirect_to @competency_framework, alert: "Kaprodi hanya dapat menduplikasi framework ke program studinya." if
-      current_user.has_role?("kaprodi") && target_program.id != current_user.study_program_id
+    unless current_user.has_role?("superadmin") || current_user.has_permission?("curriculum.manage", study_program: target_program)
+      return redirect_to @competency_framework, alert: "Hak akses kelola kurikulum untuk program studi tujuan diperlukan."
+    end
 
     duplicate = CompetencyFrameworkDuplicator.new(
       source_framework: @competency_framework,
@@ -181,6 +201,17 @@ class CompetencyFrameworksController < ApplicationController
     redirect_to @competency_framework, alert: e.record.errors.full_messages.to_sentence
   end
 
+  def unpublish
+    authorize @competency_framework, :update?
+    lifecycle = CompetencyFrameworkLifecycle.new(@competency_framework)
+    lifecycle.unpublish!
+    redirect_to @competency_framework, notice: "Framework di-unpublish dan diarsipkan sebagai riwayat. Syarat Bukti tetap tersimpan; pilih Sunting untuk membuat draf koreksi yang independen."
+  rescue CompetencyFrameworkLifecycle::Blocked => e
+    redirect_to @competency_framework, alert: "Framework tidak dapat di-unpublish karena masih digunakan oleh: #{e.reasons.to_sentence}. Gunakan Buat Versi Baru agar riwayat akademik tetap utuh."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to @competency_framework, alert: e.record.errors.full_messages.to_sentence
+  end
+
   private
 
   def set_competency_framework
@@ -188,22 +219,27 @@ class CompetencyFrameworksController < ApplicationController
   end
 
   def competency_framework_params
-    params.require(:competency_framework).permit(:name, :description, :study_program_id, :version, :education_stage, :effective_date, :status)
+    attributes = params.require(:competency_framework)
+    if action_name == "create"
+      attributes.permit(:name, :description, :study_program_id)
+    else
+      attributes.permit(:name, :description)
+    end
   end
 
   def load_study_programs
-    @study_programs = if current_user.has_role?("admin")
+    @study_programs = if current_user.has_role?("superadmin")
       StudyProgram.ordered
     else
-      StudyProgram.where(id: current_user.study_program_id)
+      StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }
     end
   end
 
   def load_duplicate_form
-    @study_programs = if current_user.has_role?("admin")
+    @study_programs = if current_user.has_role?("superadmin")
       StudyProgram.ordered
     else
-      StudyProgram.where(id: current_user.study_program_id)
+      StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }
     end
     @domains = @competency_framework.domains.includes(:competency_indicators, children: :competency_indicators)
   end

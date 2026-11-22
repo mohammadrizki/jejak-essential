@@ -14,7 +14,7 @@ class ReflectionEntryTest < ActiveSupport::TestCase
 
   test "reflection competencies must belong to the learner's program framework" do
     other_framework = CompetencyFramework.create!(study_program: study_programs(:profesi_dokter),
-      name: "Kerangka program lain", version: "ref-test", education_stage: "professional")
+      name: "Kerangka program lain", version: "ref-test", education_stage: "profesi")
     other_item = other_framework.competency_items.create!(title: "Kompetensi lain", code: "RF-1", level_type: "domain")
     reflection = ReflectionEntry.new(user: users(:siti), entry_date: Date.current,
       what_learned: "Saya memperoleh pelajaran.", competency_items: [other_item])

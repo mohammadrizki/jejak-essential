@@ -10,9 +10,9 @@
   is_dosen     = active_code == "dosen"
   is_preceptor = active_code == "preseptor"
   is_kaprodi   = active_code == "kaprodi"
-  is_admin     = active_code == "admin"
+  is_admin     = %w[admin superadmin].include?(active_code)
   is_tendik    = active_code == "tenaga_kependidikan"
-  # Navigasi mengikuti peran aktif. Role lain pada akun tidak membuat menu
+  # Navigasi mengikuti peran aktif. Peran lain pada akun tidak membuat menu
   # administrasi muncul saat pengguna sedang bekerja sebagai mahasiswa/dosen.
   is_config_manager = is_admin
   is_instructor = is_dosen || is_preceptor || is_admin
@@ -31,7 +31,7 @@
   # Relabel Prodi, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data
   # juga terbuka untuk kaprodi (terikat prodinya).
   is_prodi_manager = is_kaprodi
-  is_form_manager = is_kaprodi || is_admin
+  is_form_manager = is_kaprodi || current_user.has_role?("superadmin")
   # Monitoring SRQ mengikuti peran aktif kaprodi; admin biasa tidak melihatnya.
   is_srq_monitor = is_kaprodi && current_user.can_monitor_srq?
   # SRQ-20 baru tampil setelah kaprodi mengaktifkannya untuk prodi mahasiswa ini.

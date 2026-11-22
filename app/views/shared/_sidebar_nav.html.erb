@@ -1,4 +1,4 @@
-<%# Role-specific JEJAK navigation from the final product architecture. %>
+<%# Navigasi JEJAK mengikuti peran aktif dan cakupan kewenangan. %>
 <%
   is_student = local_assigns[:is_student] || false
   is_dosen = local_assigns[:is_dosen] || false
@@ -8,6 +8,8 @@
   is_tendik = local_assigns[:is_tendik] || false
   is_verifier = local_assigns[:is_verifier] || false
   is_config_manager = local_assigns[:is_config_manager] || false
+  can_manage_curriculum = is_kaprodi || (is_admin && (current_user.has_role?("superadmin") ||
+    StudyProgram.ordered.any? { |program| current_user.has_permission?("curriculum.manage", study_program: program) }))
   is_prodi_manager = local_assigns[:is_prodi_manager] || false
   is_srq_monitor = local_assigns[:is_srq_monitor] || false
   is_srq_student = local_assigns[:is_srq_student] || false
@@ -151,7 +153,7 @@
   <% end %>
 <% end %>
 
-<% if is_kaprodi %>
+<% if can_manage_curriculum %>
   <%= render "shared/nav_accordion", label: "Pengelolaan Program Studi", open: active_class.call(%w[/competency_framework_templates /competency_frameworks /assessment_blueprints /evidence_requirements /peta-artefak /module_configuration]) do %>
     <%= render "shared/nav_item", label: "Pustaka Kerangka Kompetensi", path: competency_framework_templates_path, active: active_class.call("/competency_framework_templates") %>
     <%= render "shared/nav_item", label: "Peta Kompetensi", path: competency_frameworks_path, active: active_class.call(%w[/competency_frameworks /competency_items]) %>
@@ -174,16 +176,21 @@
   <%= render "shared/nav_item", label: "Aktivasi Modul", path: edit_module_configuration_path(study_program_id: current_user.study_program_id), active: active_class.call("/module_configuration") %>
 <% end %>
 
+<% if current_user.has_system_permission?("templates.manage") && !can_manage_curriculum %>
+  <%= render "shared/nav_item", label: "Pustaka Kerangka Kompetensi", path: competency_framework_templates_path, active: active_class.call("/competency_framework_templates") %>
+<% end %>
+
 <% if is_admin %>
   <p class="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">ADMINISTRASI</p>
+  <% if current_user.has_role?("superadmin") %>
   <%= render "shared/nav_accordion", label: "Program Studi & Kurikulum", open: active_class.call(%w[/study_programs /academic_periods /clinical_rotations /tutorial_enrollments]) do %>
     <%= render "shared/nav_item", label: "Program Studi", path: study_programs_path, active: active_class.call("/study_programs") %>
     <%= render "shared/nav_item", label: "Periode Akademik", path: academic_periods_path, active: active_class.call("/academic_periods") %>
     <%= render "shared/nav_item", label: term("nav.clinical_rotations"), path: clinical_rotations_path, active: active_class.call("/clinical_rotations") %>
   <% end %>
-  <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: active_class.call(%w[/admin/users /admin/student_relabel /user_assignments /external_identity_mappings /external_evidence_imports]) do %>
-    <%= render "shared/nav_item", label: "Pengguna & Role", path: admin_users_path, active: active_class.call("/admin/users") %>
-    <%= render "shared/nav_item", label: "Penugasan", path: user_assignments_path, active: active_class.call("/user_assignments") %>
+  <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: active_class.call(%w[/admin/users /admin/student_relabel /external_identity_mappings /external_evidence_imports]) do %>
+    <%= render "shared/nav_item", label: "Pengguna & Peran", path: admin_users_path, active: active_class.call("/admin/users") %>
+    <% if current_user.has_role?("superadmin") %><%= render "shared/nav_item", label: "Kelola Peran & Hak Akses", path: roles_path, active: active_class.call("/roles") %><% end %>
     <%= render "shared/nav_item", label: "Relabel Prodi Mahasiswa", path: new_admin_student_relabel_path, active: active_class.call("/admin/student_relabel") %>
     <% if has_external_data_access %>
       <%= render "shared/nav_item", label: "Pemetaan Identifier Eksternal", path: external_identity_mappings_path, active: active_class.call("/external_identity_mappings") %>
@@ -202,9 +209,21 @@
     <%= render "shared/nav_item", label: "Ekspor Data (CSV)", path: admin_exports_path, active: active_class.call("/admin/exports") %>
   <% end %>
   <%= render "shared/nav_accordion", label: "Pengaturan Sistem", open: active_class.call(%w[/module_configuration /admin/terminology /admin/data_governance]) do %>
-    <% if StudyProgram.exists? %><%= render "shared/nav_item", label: "Aktivasi Modul", path: edit_module_configuration_path(study_program_id: StudyProgram.ordered.first.id), active: active_class.call("/module_configuration") %><% end %>
+    <% module_program = StudyProgram.ordered.find { |program| current_user.has_role?("superadmin") || current_user.has_permission?("modules.manage", study_program: program) } %>
+    <% if module_program %><%= render "shared/nav_item", label: "Aktivasi Modul", path: edit_module_configuration_path(study_program_id: module_program.id), active: active_class.call("/module_configuration") %><% end %>
     <%= render "shared/nav_item", label: "Taksonomi Istilah", path: admin_terminology_path, active: active_class.call("/admin/terminology") %>
     <%= render "shared/nav_item", label: "Tata Kelola Data", path: admin_data_governance_path, active: active_class.call("/admin/data_governance") %>
+  <% end %>
+  <% else %>
+    <% if current_user.has_permission?("users.manage") || current_user.has_permission?("assignments.manage") %>
+      <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: active_class.call("/admin/users") do %>
+        <% if current_user.has_permission?("users.manage") %><%= render "shared/nav_item", label: "Pengguna", path: admin_users_path, active: active_class.call("/admin/users") %><% end %>
+      <% end %>
+    <% end %>
+    <% module_program = StudyProgram.ordered.find { |program| current_user.has_permission?("modules.manage", study_program: program) } %>
+    <% if module_program %><%= render "shared/nav_accordion", label: "Pengaturan Program", open: active_class.call("/module_configuration") do %>
+      <%= render "shared/nav_item", label: "Aktivasi Modul", path: edit_module_configuration_path(study_program_id: module_program.id), active: active_class.call("/module_configuration") %>
+    <% end %><% end %>
   <% end %>
   <% if logbook_visible %>
     <%= render "shared/nav_accordion", label: "Logbook Klinis", open: active_class.call(%w[/activity_logs /clinical_cases]) do %>

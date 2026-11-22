@@ -23,7 +23,7 @@ class CompetencyFrameworksControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h2", text: "EPA pada versi ini"
-    assert_select "option[value='undergraduate']", text: "Sarjana"
+    assert_select "option[value='sarjana']", text: "Sarjana"
   end
 
   test "mahasiswa tidak boleh membuat peta kompetensi baru" do

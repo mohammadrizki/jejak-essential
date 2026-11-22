@@ -6,7 +6,7 @@ class EpaCycleEvidenceSummaryTest < ActiveSupport::TestCase
       password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:profesi_dokter))
     student.roles << roles(:mahasiswa)
     framework = CompetencyFramework.create!(study_program: student.study_program,
-      name: "Framework Siklus EPA", version: "1", education_stage: "professional")
+      name: "Framework Siklus EPA", version: "1", education_stage: "profesi")
     framework.competency_items.create!(title: "Kompetensi klinis", code: "D-CYCLE", level_type: "domain")
     epa = framework.epas.create!(code: "EPA-CYCLE", title: "Menangani pasien dengan supervisi")
     framework.publish!

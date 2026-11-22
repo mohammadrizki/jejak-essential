@@ -1,7 +1,7 @@
 require "test_helper"
 
 class CompetencyFrameworkDuplicatorTest < ActiveSupport::TestCase
-  test "CanMEDS template creates an independent seven-domain undergraduate draft with provenance" do
+  test "CanMEDS template creates an independent seven-domain sarjana draft with provenance" do
     template = CompetencyFrameworkTemplate.find_by_key("canmeds_undergraduate_v1")
 
     copy = CompetencyFrameworkDuplicator.new(
@@ -9,7 +9,7 @@ class CompetencyFrameworkDuplicatorTest < ActiveSupport::TestCase
     ).call
 
     assert_equal "draft", copy.status
-    assert_equal "undergraduate", copy.education_stage
+    assert_equal "sarjana", copy.education_stage
     assert_equal 7, copy.domains.count
     assert copy.competency_indicators.exists?
     assert_equal "built_in_template", copy.provenance.fetch("kind")

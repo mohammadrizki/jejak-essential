@@ -2,30 +2,29 @@
 
 class AssessmentBlueprintPolicy < ApplicationPolicy
   def index?
-    user.has_role?("admin") || user.has_role?("kaprodi")
+    user.has_role?("superadmin") || StudyProgram.ordered.any? do |program|
+      user.has_permission?("curriculum.manage", study_program: program)
+    end
   end
   alias create? index?
   alias new? index?
 
   def artifact_map?
-    return true if user.has_role?("admin")
     return record_accessible_to_student? if active_role_code == "mahasiswa"
 
-    user.has_role?("kaprodi") && record.is_a?(Class) && user.study_program_id.present?
+    return index? if record.is_a?(Class)
+
+    record.is_a?(AssessmentBlueprint) && user.has_permission?("curriculum.manage", study_program: record.study_program)
   end
 
   def show?
-    return true if user.has_role?("admin")
-
-    user.has_role?("kaprodi") && record.is_a?(AssessmentBlueprint) &&
-      record.study_program_id == user.study_program_id
+    record.is_a?(AssessmentBlueprint) && (user.has_role?("superadmin") ||
+      user.has_permission?("curriculum.manage", study_program: record.study_program))
   end
 
   def update?
-    return true if user.has_role?("admin")
-
-    user.has_role?("kaprodi") && record.is_a?(AssessmentBlueprint) &&
-      record.study_program_id == user.study_program_id
+    record.is_a?(AssessmentBlueprint) && (user.has_role?("superadmin") ||
+      user.has_permission?("curriculum.manage", study_program: record.study_program))
   end
   alias edit? update?
   alias destroy? update?

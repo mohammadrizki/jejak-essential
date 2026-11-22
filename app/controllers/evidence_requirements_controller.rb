@@ -5,12 +5,13 @@ class EvidenceRequirementsController < ApplicationController
   def index
     authorize CompetencyFramework, :create?
     scope = EvidenceRequirement.all
-    unless current_user.has_role?("admin")
-      framework_ids = CompetencyFramework.where(study_program_id: current_user.study_program_id).select(:id)
+    unless current_user.has_role?("superadmin")
+      program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
+      framework_ids = CompetencyFramework.where(study_program_id: program_ids).select(:id)
       item_ids = CompetencyItem.where(competency_framework_id: framework_ids).select(:id)
       epa_ids = Epa.where(competency_framework_id: framework_ids).select(:id)
       blueprint_item_ids = BlueprintItem.joins(:blueprint_version)
-        .where(blueprint_versions: { assessment_blueprint_id: AssessmentBlueprint.where(study_program_id: current_user.study_program_id).select(:id) })
+        .where(blueprint_versions: { assessment_blueprint_id: AssessmentBlueprint.where(study_program_id: program_ids).select(:id) })
         .select(:id)
       scope = EvidenceRequirement.where(competency_item_id: item_ids)
         .or(EvidenceRequirement.where(epa_id: epa_ids))

@@ -1,0 +1,21 @@
+<%= form_with model: template, url: template.persisted? ? competency_framework_template_path(template.key) : competency_framework_templates_path, method: template.persisted? ? :patch : :post, class: "space-y-4" do |f| %>
+  <% if template.errors.any? %>
+    <div class="rounded-lg bg-rose-50 p-3 text-sm text-rose-800"><%= template.errors.full_messages.to_sentence %></div>
+  <% end %>
+  <% { name: "Nama template", description: "Deskripsi", source_name: "Nama sumber", source_version: "Versi sumber", template_version: "Versi template", attribution: "Atribusi dan catatan sumber" }.each do |field, label| %>
+    <div>
+      <%= f.label field, label, class: "mb-1 block text-sm font-medium text-gray-700" %>
+      <%= field == :description || field == :attribution ? f.text_area(field, rows: 3, class: "block w-full rounded-lg border-gray-300 text-sm") : f.text_field(field, class: "block w-full rounded-lg border-gray-300 text-sm") %>
+    </div>
+  <% end %>
+  <div>
+    <%= f.label :education_stage, "Jenjang acuan", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <%= f.select :education_stage, [["Tidak ditentukan", ""]] + StudyProgram::LEVELS.map { |code, label| [label, code] }, {}, class: "block w-full rounded-lg border-gray-300 text-sm" %>
+  </div>
+  <div>
+    <%= f.label :domains_json, "Struktur domain, subkompetensi, dan indikator (JSON)", class: "mb-1 block text-sm font-medium text-gray-700" %>
+    <p class="mb-2 text-xs text-gray-500">Setiap domain memuat code dan title, serta indicators atau subcompetencies. Indikator memuat code, description, dan performance_level opsional.</p>
+    <%= f.text_area :domains_json, value: JSON.pretty_generate(template.domains || []), rows: 22, spellcheck: false, class: "block w-full rounded-lg border-gray-300 font-mono text-xs" %>
+  </div>
+  <%= f.submit template.persisted? ? "Simpan perubahan" : "Tambah ke pustaka", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white cursor-pointer" %>
+<% end %>

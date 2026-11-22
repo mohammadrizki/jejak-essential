@@ -42,15 +42,35 @@
 
     <fieldset>
       <legend class="text-sm font-semibold text-gray-700 mb-2">Peran</legend>
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div class="space-y-3">
         <% @roles.each do |role| %>
-          <label class="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-            <%= check_box_tag "user[role_ids][]", role.id, @user.role_ids.include?(role.id), id: "user_role_#{role.code}", class: "rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" %>
-            <span><%= role.name %></span>
-          </label>
+          <% existing = @user.user_roles.where(role: role).to_a %>
+          <% selected = existing.any? %>
+          <% scope = existing.first&.scope_level || (role.code == "admin" ? "study_program" : "system") %>
+          <% selected_programs = existing.filter_map(&:study_program_id) %>
+          <div class="rounded-xl border border-gray-200 p-3">
+            <label class="flex items-center gap-2 text-sm font-medium">
+              <%= check_box_tag "user[role_ids][]", role.id, selected, id: "user_role_#{role.code}", class: "rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" %>
+              <span><%= role.name %></span>
+              <% if role.code == "superadmin" %><span class="text-xs text-rose-700">akses sistem penuh</span><% end %>
+            </label>
+            <div class="mt-2 grid gap-2 sm:grid-cols-2">
+              <% if role.code == "admin" %>
+                <%= hidden_field_tag "user[role_scopes][#{role.id}]", "study_program" %>
+                <p class="rounded-lg bg-slate-50 px-3 py-2 text-sm">Cakupan: program studi</p>
+              <% elsif role.code == "superadmin" %>
+                <%= hidden_field_tag "user[role_scopes][#{role.id}]", "system" %>
+                <p class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">Cakupan: seluruh sistem</p>
+              <% else %>
+                <%= select_tag "user[role_scopes][#{role.id}]", options_for_select([["Seluruh sistem", "system"], ["Program studi tertentu", "study_program"]], scope), class: "rounded-lg border-gray-300 text-sm" %>
+              <% end %>
+              <%= select_tag "user[role_program_ids][#{role.id}][]", options_from_collection_for_select(@study_programs, :id, :name, selected_programs), multiple: true, disabled: role.code == "superadmin", class: "rounded-lg border-gray-300 text-sm", aria: { label: "Program studi untuk peran #{role.name}" } %>
+            </div>
+            <% if role.code == "admin" %><p class="mt-1 text-xs text-gray-500">Admin hanya berlaku pada program studi yang dipilih. Akses seluruh sistem hanya melalui role superadmin.</p><% end %>
+          </div>
         <% end %>
       </div>
-      <p class="text-xs text-gray-400 mt-2">Peran aktif saat ini: <strong><%= @user.active_role&.name || "—" %></strong>. Bila dicabut, peran pertama yang tersisa menjadi aktif.</p>
+      <p class="text-xs text-gray-400 mt-2">Hak akses diwariskan dari peran. Assignment penilaian tetap diperlukan untuk membatasi mahasiswa, rotasi, atau kegiatan yang ditangani. Peran aktif: <strong><%= @user.active_role&.name || "—" %></strong>.</p>
     </fieldset>
 
     <div class="flex justify-end">

@@ -18,7 +18,7 @@ Rails.application.routes.draw do
       patch :reject
     end
   end
-  resources :roles, only: [] do
+  resources :roles, only: %i[index new create edit update destroy] do
     collection do
       patch :switch
     end
@@ -283,7 +283,7 @@ Rails.application.routes.draw do
     resources :blueprint_items, only: %i[create destroy]
   end
   resources :competency_frameworks do
-    member { post :new_version; patch :publish_version; get :duplicate; post :duplicate }
+    member { post :new_version; patch :publish_version; patch :unpublish; get :duplicate; post :duplicate }
     resources :competency_items, only: %i[create edit update destroy]
     resources :epas, only: %i[create destroy] do
       member { post :map_competency }
@@ -291,8 +291,8 @@ Rails.application.routes.draw do
     end
     resources :evidence_requirements, only: %i[create edit update destroy]
   end
-  resources :competency_framework_templates, only: %i[index show] do
-    post :duplicate, on: :member
+  resources :competency_framework_templates, only: %i[index show new create edit update destroy] do
+    member { post :duplicate; post :copy }
   end
   resources :competency_items, only: [] do
     resources :competency_indicators, only: %i[create edit update destroy]

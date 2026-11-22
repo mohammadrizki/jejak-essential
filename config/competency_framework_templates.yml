@@ -7,7 +7,7 @@ canmeds_undergraduate_v1:
   source_version: "2015"
   template_version: "2.0.0"
   attribution: "Struktur tujuh peran mengacu pada CanMEDS 2015. Nama subkompetensi, seluruh indikator, dan standar kinerja pada template ini dirumuskan sebagai adaptasi lokal JEJAK Essential untuk tahap Sarjana; bukan indikator resmi, terjemahan resmi, atau pengganti penetapan CPL oleh program studi."
-  education_stage: undergraduate
+  education_stage: sarjana
   domains:
     - code: ME
       title: "Ahli Medis (Medical Expert)"

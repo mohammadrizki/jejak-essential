@@ -24,10 +24,16 @@ class CompetencyFrameworkTemplate
 
   def self.all
     data = YAML.safe_load_file(PATH, permitted_classes: [], aliases: false) || {}
-    data.map { |key, attributes| new(key, attributes) }
+    built_in = data.map { |key, attributes| new(key, attributes) }
+    built_in + FrameworkTemplateRecord.order(:name).to_a
   end
 
   def self.find_by_key(key)
-    all.find { |template| template.key == key.to_s }
+    key = key.to_s
+    return FrameworkTemplateRecord.find_by(id: key.delete_prefix("custom-")) if key.start_with?("custom-")
+
+    all.find { |template| template.key == key }
   end
+
+  def custom? = false
 end

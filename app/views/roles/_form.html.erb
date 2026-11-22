@@ -1,0 +1,25 @@
+<%= form_with model: @role, class: "space-y-5 rounded-xl border bg-white p-5" do |f| %>
+  <% if @role.errors.any? %><div class="rounded bg-rose-50 p-3 text-sm text-rose-800"><%= @role.errors.full_messages.to_sentence %></div><% end %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div><%= f.label :name, "Nama peran", class: "mb-1 block text-sm font-medium" %><%= f.text_field :name, required: true, class: "w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :code, "Kode peran", class: "mb-1 block text-sm font-medium" %><%= f.text_field :code, required: true, disabled: @role.persisted? && @role.system_role?, class: "w-full rounded-lg border-gray-300" %></div>
+  </div>
+  <fieldset><legend class="font-semibold">Hak akses bawaan peran</legend>
+    <p class="mb-3 text-xs text-gray-600">Cakupan hak akses adalah batas maksimum peran. Akses untuk menilai mahasiswa tetap memerlukan assignment aktif.</p>
+    <div class="space-y-2">
+      <% @permissions.each do |permission| %>
+        <% current_grant = @permission_settings[permission.id] %>
+        <label class="grid gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+          <span><%= check_box_tag "role[permission_ids][]", permission.id, current_grant.present?, id: "permission_#{permission.key}", class: "mr-2 rounded border-gray-300" %><strong class="text-sm"><%= permission.name %></strong><span class="block pl-6 text-xs text-gray-500"><%= permission.key %> · <%= permission.description %></span></span>
+          <% if permission.key == "templates.manage" %>
+            <%= hidden_field_tag "role[permission_scopes][#{permission.id}]", "system" %>
+            <span class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">Cakupan sistem</span>
+          <% else %>
+            <%= select_tag "role[permission_scopes][#{permission.id}]", options_for_select([["Program studi", "study_program"], ["Sistem", "system"]], current_grant&.scope_level || "study_program"), class: "rounded-lg border-gray-300 text-sm" %>
+          <% end %>
+        </label>
+      <% end %>
+    </div>
+  </fieldset>
+  <%= f.submit "Simpan peran", class: "rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white" %>
+<% end %>

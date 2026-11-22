@@ -8,9 +8,36 @@
   "preseptor" => "Preseptor",
   "kaprodi"   => "Kaprodi",
   "admin"     => "Admin",
-  "tenaga_kependidikan" => "Tenaga Kependidikan"
+  "tenaga_kependidikan" => "Tenaga Kependidikan",
+  "superadmin" => "Superadmin"
 }.each do |code, name|
   Role.find_or_create_by!(code: code) { |role| role.name = name }
+end
+
+# Hak akses peran menentukan tindakan; UserAssignment tetap menjadi
+# syarat kedua untuk membatasi mahasiswa, rotasi, dan dossier yang ditangani.
+{
+  "admin" => %w[users.manage roles.assign assignments.manage curriculum.manage modules.manage integration.manage audit.read],
+  "kaprodi" => %w[users.manage roles.assign assignments.manage curriculum.manage modules.manage assessment.review assessment.decide epa.decide audit.read],
+  "dosen" => %w[assessment.review assessment.decide],
+  "preseptor" => %w[assessment.review epa.decide],
+  "tenaga_kependidikan" => %w[integration.manage audit.read]
+}.each do |role_code, permission_keys|
+  role = Role.find_by!(code: role_code)
+  permission_keys.each do |key|
+    permission = SystemPermission.find_by!(key: key)
+    RolePermission.find_or_create_by!(role: role, system_permission: permission) do |grant|
+      grant.scope_level = "system"
+    end
+  end
+end
+
+superadmin = Role.find_by!(code: "superadmin")
+%w[users.manage roles.manage roles.assign assignments.manage curriculum.manage modules.manage integration.manage audit.read templates.manage].each do |key|
+  permission = SystemPermission.find_by!(key: key)
+  RolePermission.find_or_create_by!(role: superadmin, system_permission: permission) do |grant|
+    grant.scope_level = "system"
+  end
 end
 
 # Prodi contoh awal. Prodi Spesialis dan Subspesialis serta prodi tambahan

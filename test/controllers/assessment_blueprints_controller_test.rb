@@ -113,7 +113,7 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
   def create_test_program
     program = StudyProgram.create!(name: "Program Blueprint Uji", code: "bp-#{SecureRandom.hex(3)}", level: "sarjana")
     framework = CompetencyFramework.create!(study_program: program, name: "Peta Blueprint Uji", version: "1",
-      education_stage: "undergraduate")
+      education_stage: "sarjana")
     framework.competency_items.create!(title: "Domain Uji", code: "D-01", level_type: "domain")
     framework.publish!
     program.reload

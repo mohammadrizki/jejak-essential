@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -557,7 +557,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
     t.index ["study_program_id", "version"], name: "idx_framework_program_version", unique: true
     t.index ["study_program_id"], name: "idx_one_published_competency_framework", unique: true, where: "((status)::text = 'published'::text)"
     t.index ["study_program_id"], name: "index_competency_frameworks_on_study_program_id"
-    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['undergraduate'::character varying, 'professional'::character varying, 'specialist'::character varying, 'subspecialist'::character varying]::text[]))", name: "chk_framework_education_stage"
+    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['sarjana'::character varying, 'profesi'::character varying, 'spesialis'::character varying, 'subspesialis'::character varying]::text[]))", name: "chk_framework_education_stage"
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])", name: "chk_framework_status"
     t.check_constraint "version IS NOT NULL AND status IS NOT NULL AND education_stage IS NOT NULL", name: "chk_framework_required_fields"
   end
@@ -780,6 +780,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
     t.index ["epa_id"], name: "index_epa_milestones_on_epa_id"
     t.index ["supervision_level_id"], name: "index_epa_milestones_on_supervision_level_id"
     t.check_constraint "expected_level >= 1", name: "chk_epa_milestone_level"
+    t.check_constraint "stage::text = ANY (ARRAY['sarjana'::character varying, 'profesi'::character varying, 'spesialis'::character varying, 'subspesialis'::character varying]::text[])", name: "chk_epa_milestone_stage"
   end
 
   create_table "epa_observations", force: :cascade do |t|
@@ -1151,6 +1152,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
     t.index ["supervisor_id"], name: "index_final_projects_on_supervisor_id"
   end
 
+  create_table "framework_template_records", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description", default: "", null: false
+    t.string "source_name", default: "Adaptasi program studi", null: false
+    t.string "source_version", default: "1", null: false
+    t.string "template_version", default: "1.0.0", null: false
+    t.text "attribution", default: "", null: false
+    t.string "education_stage"
+    t.jsonb "domains", default: [], null: false
+    t.jsonb "provenance", default: {}, null: false
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_framework_template_records_on_created_by_id"
+    t.index ["name"], name: "index_framework_template_records_on_name"
+    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['sarjana'::character varying, 'profesi'::character varying, 'spesialis'::character varying, 'subspesialis'::character varying]::text[]))", name: "chk_framework_template_education_stage"
+  end
+
   create_table "glide_imports", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "created_count", default: 0, null: false
@@ -1343,6 +1362,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
     t.index ["clinical_case_id"], name: "index_prescription_items_on_clinical_case_id"
   end
 
+  create_table "rbac_audit_events", force: :cascade do |t|
+    t.bigint "actor_user_id"
+    t.bigint "subject_user_id"
+    t.bigint "role_id"
+    t.string "event_key", null: false
+    t.jsonb "details", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_user_id"], name: "index_rbac_audit_events_on_actor_user_id"
+    t.index ["event_key", "created_at"], name: "index_rbac_audit_events_on_event_key_and_created_at"
+    t.index ["role_id"], name: "index_rbac_audit_events_on_role_id"
+    t.index ["subject_user_id"], name: "index_rbac_audit_events_on_subject_user_id"
+  end
+
   create_table "reflection_entries", force: :cascade do |t|
     t.bigint "activity_log_id"
     t.bigint "clinical_case_id"
@@ -1380,6 +1413,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
     t.index ["evidence_source_id"], name: "index_reflection_entry_evidence_sources_on_evidence_source_id"
     t.index ["reflection_entry_id", "evidence_source_id"], name: "idx_reflection_evidence_sources_unique", unique: true
     t.index ["reflection_entry_id"], name: "index_reflection_entry_evidence_sources_on_reflection_entry_id"
+  end
+
+  create_table "role_permissions", force: :cascade do |t|
+    t.bigint "role_id", null: false
+    t.bigint "system_permission_id", null: false
+    t.string "scope_level", default: "study_program", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["role_id", "system_permission_id"], name: "idx_role_permissions_unique", unique: true
+    t.index ["role_id"], name: "index_role_permissions_on_role_id"
+    t.index ["system_permission_id"], name: "index_role_permissions_on_system_permission_id"
+    t.check_constraint "scope_level::text = ANY (ARRAY['system'::character varying, 'study_program'::character varying]::text[])", name: "chk_role_permissions_scope"
   end
 
   create_table "roles", force: :cascade do |t|
@@ -1457,6 +1502,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
     t.check_constraint "use_case::text = ANY (ARRAY['retrospective_observation'::character varying, 'prospective_entrustment'::character varying]::text[])", name: "chk_supervision_scale_use_case"
   end
 
+  create_table "system_permissions", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.text "description", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_system_permissions_on_key", unique: true
+  end
+
   create_table "terminology_overrides", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "key", null: false
@@ -1510,9 +1564,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
     t.bigint "role_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.string "scope_level", default: "system", null: false
+    t.bigint "study_program_id"
     t.index ["role_id"], name: "index_user_roles_on_role_id"
-    t.index ["user_id", "role_id"], name: "index_user_roles_on_user_id_and_role_id", unique: true
+    t.index ["study_program_id"], name: "index_user_roles_on_study_program_id"
+    t.index ["user_id", "role_id", "study_program_id"], name: "idx_user_roles_program_scope", unique: true, where: "((scope_level)::text = 'study_program'::text)"
+    t.index ["user_id", "role_id"], name: "idx_user_roles_system_scope", unique: true, where: "((scope_level)::text = 'system'::text)"
+    t.index ["user_id", "role_id"], name: "idx_user_roles_unassigned_scope", unique: true, where: "((scope_level)::text = 'unassigned'::text)"
     t.index ["user_id"], name: "index_user_roles_on_user_id"
+    t.check_constraint "scope_level::text = 'system'::text AND study_program_id IS NULL OR scope_level::text = 'study_program'::text AND study_program_id IS NOT NULL OR scope_level::text = 'unassigned'::text AND study_program_id IS NULL", name: "chk_user_roles_scope"
   end
 
   create_table "users", force: :cascade do |t|
@@ -1783,6 +1843,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
   add_foreign_key "final_project_milestones", "final_projects"
   add_foreign_key "final_projects", "users", column: "student_id"
   add_foreign_key "final_projects", "users", column: "supervisor_id"
+  add_foreign_key "framework_template_records", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "glide_imports", "users", column: "imported_by_id"
   add_foreign_key "glide_imports", "users", column: "rolled_back_by_id"
   add_foreign_key "learning_units", "academic_periods"
@@ -1807,6 +1868,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
   add_foreign_key "portfolio_selections", "artifact_submissions"
   add_foreign_key "portfolio_selections", "users", column: "student_id"
   add_foreign_key "prescription_items", "clinical_cases"
+  add_foreign_key "rbac_audit_events", "users", column: "actor_user_id", on_delete: :nullify
+  add_foreign_key "rbac_audit_events", "users", column: "subject_user_id", on_delete: :nullify
   add_foreign_key "reflection_entries", "activity_logs"
   add_foreign_key "reflection_entries", "clinical_cases"
   add_foreign_key "reflection_entries", "users"
@@ -1814,6 +1877,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
   add_foreign_key "reflection_entry_competency_tags", "reflection_entries"
   add_foreign_key "reflection_entry_evidence_sources", "evidence_sources"
   add_foreign_key "reflection_entry_evidence_sources", "reflection_entries"
+  add_foreign_key "role_permissions", "roles"
+  add_foreign_key "role_permissions", "system_permissions"
   add_foreign_key "srq_screenings", "users"
   add_foreign_key "srq_screenings", "users", column: "followed_up_by_id"
   add_foreign_key "study_programs", "competency_frameworks"
@@ -1828,6 +1893,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
   add_foreign_key "user_assignments", "users", column: "assigned_by_id"
   add_foreign_key "user_assignments", "users", column: "revoked_by_id"
   add_foreign_key "user_roles", "roles"
+  add_foreign_key "user_roles", "study_programs"
   add_foreign_key "user_roles", "users"
   add_foreign_key "users", "roles", column: "active_role_id"
   add_foreign_key "users", "study_programs"

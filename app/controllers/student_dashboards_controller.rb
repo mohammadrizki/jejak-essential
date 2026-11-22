@@ -26,7 +26,7 @@ class StudentDashboardsController < ApplicationController
     @verified_case_count = @student.clinical_cases.where(status: "verified").count
     @can_edit = current_user.has_role?("admin")
     @framework = @student.study_program&.peta_kompetensi
-    @epa_available = @framework&.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
+    @epa_available = @framework&.education_stage.in?(StudyProgram::LEVELS.keys) &&
       (ModuleConfiguration.for(@student.study_program).enabled?("epa") || @student.epa_observations.exists? ||
         @student.epa_promotions.exists? || @student.entrustment_decisions.exists?)
     @competency_attainments = if @framework

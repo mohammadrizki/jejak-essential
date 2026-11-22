@@ -31,12 +31,17 @@ class StudyProgram < ApplicationRecord
     LEVELS.fetch(level, level)
   end
 
-  # Compatibility accessor used throughout the portfolio. Published versions
-  # are preferred; draft-only programs can still configure their first map.
+  # Compatibility accessor for program configuration and portfolio flows.
+  # Draft-only programs can configure an initial map; an archived pointer is
+  # an explicit withdrawal and must not fall through to an unreviewed draft.
   def peta_kompetensi
+    # An archived pointer is an explicit withdrawal marker. Do not fall back
+    # to a correction draft and expose it as the program's active framework.
+    return nil if competency_framework&.study_program_id == id && competency_framework.status == "archived"
     return competency_framework if competency_framework&.study_program_id == id
 
-    framework_versions.order(Arel.sql("CASE status WHEN 'published' THEN 0 ELSE 1 END"), created_at: :desc, id: :desc).first
+    framework_versions.where.not(status: "archived")
+      .order(Arel.sql("CASE status WHEN 'published' THEN 0 ELSE 1 END"), created_at: :desc, id: :desc).first
   end
 
   def sarjana?

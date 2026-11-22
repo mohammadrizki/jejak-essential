@@ -11,7 +11,7 @@ class EpaObservationsController < ApplicationController
     @observations = @student.epa_observations.includes(:epa, :observer, :clinical_case,
       supervision_level: :supervision_scale_version).chronological
     framework = @student.study_program&.peta_kompetensi
-    @epas = if framework&.status == "published" && framework.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
+    @epas = if framework&.status == "published" && framework.education_stage.in?(StudyProgram::LEVELS.keys) &&
         ModuleConfiguration.for(@student.study_program).enabled?("epa")
       framework.epas.where(status: "published").includes(:evidence_requirements).order(:code)
     else

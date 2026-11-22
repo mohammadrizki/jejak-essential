@@ -42,10 +42,7 @@ class CompetencyFrameworkDuplicator
   end
 
   def destination_stage
-    {
-      "sarjana" => "undergraduate", "profesi" => "professional",
-      "spesialis" => "specialist", "subspesialis" => "subspecialist"
-    }.fetch(@study_program.level)
+    @study_program.level
   end
 
   def provenance

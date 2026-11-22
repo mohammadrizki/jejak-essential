@@ -2,22 +2,28 @@
 
 class CompetencyFrameworkPolicy < ApplicationPolicy
   def index?
-    true
+    user.has_role?("mahasiswa") || user.has_role?("superadmin") || StudyProgram.ordered.any? do |program|
+      user.has_permission?("curriculum.manage", study_program: program)
+    end
   end
 
   def show?
-    return true if user.has_role?("admin")
     return false unless record.is_a?(CompetencyFramework)
 
-    record.study_program_id.present? && record.study_program_id == user.study_program_id
+    record.study_program_id.present? && (user.has_role?("superadmin") ||
+      (user.has_role?("mahasiswa") && record.study_program_id == user.study_program_id) ||
+      user.has_permission?("curriculum.manage", study_program: record.study_program))
   end
 
   def manage?
-    return true if user.has_role?("admin")
-    return false unless user.has_role?("kaprodi")
+    if record.is_a?(Class)
+      return user.has_role?("superadmin") || StudyProgram.ordered.any? do |program|
+        user.has_permission?("curriculum.manage", study_program: program)
+      end
+    end
 
-    program_id = record.is_a?(Class) ? user.study_program_id : record.study_program_id
-    program_id.present? && program_id == user.study_program_id
+    record.is_a?(CompetencyFramework) && record.study_program.present? &&
+      (user.has_role?("superadmin") || user.has_permission?("curriculum.manage", study_program: record.study_program))
   end
   alias create? manage?
   alias new? manage?

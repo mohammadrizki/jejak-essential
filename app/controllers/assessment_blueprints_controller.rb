@@ -7,18 +7,23 @@ class AssessmentBlueprintsController < ApplicationController
   def index
     authorize AssessmentBlueprint
     scope = AssessmentBlueprint.includes(:study_program).order(:name)
-    @assessment_blueprints = current_user.has_role?("admin") ? scope : scope.where(study_program_id: current_user.study_program_id)
+    if current_user.has_role?("superadmin")
+      @assessment_blueprints = scope
+    else
+      program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
+      @assessment_blueprints = scope.where(study_program_id: program_ids)
+    end
   end
 
   def show
     authorize @assessment_blueprint
-    framework = @assessment_blueprint.study_program.peta_kompetensi
+    @blueprint_version = @assessment_blueprint.draft_version || @assessment_blueprint.current_version
+    framework = @blueprint_version&.competency_framework || @assessment_blueprint.study_program.peta_kompetensi
     @available_competency_items = if framework
       framework.competency_items.where.not(id: @assessment_blueprint.competency_items.select(:id)).order(:position)
     else
       CompetencyItem.none
     end
-    @blueprint_version = @assessment_blueprint.draft_version || @assessment_blueprint.current_version
     @assessment_methods = AssessmentMethod.where(is_active: true).order(:name)
     @available_epas = framework&.epas&.where(status: "published") || Epa.none
   end
@@ -27,18 +32,33 @@ class AssessmentBlueprintsController < ApplicationController
     authorize AssessmentBlueprint
     @assessment_blueprint = AssessmentBlueprint.new
     load_study_programs
+    @assessment_blueprint.study_program = preferred_study_program
+    load_frameworks
   end
 
   def create
     authorize AssessmentBlueprint
+    load_study_programs
     @assessment_blueprint = AssessmentBlueprint.new(assessment_blueprint_params)
-    return redirect_to assessment_blueprints_path, alert: "Kaprodi hanya dapat membuat blueprint untuk program studinya." if
-      current_user.has_role?("kaprodi") && @assessment_blueprint.study_program_id != current_user.study_program_id
+    @assessment_blueprint.study_program = preferred_study_program if @assessment_blueprint.study_program_id.blank?
+    if @assessment_blueprint.study_program.blank?
+      return redirect_to assessment_blueprints_path, alert: "Tidak ada Program Studi dalam cakupan hak akses Anda."
+    end
+    unless current_user.has_role?("superadmin") || current_user.has_permission?("curriculum.manage", study_program: @assessment_blueprint.study_program)
+      return redirect_to assessment_blueprints_path, alert: "Hak akses kelola kurikulum untuk program studi tujuan diperlukan."
+    end
+    if @assessment_blueprint.initial_competency_framework_id.blank?
+      @assessment_blueprint.errors.add(:initial_competency_framework_id, "pilih Peta Kompetensi yang sudah diterbitkan")
+      load_study_programs
+      load_frameworks
+      return render :new, status: :unprocessable_entity
+    end
 
     if @assessment_blueprint.save
       redirect_to assessment_blueprint_path(@assessment_blueprint), notice: "Blueprint asesmen dibuat sebagai draf. Tambahkan komponennya sebelum menerbitkan."
     else
       load_study_programs
+      load_frameworks
       render :new, status: :unprocessable_entity
     end
   end
@@ -50,9 +70,10 @@ class AssessmentBlueprintsController < ApplicationController
 
   def update
     authorize @assessment_blueprint
-    if current_user.has_role?("kaprodi") && params.dig(:assessment_blueprint, :study_program_id).present? &&
-       params.dig(:assessment_blueprint, :study_program_id).to_i != current_user.study_program_id
-      return redirect_to @assessment_blueprint, alert: "Kaprodi hanya dapat mengelola blueprint program studinya."
+    target_program_id = params.dig(:assessment_blueprint, :study_program_id).presence || @assessment_blueprint.study_program_id
+    target_program = StudyProgram.find_by(id: target_program_id)
+    unless target_program && (current_user.has_role?("superadmin") || current_user.has_permission?("curriculum.manage", study_program: target_program))
+      return redirect_to @assessment_blueprint, alert: "Hak akses kelola kurikulum untuk program studi tujuan diperlukan."
     end
 
     if @assessment_blueprint.update(assessment_blueprint_params)
@@ -74,7 +95,7 @@ class AssessmentBlueprintsController < ApplicationController
 
   def new_version
     authorize @assessment_blueprint, :update?
-    framework = @assessment_blueprint.study_program.peta_kompetensi
+    framework = @assessment_blueprint.current_version&.competency_framework || @assessment_blueprint.study_program.peta_kompetensi
     return redirect_to @assessment_blueprint, alert: "Program studi belum memiliki Peta Kompetensi." if framework.blank?
     return redirect_to @assessment_blueprint, alert: "Selesaikan atau arsipkan draf yang sedang ada terlebih dahulu." if @assessment_blueprint.draft_version
 
@@ -129,15 +150,29 @@ class AssessmentBlueprintsController < ApplicationController
     outcomes = params.dig(:assessment_blueprint, :learning_outcomes_text).to_s
       .split("\n").map(&:strip).reject(&:blank?)
 
-    params.require(:assessment_blueprint).permit(:name, :description, :study_program_id)
+    params.require(:assessment_blueprint).permit(:name, :description, :study_program_id, :initial_competency_framework_id)
       .merge(learning_outcomes: outcomes)
   end
 
   def load_study_programs
-    @study_programs = if current_user.has_role?("admin")
+    @study_programs = if current_user.has_role?("superadmin")
       StudyProgram.ordered
     else
-      StudyProgram.where(id: current_user.study_program_id)
+      StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }
     end
+  end
+
+  def preferred_study_program
+    return if @study_programs.blank?
+
+    @study_programs.find { |program| program.id == current_user.study_program_id } || @study_programs.first
+  end
+
+  def load_frameworks
+    program_ids = @study_programs.map(&:id)
+    @competency_framework_options = CompetencyFramework.where(study_program_id: program_ids, status: "published")
+      .includes(:study_program).order(:study_program_id, version: :desc).map do |framework|
+        ["#{framework.study_program.name} — #{framework.name} (v#{framework.version}, Terbit)", framework.id]
+      end
   end
 end

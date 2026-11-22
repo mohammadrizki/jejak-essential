@@ -8,7 +8,7 @@ class User < ApplicationRecord
          :omniauthable, omniauth_providers: [ :google_oauth2 ]
 
   has_many :user_roles, dependent: :destroy
-  has_many :roles, through: :user_roles
+  has_many :roles, -> { distinct }, through: :user_roles
   belongs_to :active_role, class_name: "Role", optional: true
 
   has_one_attached :avatar
@@ -81,7 +81,7 @@ class User < ApplicationRecord
   # Kaprodi tanpa peran admin terikat prodi, jadi prodinya wajib ada. Dipakai
   # impor CSV dan Sunting Pengguna supaya akun seperti itu tidak terbentuk.
   def self.program_required_for_roles?(codes)
-    codes.include?("kaprodi") && codes.exclude?("admin")
+    codes.include?("kaprodi")
   end
 
   # SRQ-20 tampil bagi mahasiswa setelah kaprodi mengaktifkannya untuk prodinya.
@@ -307,17 +307,37 @@ class User < ApplicationRecord
   # `roles <<` dan `role_ids=` ikut memperbarui koleksi yang sudah dimuat,
   # jadi hasilnya tidak basi setelah peran diubah lewat asosiasi ini.
   def has_role?(code)
-    roles.any? { |role| role.code == code.to_s }
+    role_grants = user_roles.includes(:role, :study_program).select { |grant| grant.role.code == code.to_s }
+    # Existing admin checks are system-wide authorization gates. Scoped admin
+    # grants must use has_role_for_program? / has_permission? and never inherit
+    # those legacy global gates.
+    return role_grants.any? { |grant| grant.scope_level == "system" } if %w[admin superadmin].include?(code.to_s)
+
+    role_grants.any? { |grant| grant.scope_level == "system" ||
+      (grant.scope_level == "study_program" && grant.study_program_id.present? && grant.study_program_id == study_program_id) }
+  end
+
+  def has_role_for_program?(code, program)
+    user_roles.includes(:role).for_program(program).any? { |grant| grant.role.code == code.to_s }
+  end
+
+  def has_permission?(key, study_program: nil)
+    RbacAuthorization.allowed?(user: self, permission: key, study_program: study_program)
+  end
+
+  def has_system_permission?(key)
+    RbacAuthorization.system_allowed?(user: self, permission: key)
   end
 
   # Menukar peran aktif — dipakai fitur "Ganti Peran". Menolak pindah ke
   # peran yang tidak dimiliki, supaya Dashboard tidak pernah bercabang ke
   # peran yang sebenarnya tidak disandang user ini.
   def switch_active_role!(role_code)
-    role = roles.find_by(code: role_code.to_s)
-    return false unless role
+    grants = user_roles.includes(:role).where(roles: { code: role_code.to_s }).to_a
+    grant = grants.find { |item| item.scope_level == "system" || item.study_program_id == study_program_id } || grants.first
+    return false unless grant
 
-    update(active_role: role)
+    update(active_role: grant.role)
   end
 
   # Token acak untuk URL feed iCal pribadi (/activity_logs/feed/:token.ics).

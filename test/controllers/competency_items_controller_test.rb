@@ -59,7 +59,7 @@ class CompetencyItemsControllerTest < ActionDispatch::IntegrationTest
       password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: program)
     student.roles << roles(:mahasiswa)
     framework = CompetencyFramework.create!(study_program: program, name: "Peta Uji Entrustment",
-      version: "audit-test", education_stage: "professional")
+      version: "audit-test", education_stage: "profesi")
     item = framework.competency_items.create!(title: "Kompetensi Uji", code: "K-UJI", level_type: "domain")
     epa = framework.epas.create!(code: "EPA-UJI", title: "Aktivitas Uji")
     EntrustmentDecision.decide!(student: student, competency_item: item, epa: epa, level: 3,

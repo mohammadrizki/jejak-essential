@@ -25,7 +25,7 @@ class PortfoliosController < ApplicationController
       EvidenceRequirement.none
     end
     @assessment_instances = current_user.assessment_instances.includes(:assessment_event).order(created_at: :desc)
-    @epa_observations = if framework&.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
+    @epa_observations = if framework&.education_stage.in?(StudyProgram::LEVELS.keys) &&
         ModuleConfiguration.for(current_user.study_program).enabled?("epa")
       current_user.epa_observations.includes(:epa, :observer, :supervision_level).chronological
     else

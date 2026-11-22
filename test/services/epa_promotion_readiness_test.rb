@@ -7,7 +7,7 @@ class EpaPromotionReadinessTest < ActiveSupport::TestCase
     @student.roles << roles(:mahasiswa)
     @preceptor = users(:wati)
     @framework = CompetencyFramework.create!(study_program: study_programs(:profesi_dokter),
-      name: "Framework EPA Test", version: "90", education_stage: "professional")
+      name: "Framework EPA Test", version: "90", education_stage: "profesi")
     @domain = @framework.competency_items.create!(title: "Kompetensi klinis", code: "D-01", level_type: "domain")
     @epa = @framework.epas.create!(code: "EPA-T1", title: "Menangani pasien dengan masalah umum")
     @requirement = EvidenceRequirement.create!(epa: @epa, origin: "manual", source_type: "epa_observation",
@@ -53,7 +53,7 @@ class EpaPromotionReadinessTest < ActiveSupport::TestCase
     student.roles << roles(:mahasiswa)
     ModuleConfiguration.for(student.study_program).update!({ epa: "1" }, actor: users(:dedi))
     framework = CompetencyFramework.create!(study_program: student.study_program,
-      name: "Framework EPA Sarjana", version: "1", education_stage: "undergraduate")
+      name: "Framework EPA Sarjana", version: "1", education_stage: "sarjana")
     framework.competency_items.create!(title: "Kompetensi klinis sarjana", code: "S1-D1", level_type: "domain")
     epa = framework.epas.create!(code: "EPA-S1", title: "Mengumpulkan informasi klinis", status: "draft")
     framework.publish!

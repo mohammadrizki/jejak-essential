@@ -8,13 +8,23 @@ class UserAssignmentsController < ApplicationController
     authorize UserAssignment
     @assignments = policy_scope(UserAssignment).includes(:user, :assigned_by, :study_program)
       .order(revoked_at: :asc, created_at: :desc)
-    @study_programs = current_user.has_role?("admin") ? StudyProgram.ordered : StudyProgram.where(id: current_user.study_program_id)
+    @study_program_ids = if current_user.has_role?("superadmin")
+      StudyProgram.pluck(:id)
+    else
+      StudyProgram.ordered.select { |program| current_user.has_permission?("assignments.manage", study_program: program) }.map(&:id)
+    end
+    @study_programs = StudyProgram.where(id: @study_program_ids).order(:name)
+    @study_programs = if current_user.has_role?("superadmin")
+      StudyProgram.ordered
+    else
+      @study_programs
+    end
     @assignees = User.active_accounts.joins(:roles)
       .where(roles: { code: %w[dosen kaprodi preseptor tenaga_kependidikan] })
-      .where(current_user.has_role?("admin") ? {} : { study_program_id: current_user.study_program_id })
+      .where(study_program_id: @study_program_ids)
       .distinct.order(:full_name)
     @students = User.active_accounts.joins(:roles).where(roles: { code: "mahasiswa" })
-      .where(study_program_id: @study_programs.select(:id)).distinct.order(:full_name)
+      .where(study_program_id: @study_program_ids).distinct.order(:full_name)
   end
 
   def create
@@ -53,9 +63,11 @@ class UserAssignmentsController < ApplicationController
   private
 
   def permitted_program
-    return current_user.study_program if current_user.has_role?("kaprodi") && !current_user.has_role?("admin")
+    program = StudyProgram.find(params.dig(:user_assignment, :study_program_id))
+    raise Pundit::NotAuthorizedError unless current_user.has_role?("superadmin") ||
+      current_user.has_permission?("assignments.manage", study_program: program)
 
-    StudyProgram.find(params.dig(:user_assignment, :study_program_id))
+    program
   end
 
   def assignment_scope(program)
@@ -76,11 +88,7 @@ class UserAssignmentsController < ApplicationController
   end
 
   def assignment_target_allowed?(program, assignee)
-    return false unless current_user.has_role?("admin") ||
-      (current_user.has_role?("kaprodi") && current_user.study_program_id == program.id)
-    return true if current_user.has_role?("admin")
-
-    assignee.study_program_id == program.id
+    current_user.has_role?("superadmin") || current_user.has_permission?("assignments.manage", study_program: program)
   end
 
   def set_assignment

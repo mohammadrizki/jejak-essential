@@ -70,7 +70,7 @@ class ExternalEvidenceImportsControllerTest < ActionDispatch::IntegrationTest
       password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: program)
     student.roles << roles(:mahasiswa)
     framework = CompetencyFramework.create!(study_program: program,
-      name: "Framework Impor EPA", version: "1", education_stage: "professional")
+      name: "Framework Impor EPA", version: "1", education_stage: "profesi")
     epa = framework.epas.create!(code: "EPA-IMPORT", title: "Melakukan asesmen klinis")
     requirement = EvidenceRequirement.create!(epa: epa, origin: "manual", source_type: "external", required_count: 1)
     ModuleConfiguration.for(program).update!({ wpba: "0", integration_clinical_wpba: "1" }, actor: admin)

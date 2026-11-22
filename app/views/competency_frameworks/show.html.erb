@@ -2,7 +2,7 @@
   <div class="flex items-center justify-between flex-wrap gap-3">
     <div>
       <h1 class="text-xl font-bold text-gray-900"><%= @competency_framework.name %></h1>
-      <p class="text-sm text-gray-400 mt-1">Versi <%= @competency_framework.version %> · <%= @competency_framework.education_stage || @competency_framework.study_program.level_label %> · <%= @competency_framework.status %><%= " · berlaku #{@competency_framework.effective_date}" if @competency_framework.effective_date %></p>
+      <p class="text-sm text-gray-400 mt-1">Versi <%= @competency_framework.version %> · <%= StudyProgram::LEVELS.fetch(@competency_framework.education_stage, @competency_framework.education_stage || @competency_framework.study_program.level_label) %> · <%= @competency_framework.status %><%= " · berlaku #{@competency_framework.effective_date}" if @competency_framework.effective_date %></p>
       <p class="text-sm text-gray-400 mt-1"><%= @competency_framework.description %></p>
       <% if @competency_framework.provenance.present? %>
         <p class="mt-1 text-xs text-gray-500">Salinan dari <%= @competency_framework.provenance["source_name"] || @competency_framework.provenance["source_framework_name"] %> · versi <%= @competency_framework.provenance["source_version"] || @competency_framework.provenance["source_framework_version"] || @competency_framework.provenance["template_version"] %></p>
@@ -14,19 +14,68 @@
     <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
       <div class="flex items-center gap-2 shrink-0">
         <%= link_to "Sunting", edit_competency_framework_path(@competency_framework), class: "text-sm text-gray-600 hover:text-indigo-600 font-medium" %>
-        <%= button_to "Hapus", competency_framework_path(@competency_framework), method: :delete,
-              class: "text-sm text-rose-600 hover:underline",
-              form: { data: { turbo_confirm: "Hapus peta kompetensi ini beserta seluruh isinya?" } } %>
+        <% if @framework_lifecycle.deletable? %>
+          <%= button_to "Hapus", competency_framework_path(@competency_framework), method: :delete,
+                class: "text-sm text-rose-600 hover:underline",
+                form: { data: { turbo_confirm: "Hapus framework draf ini beserta Syarat Bukti konfigurasi yang belum memiliki evidence? Tindakan ini tidak dapat dibatalkan." } } %>
+        <% else %>
+          <span class="text-xs text-gray-400" title="Framework masih memiliki data akademik yang dirujuk">Hapus dibatasi</span>
+        <% end %>
       </div>
     <% end %>
-    <% if policy(@competency_framework).update? && @competency_framework.status == "published" && !@has_draft_for_program %>
-      <%= button_to "Buat versi baru", new_version_competency_framework_path(@competency_framework), method: :post, class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+    <% if policy(@competency_framework).update? && @competency_framework.status == "published" %>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <% if @framework_lifecycle.unpublishable? %>
+          <%= button_to "Unpublish", unpublish_competency_framework_path(@competency_framework), method: :patch,
+                class: "rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50",
+                form: { data: { turbo_confirm: "Tarik framework ini dari status published? Definisi akan diarsipkan sebagai riwayat; Syarat Bukti tetap tersimpan. Sunting akan membuat versi draf baru." } } %>
+        <% else %>
+          <span class="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-400" title="Framework memiliki referensi akademik historis">Unpublish dibatasi</span>
+        <% end %>
+        <% if @draft_framework %>
+          <%= link_to "Sunting versi draf", competency_framework_path(@draft_framework), class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+        <% else %>
+          <%= button_to "Sunting (Buat Versi Draf)", new_version_competency_framework_path(@competency_framework), method: :post, class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+        <% end %>
+      </div>
     <% elsif policy(@competency_framework).update? && @competency_framework.status == "draft" %>
       <%= button_to "Terbitkan framework", publish_version_competency_framework_path(@competency_framework), method: :patch, class: "rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white", form: { data: { turbo_confirm: "Terbitkan versi ini dan arsipkan versi sebelumnya?" } } %>
     <% end %>
   </div>
 
-  <% if @competency_framework.education_stage.in?(%w[undergraduate professional specialist subspecialist]) %>
+  <% if policy(@competency_framework).update? && @competency_framework.status == "published" %>
+    <section class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+      <p class="font-semibold">Dampak lifecycle</p>
+      <% if @framework_lifecycle.unpublish_blockers.any? %>
+        <p class="mt-1">Unpublish ditahan karena ada dependensi atau proses aktif berikut: <%= @framework_lifecycle.unpublish_blockers.to_sentence %>. Gunakan <strong>Sunting (Buat Versi Draf)</strong> untuk memperbaiki tanpa mengubah riwayat.</p>
+      <% else %>
+        <p class="mt-1">Tidak ditemukan referensi akademik hilir. Unpublish mengarsipkan definisi published ini dan melepasnya dari peta aktif program studi. <%= @framework_lifecycle.retained_configuration_count %> Syarat Bukti konfigurasi tetap melekat pada versi arsip; Sunting akan membuat salinan draf baru.</p>
+      <% end %>
+    </section>
+  <% elsif policy(@competency_framework).update? && @competency_framework.status.in?(%w[draft archived]) && @framework_lifecycle.deletion_blockers.any? %>
+    <section class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+      Framework ini belum dapat dihapus karena masih memiliki dependensi atau riwayat konfigurasi yang harus dipertahankan: <%= @framework_lifecycle.deletion_blockers.to_sentence %>.
+    </section>
+  <% end %>
+
+  <% if policy(@competency_framework).update? && @competency_framework.status == "archived" %>
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      <% if @draft_framework %>
+        <%= link_to "Sunting versi draf", competency_framework_path(@draft_framework), class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+      <% else %>
+        <%= button_to "Sunting (Buat Versi Draf)", new_version_competency_framework_path(@competency_framework), method: :post, class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white" %>
+      <% end %>
+      <% if @framework_lifecycle.deletable? %>
+        <%= button_to "Hapus", competency_framework_path(@competency_framework), method: :delete,
+              class: "rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700",
+              form: { data: { turbo_confirm: "Hapus framework arsip ini beserta Syarat Bukti konfigurasi yang belum memiliki evidence? Tindakan ini tidak dapat dibatalkan." } } %>
+      <% else %>
+        <span class="text-xs text-gray-400">Hapus dibatasi oleh dependensi atau riwayat</span>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @competency_framework.education_stage.in?(StudyProgram::LEVELS.keys) %>
     <section class="mt-4 rounded-2xl bg-white p-4 ring-1 ring-gray-200">
       <h2 class="text-sm font-semibold text-gray-800">EPA pada versi ini</h2>
       <ul class="mt-2 space-y-2">
@@ -51,7 +100,7 @@
           <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
             <li class="ml-3">
               <%= form_with url: competency_framework_epa_epa_milestones_path(@competency_framework, epa), scope: :epa_milestone, class: "mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2" do |f| %>
-                <%= f.select :stage, [["Sarjana", "undergraduate"], ["Profesi", "professional"], ["Spesialis", "specialist"], ["Subspesialis", "subspecialist"]], { prompt: "Jenjang target" }, required: true, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.select :stage, StudyProgram::LEVELS.map { |code, label| [label, code] }, { prompt: "Jenjang target" }, required: true, class: "rounded-lg border-gray-300 text-xs" %>
                 <%= f.collection_select :supervision_level_id,
                     SupervisionLevel.joins(:supervision_scale_version).includes(:supervision_scale_version)
                       .where(supervision_scale_versions: { active: true, use_case: "prospective_entrustment" }),
