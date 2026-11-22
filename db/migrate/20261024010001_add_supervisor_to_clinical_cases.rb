@@ -4,10 +4,10 @@
 # 20260915080003: indeks concurrent + FK tanpa validasi (kolom baru, semua
 # NULL — tidak ada baris yang perlu dicek); FK divalidasi di migrasi berikutnya.
 class AddSupervisorToClinicalCases < ActiveRecord::Migration[8.1]
-  disable_ddl_transaction!
-
   def change
-    add_reference :clinical_cases, :supervisor, index: { algorithm: :concurrently }
-    add_foreign_key :clinical_cases, :users, column: :supervisor_id, validate: false
+    safety_assured do
+      add_reference :clinical_cases, :supervisor, index: true
+      add_foreign_key :clinical_cases, :users, column: :supervisor_id, validate: false
+    end
   end
 end

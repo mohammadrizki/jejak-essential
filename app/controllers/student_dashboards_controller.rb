@@ -26,6 +26,9 @@ class StudentDashboardsController < ApplicationController
     @verified_case_count = @student.clinical_cases.where(status: "verified").count
     @can_edit = current_user.has_role?("admin")
     @framework = @student.study_program&.peta_kompetensi
+    @epa_available = @framework&.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
+      (ModuleConfiguration.for(@student.study_program).enabled?("epa") || @student.epa_observations.exists? ||
+        @student.epa_promotions.exists? || @student.entrustment_decisions.exists?)
     @competency_attainments = if @framework
       @student.competency_attainments.where(competency_item_id: @framework.competency_items.select(:id))
         .includes(:decision_by).order(decision_date: :desc, id: :desc)
@@ -33,8 +36,15 @@ class StudentDashboardsController < ApplicationController
     else
       {}
     end
-    @can_decide_attainment = current_user.has_role?("admin") ||
-      (current_user.instructor? && @student.supervised_by?(current_user))
+    @evidence_cycle_summaries = if @framework
+      EvidenceCycleSummary.new(student: @student, framework: @framework).call
+    else
+      []
+    end
+    @can_propose_attainment = AssignmentAuthorization.assigned?(user: current_user,
+      role: "competency_attainment_proposer", student: @student)
+    @can_review_attainment = AssignmentAuthorization.assigned?(user: current_user,
+      role: "competency_attainment_decider", student: @student)
   end
 
   private

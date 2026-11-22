@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
-# Program-scoped switches for modules that currently have working local
-# workflows. External adapter switches are intentionally absent until an
-# adapter exists and can be health-checked.
+# Program-scoped switches for local workflows and normalized external payload
+# adapters. External transport/health checks are deployment-specific and are
+# intentionally not implied by enabling an adapter.
 class ModuleConfiguration
-  MODULE_KEYS = %w[core_eportfolio clinical_logbook wpba epa].freeze
+  MODULE_KEYS = %w[
+    core_eportfolio clinical_logbook wpba epa
+    integration_sia integration_moodle integration_examtool integration_osce integration_clinical_wpba
+  ].freeze
 
   attr_reader :study_program, :modules
 
@@ -70,16 +73,18 @@ class ModuleConfiguration
       "core_eportfolio" => true,
       "clinical_logbook" => true,
       "wpba" => true,
-      "epa" => study_program&.level.in?(%w[profesi spesialis subspesialis])
+      "epa" => study_program&.level.in?(%w[profesi spesialis subspesialis]),
+      "integration_sia" => false,
+      "integration_moodle" => false,
+      "integration_examtool" => false,
+      "integration_osce" => false,
+      "integration_clinical_wpba" => false
     }
   end
 
   def validate_configuration!(value)
     errors = []
     errors << "Core E-Portfolio selalu aktif." unless value["core_eportfolio"]
-    if value["epa"] && study_program.level == "sarjana"
-      errors << "EPA tidak dapat diaktifkan pada jenjang Sarjana."
-    end
     raise ArgumentError, errors.join(" ") if errors.any?
   end
 end

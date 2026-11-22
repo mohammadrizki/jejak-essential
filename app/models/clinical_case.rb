@@ -181,7 +181,7 @@ class ClinicalCase < ApplicationRecord
     transaction do
       update!(status: "submitted", verified_by: nil, verified_at: nil,
               entrustment_level: nil, recommend_remediation: false)
-      EntrustmentDecision.revoke_for_case!(self)
+      EntrustmentDecision.revoke_for_case!(self, by: by, reason: reason)
       case_verification_comments.create!(user: by, action: "verification_cancelled", body: reason)
     end
     Notification.notify!(

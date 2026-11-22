@@ -14,6 +14,7 @@ class StudyProgram < ApplicationRecord
   has_many :users, dependent: :nullify
   has_many :framework_versions, class_name: "CompetencyFramework", dependent: :restrict_with_error
   has_one :assessment_blueprint, dependent: :restrict_with_error
+  has_many :assessment_form_templates, dependent: :restrict_with_error
 
   # Kerangka Peta EPA prodi ini — lihat CompetencyFramework.for_student.
   belongs_to :competency_framework, optional: true
@@ -22,6 +23,8 @@ class StudyProgram < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validates :code, presence: true, uniqueness: true, format: { with: /\A[a-z0-9\-]+\z/, message: "hanya huruf kecil, angka, dan tanda hubung" }
   validates :level, inclusion: { in: LEVELS.keys }
+  validates :epa_panel_quorum, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 10 }
+  validate :competency_framework_belongs_to_program
   scope :ordered, -> { order(:level, :name) }
 
   def level_label
@@ -31,6 +34,8 @@ class StudyProgram < ApplicationRecord
   # Compatibility accessor used throughout the portfolio. Published versions
   # are preferred; draft-only programs can still configure their first map.
   def peta_kompetensi
+    return competency_framework if competency_framework&.study_program_id == id
+
     framework_versions.order(Arel.sql("CASE status WHEN 'published' THEN 0 ELSE 1 END"), created_at: :desc, id: :desc).first
   end
 
@@ -60,6 +65,14 @@ class StudyProgram < ApplicationRecord
 
   def disable_srq!
     update!(srq_enabled_at: nil, srq_enabled_by: nil)
+  end
+
+  private
+
+  def competency_framework_belongs_to_program
+    return if competency_framework.blank? || competency_framework.study_program_id == id
+
+    errors.add(:competency_framework, "harus dimiliki oleh program studi ini")
   end
 
 end

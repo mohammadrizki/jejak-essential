@@ -3,6 +3,7 @@
     <div>
       <h1 class="text-xl font-bold text-gray-900"><%= @template.name %></h1>
       <p class="text-sm text-gray-500 mt-1"><%= @template.description %></p>
+      <p class="mt-1 text-xs text-gray-400"><%= @template.study_program ? "Program studi: #{@template.study_program.name}" : "Template tingkat institusi" %></p>
     </div>
     <div class="flex items-center gap-2 shrink-0">
       <% if @template.is_active? %>

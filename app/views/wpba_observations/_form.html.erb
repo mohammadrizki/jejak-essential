@@ -1,0 +1,47 @@
+<%= form_with model: observation, class: "space-y-5", data: { controller: "wpba-components" } do |f| %>
+  <% if observation.errors.any? %>
+    <div class="rounded-xl bg-rose-50 p-4 text-sm text-rose-800"><%= observation.errors.full_messages.to_sentence %></div>
+  <% end %>
+  <div class="grid gap-4 md:grid-cols-2">
+    <div><%= f.label :student_id, "Mahasiswa", class: "mb-1 block text-sm font-medium" %><%= f.collection_select :student_id, @students, :id, :full_name, { prompt: "Pilih mahasiswa" }, required: true, class: "w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :clinical_rotation_id, "Rotasi", class: "mb-1 block text-sm font-medium" %><%= f.collection_select :clinical_rotation_id, @rotations, :id, ->(rotation) { "#{rotation.user.full_name} · #{rotation.station_name}" }, { prompt: "Pilih rotasi" }, required: true, class: "w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :wpba_instrument_version_id, "Instrumen dan versi", class: "mb-1 block text-sm font-medium" %><%= f.collection_select :wpba_instrument_version_id, @instrument_versions, :id, ->(version) { "#{version.wpba_instrument.name} · #{version.version_label}" }, { prompt: "Pilih instrumen" }, required: true, class: "w-full rounded-lg border-gray-300", data: { action: "change->wpba-components#change", wpba_components_target: "version" } %></div>
+    <div><%= f.label :observed_at, "Waktu observasi", class: "mb-1 block text-sm font-medium" %><%= f.datetime_local_field :observed_at, required: true, class: "w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label :clinical_case_id, "Kasus terkait (opsional)", class: "mb-1 block text-sm font-medium" %><%= f.collection_select :clinical_case_id, @cases, :id, ->(clinical_case) { "Kasus ##{clinical_case.id} · #{clinical_case.created_at.to_date}" }, { include_blank: "Tanpa tautan kasus" }, class: "w-full rounded-lg border-gray-300" %></div>
+    <div><%= f.label "wpba_observation[clinical_context][complexity]", "Kompleksitas", class: "mb-1 block text-sm font-medium" %><%= f.select "clinical_context[complexity]", options_for_select(["Rendah", "Sedang", "Tinggi"], observation.clinical_context.to_h["complexity"]), { include_blank: "Pilih bila relevan" }, class: "w-full rounded-lg border-gray-300" %></div>
+  </div>
+  <div><%= f.label :activity_summary, "Aktivitas yang diamati", class: "mb-1 block text-sm font-medium" %><%= f.text_area :activity_summary, rows: 3, maxlength: 2000, class: "w-full rounded-lg border-gray-300", required: true %></div>
+  <% if @instrument_versions.any? %>
+    <% @instrument_versions.each do |version| %>
+      <% selected = @selected_version&.id == version.id %>
+      <fieldset class="space-y-3 rounded-xl border border-gray-200 p-4" data-wpba-components-target="panel" data-version-id="<%= version.id %>" <%= "hidden" unless selected %>><legend class="px-2 text-sm font-semibold">Komponen · <%= version.wpba_instrument.name %> <%= version.version_label %></legend>
+      <% version.components.each do |raw| %>
+        <% component = raw.to_h.deep_stringify_keys; key = component["key"] %>
+        <div><label class="mb-1 block text-sm font-medium"><%= component["label"] %><%= " *" if component["required"] %></label>
+          <% if component["type"] == "rating" %>
+            <% if component["levels"].is_a?(Hash) && component["levels"].any? %>
+              <% options = component["levels"].sort_by { |score, _| score.to_i }.map do |score, descriptor| %>
+                <% detail = descriptor.is_a?(Hash) ? descriptor.to_h.deep_stringify_keys : { "label" => descriptor } %>
+                <% text = ["#{score} · #{detail["label"]}", detail["description"]].compact_blank.join(" — ") %>
+                <% [text, score] %>
+              <% end %>
+              <%= select_tag "wpba_observation[responses][#{key}]", options_for_select(options, selected ? observation.response_for(key) : nil), include_blank: "Pilih tingkat kinerja", required: selected && component["required"], disabled: !selected, id: "wpba_response_#{version.id}_#{key}", class: "w-full rounded-lg border-gray-300" %>
+            <% else %>
+              <%= number_field_tag "wpba_observation[responses][#{key}]", selected ? observation.response_for(key) : nil, min: component["minimum"], max: component["maximum"], required: selected && component["required"], disabled: !selected, id: "wpba_response_#{version.id}_#{key}", class: "w-full rounded-lg border-gray-300" %>
+            <% end %>
+          <% elsif component["type"] == "select" %>
+            <%= select_tag "wpba_observation[responses][#{key}]", options_for_select(component["options"], selected ? observation.response_for(key) : nil), include_blank: true, required: selected && component["required"], disabled: !selected, id: "wpba_response_#{version.id}_#{key}", class: "w-full rounded-lg border-gray-300" %>
+          <% elsif component["type"] == "boolean" %>
+            <%= select_tag "wpba_observation[responses][#{key}]", options_for_select([["Ya", "true"], ["Tidak", "false"]], selected ? observation.response_for(key) : nil), include_blank: true, required: selected && component["required"], disabled: !selected, id: "wpba_response_#{version.id}_#{key}", class: "w-full rounded-lg border-gray-300" %>
+          <% else %>
+            <%= text_area_tag "wpba_observation[responses][#{key}]", selected ? observation.response_for(key) : nil, rows: 2, maxlength: 4000, required: selected && component["required"], disabled: !selected, id: "wpba_response_#{version.id}_#{key}", class: "w-full rounded-lg border-gray-300" %>
+          <% end %>
+        </div>
+      <% end %>
+      </fieldset>
+    <% end %>
+  <% else %><p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Belum ada instrumen tambahan terbit yang dapat digunakan.</p><% end %>
+  <div><%= f.label :overall_feedback, "Umpan balik", class: "mb-1 block text-sm font-medium" %><%= f.text_area :overall_feedback, rows: 3, maxlength: 4000, class: "w-full rounded-lg border-gray-300" %></div>
+  <div><%= f.label :action_plan, "Rencana perbaikan", class: "mb-1 block text-sm font-medium" %><%= f.text_area :action_plan, rows: 2, maxlength: 2000, class: "w-full rounded-lg border-gray-300" %></div>
+  <div class="flex flex-wrap gap-2"><%= f.submit "Simpan draf", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %><%= link_to "Batal", assessments_path, class: "rounded-lg border px-4 py-2 text-sm" %></div>
+<% end %>

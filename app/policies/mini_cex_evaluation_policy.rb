@@ -2,11 +2,12 @@
 
 class MiniCexEvaluationPolicy < ApplicationPolicy
   def show?
-    record.student_id == user.id || record.evaluator_id == user.id || user.has_role?("admin")
+    record.student_id == user.id || record.evaluator_id == user.id || assigned_to_record?
   end
 
   def create?
-    user.instructor?
+    user.has_role?("dosen") || user.has_role?("preseptor") ||
+      UserAssignment.active.where(user: user, assignment_role: "wpba_assessor").exists?
   end
   alias new? create?
 
@@ -16,9 +17,13 @@ class MiniCexEvaluationPolicy < ApplicationPolicy
   end
 
   def update?
-    record.evaluator_id == user.id || user.has_role?("admin")
+    !record.submitted? && record.evaluator_id == user.id && assigned_to_record?
   end
   alias edit? update?
+
+  def correct?
+    record.submitted? && assigned_to_record? && !record.corrections.exists?
+  end
 
   # Penilai/admin menghapus; mahasiswa hanya membatalkan permintaannya
   # sendiri selama penilai belum mulai mengisi.
@@ -29,11 +34,16 @@ class MiniCexEvaluationPolicy < ApplicationPolicy
 
   class Scope < Scope
     def resolve
-      if user.has_role?("admin")
-        scope.all
-      else
-        scope.where("student_id = :id OR evaluator_id = :id", id: user.id)
-      end
+      own_records = scope.where("student_id = :id OR evaluator_id = :id", id: user.id)
+      rotations = AssessmentAssignment.rotations_for(user)
+      own_records.or(scope.where(clinical_rotation_id: rotations.select(:id)))
     end
+  end
+
+  private
+
+  def assigned_to_record?
+    AssessmentAssignment.assigned?(assessor: user, student: record.student,
+      rotation: record.clinical_rotation, assessed_at: record.evaluated_at)
   end
 end

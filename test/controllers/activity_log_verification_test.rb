@@ -7,6 +7,9 @@ class ActivityLogVerificationTest < ActionDispatch::IntegrationTest
 
   setup do
     @log = ActivityLog.create!(user: users(:siti), title: "Jaga malam IGD", category: "klinis", activity_date: Date.current)
+    UserAssignment.create!(user: users(:budi), assigned_by: users(:dedi),
+      assignment_role: "logbook_verifier", study_program: study_programs(:sarjana_kedokteran),
+      scope_type: "StudyProgram", scope_id: study_programs(:sarjana_kedokteran).id)
   end
 
   test "pengajar memverifikasi kegiatan mahasiswa; mahasiswa diberi tahu" do

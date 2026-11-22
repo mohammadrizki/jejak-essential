@@ -6,8 +6,6 @@ class EpasController < ApplicationController
 
   def create
     authorize @framework, :update?
-    return redirect_to @framework, alert: "EPA hanya berlaku untuk tahap Profesi, Spesialis, dan Subspesialis." if @framework.education_stage == "undergraduate"
-
     attributes = epa_params
     competency_item_ids = Array(attributes.delete(:competency_item_ids)).reject(&:blank?)
     epa = @framework.epas.new(attributes.merge(status: "published"))

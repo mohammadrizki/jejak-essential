@@ -4,6 +4,7 @@
 # AssessmentInstance (menggantikan halaman Nilai Ujian berbasis ExamScore).
 class AcademicScoresController < ApplicationController
   before_action :authenticate_user!
+  before_action :require_academic_record_viewer!, if: :viewing_other_student?
 
   def index
     scored = viewed_student.assessment_instances.scored.includes(assessment_event: :academic_period)

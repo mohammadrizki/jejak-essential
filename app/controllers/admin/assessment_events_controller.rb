@@ -29,11 +29,13 @@ class Admin::AssessmentEventsController < ApplicationController
 
   def new
     @event = AssessmentEvent.new(academic_period: AcademicPeriod.ordered.first, status: "draft", max_score: 100)
+    @event.wpba_instrument_version = WpbaInstrumentCatalog.version_for("cbd") if params[:assessment_type] == "cbd"
     load_collections
   end
 
   def create
     @event = AssessmentEvent.new(event_params.merge(created_by: current_user))
+    @event.wpba_instrument_version = WpbaInstrumentCatalog.version_for("cbd") if @event.assessment_type == "cbd"
     if @event.save
       redirect_to admin_assessment_event_path(@event), notice: "Assessment Event dibuat."
     else

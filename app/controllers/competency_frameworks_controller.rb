@@ -6,7 +6,9 @@ class CompetencyFrameworksController < ApplicationController
 
   def index
     authorize CompetencyFramework
-    @competency_frameworks = CompetencyFramework.includes(:study_program, :epa_programs).order(:name)
+    scope = CompetencyFramework.all
+    scope = scope.where(study_program_id: current_user.study_program_id) unless current_user.has_role?("admin")
+    @competency_frameworks = scope.includes(:study_program, :epa_programs).order(:name)
   end
 
   def show

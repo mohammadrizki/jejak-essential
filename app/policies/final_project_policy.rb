@@ -2,21 +2,21 @@
 
 class FinalProjectPolicy < ApplicationPolicy
   def show?
-    owner? || supervisor? || user.instructor?
+    owner? || supervisor? || academic_instructor?
   end
 
   def create?
-    user.has_role?("mahasiswa") || user.has_role?("admin")
+    user.has_role?("mahasiswa")
   end
   alias new? create?
 
   def update?
-    owner? || supervisor? || user.has_role?("admin")
+    owner? || supervisor?
   end
   alias edit? update?
 
   def destroy?
-    (owner? && record.status == "proposal") || user.has_role?("admin")
+    owner? && record.status == "proposal"
   end
 
   def manage_milestones?
@@ -25,17 +25,17 @@ class FinalProjectPolicy < ApplicationPolicy
 
   # Akun multi-peran tidak menguji tugas akhirnya sendiri.
   def score?
-    user.instructor? && !owner?
+    academic_instructor? && !owner?
   end
 
   class Scope < Scope
     # Dosen (bukan cuma pembimbing) bisa jadi penguji siapa saja, jadi
     # diberi akses lihat semua tugas akhir — bukan cuma yang dibimbingnya.
     def resolve
-      if user.instructor?
+      if user.has_role?("dosen") || user.has_role?("preseptor")
         scope.all
       else
-        scope.where(student: user)
+        scope.where(student: user).or(scope.where(supervisor_id: user.id))
       end
     end
   end
@@ -48,5 +48,9 @@ class FinalProjectPolicy < ApplicationPolicy
 
   def supervisor?
     record.supervisor_id == user.id
+  end
+
+  def academic_instructor?
+    user.has_role?("dosen") || user.has_role?("preseptor")
   end
 end

@@ -6,6 +6,7 @@ class PortfoliosController < ApplicationController
   before_action :authenticate_user!
 
   def show
+    @student = current_user
     @logs = current_user.activity_logs
     @total = @logs.count
     @klinis_count = @logs.klinis.count
@@ -24,16 +25,30 @@ class PortfoliosController < ApplicationController
       EvidenceRequirement.none
     end
     @assessment_instances = current_user.assessment_instances.includes(:assessment_event).order(created_at: :desc)
-    @epa_observations = if framework&.education_stage.in?(%w[professional specialist subspecialist])
+    @epa_observations = if framework&.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
+        ModuleConfiguration.for(current_user.study_program).enabled?("epa")
       current_user.epa_observations.includes(:epa, :observer, :supervision_level).chronological
     else
       EpaObservation.none
     end
     @reflections = current_user.reflection_entries.recent
+    @wpba_observations = current_user.wpba_observations_as_student.submitted.includes(wpba_instrument_version: :wpba_instrument).recent
+    @artifact_submissions = current_user.artifact_submissions.includes(:reviewer, :portfolio_selection).order(submitted_at: :desc)
+    @portfolio_selections = current_user.portfolio_selections.includes(artifact_submission: :reviewer).order(selected_at: :desc)
+    @artifact_sources = current_user.activity_logs.verified.recent.map { |record| ["Logbook · #{record.title} · #{record.activity_date}", "ActivityLog", record.id] } +
+      @reflections.map { |record| ["Refleksi · #{record.entry_date}", "ReflectionEntry", record.id] } +
+      EvidenceRecord.includes(:evidence_requirement, :evidence_source)
+        .joins(:evidence_source)
+        .where(evidence_requirement_id: @evidence_requirements.select(:id))
+        .where(evidence_sources: { student_id: current_user.id, validation_status: "validated" })
+        .map { |record| ["Bukti tervalidasi · #{record.evidence_date} · #{record.evidence_requirement.source_type}", "EvidenceRecord", record.id] }
     @evidence_sources = {
       "assessment" => @assessment_instances.map { |record| ["Asesmen · #{record.assessment_event.name} · #{record.created_at.to_date}", "assessment_instance-#{record.id}"] },
       "wpba" => current_user.mini_cex_evaluations_as_student.submitted.recent.map { |record| ["Mini-CEX · #{record.case_description} · #{record.evaluated_at}", "mini_cex_evaluation-#{record.id}"] } +
-        current_user.dops_evaluations_as_student.submitted.recent.map { |record| ["DOPS · #{record.procedure_name} · #{record.evaluated_at}", "dops_evaluation-#{record.id}"] },
+        current_user.dops_evaluations_as_student.submitted.recent.map { |record| ["DOPS · #{record.procedure_name} · #{record.evaluated_at}", "dops_evaluation-#{record.id}"] } +
+        @wpba_observations.map { |record| ["#{record.wpba_instrument_version.wpba_instrument.name} · #{record.activity_summary} · #{record.observed_at.to_date}", "wpba_observation-#{record.id}"] } +
+        @assessment_instances.select { |record| record.assessment_event.assessment_type == "cbd" && record.status == "scored" }
+          .map { |record| ["CBD · #{record.assessment_event.name} · #{record.effective_date}", "assessment_instance-#{record.id}"] },
       "logbook" => @logs.recent.map { |record| ["Logbook · #{record.title} · #{record.activity_date}", "activity_log-#{record.id}"] },
       "reflection" => @reflections.map { |record| ["Refleksi · #{record.entry_date}", "reflection_entry-#{record.id}"] },
       "portfolio" => @assessment_instances.map { |record| ["Asesmen · #{record.assessment_event.name}", "assessment_instance-#{record.id}"] } +

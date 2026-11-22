@@ -32,6 +32,7 @@ class EvidenceRequirement < ApplicationRecord
   belongs_to :blueprint_item, optional: true
   belongs_to :assessment_method, optional: true
   has_many :evidence_records, dependent: :restrict_with_error
+  has_many :versions, class_name: "EvidenceRequirementVersion", dependent: :restrict_with_error
 
   validates :origin, inclusion: { in: ORIGINS }
   validates :source_type, inclusion: { in: SOURCE_TYPES }
@@ -45,8 +46,54 @@ class EvidenceRequirement < ApplicationRecord
   validate :blueprint_source_is_draft
   validate :fulfillment_rule_is_valid
   before_validation :normalize_fulfillment_rule
+  after_create :create_initial_version!
+  after_update :create_configuration_version!, if: :configuration_changed?
+
+  def current_version
+    versions.order(version: :desc).first
+  end
+
+  def configuration_snapshot
+    framework = competency_item&.competency_framework || epa&.competency_framework ||
+      blueprint_item&.blueprint_version&.competency_framework
+    {
+      "origin" => origin,
+      "source_type" => source_type,
+      "required_count" => required_count,
+      "fulfillment_rule" => fulfillment_rule,
+      "due_stage" => due_stage,
+      "is_mandatory" => is_mandatory,
+      "status" => status,
+      "competency_item_id" => competency_item_id,
+      "competency_indicator_id" => competency_indicator_id,
+      "epa_id" => epa_id,
+      "blueprint_item_id" => blueprint_item_id,
+      "blueprint_version_id" => blueprint_item&.blueprint_version_id,
+      "assessment_method_id" => assessment_method_id,
+      "framework_id" => framework&.id,
+      "framework_version" => framework&.version
+    }
+  end
 
   private
+
+  VERSIONED_ATTRIBUTES = %w[
+    origin source_type required_count fulfillment_rule due_stage is_mandatory status
+    competency_item_id competency_indicator_id epa_id blueprint_item_id assessment_method_id
+  ].freeze
+
+  def configuration_changed?
+    (saved_changes.keys & VERSIONED_ATTRIBUTES).any?
+  end
+
+  def create_initial_version!
+    versions.create!(version: 1, configuration: configuration_snapshot)
+  end
+
+  def create_configuration_version!
+    versions.create!(version: (versions.maximum(:version) || 0) + 1,
+      configuration: configuration_snapshot)
+  end
 
   def valid_target_and_source
     errors.add(:base, "target kompetensi atau EPA wajib diisi") if competency_item.blank? && epa.blank?

@@ -1,0 +1,13 @@
+<div class="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div><h1 class="text-2xl font-bold text-slate-900">Impor Bukti Eksternal</h1><p class="mt-1 text-sm text-slate-600">Riwayat pratinjau dan impor Moodle, Examtool, serta OSCE.</p></div>
+    <%= link_to "Impor bukti", new_external_evidence_import_path, class: "rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white" %>
+  </div>
+  <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <table class="min-w-full divide-y divide-slate-200 text-sm"><thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Tanggal</th><th class="px-4 py-3">Program Studi</th><th class="px-4 py-3">Sumber</th><th class="px-4 py-3">Berkas</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Baris</th></tr></thead>
+      <tbody class="divide-y divide-slate-100"><% @batches.each do |batch| %><tr><td class="px-4 py-3"><%= link_to l(batch.created_at, format: :long), external_evidence_import_path(batch), class: "font-semibold text-indigo-700 hover:underline" %></td><td class="px-4 py-3"><%= batch.study_program.name %></td><td class="px-4 py-3"><%= batch.source_system.humanize %></td><td class="px-4 py-3"><%= batch.filename %></td><td class="px-4 py-3"><%= batch.status.humanize %></td><td class="px-4 py-3"><%= batch.imported_count %>/<%= batch.row_count %></td></tr><% end %></tbody>
+    </table>
+    <% if @batches.empty? %><p class="p-6 text-sm text-slate-500">Belum ada riwayat impor.</p><% end %>
+  </div>
+  <%= paginate @batches %>
+</div>

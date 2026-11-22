@@ -100,30 +100,29 @@ class SetupControlsTest < ActionDispatch::IntegrationTest
     earliest = CompetencyFramework.order(:id).first
     assert_equal earliest, CompetencyFramework.for_student(@siti)
 
-    other = CompetencyFramework.create!(name: "Kerangka Prodi")
+    other = CompetencyFramework.create!(study_program: @pssk, name: "Kerangka Prodi")
     domain = other.competency_items.create!(title: "Ranah Khusus Prodi")
     @pssk.update!(competency_framework: other)
 
     assert_equal other, CompetencyFramework.for_student(@siti.reload)
-    assert_equal earliest, CompetencyFramework.for_student(nil)
+    assert_nil CompetencyFramework.for_student(nil), "framework mahasiswa tidak ditebak dari prodi lain"
 
-    sign_in @siti
-    get entrustment_decisions_path
-    assert_match domain.title, response.body
+    assert_equal domain, CompetencyFramework.for_student(@siti).domains.first
   end
 
-  test "form verifikasi menawarkan EPA kerangka prodi mahasiswa pemilik kasus" do
-    other = CompetencyFramework.create!(name: "Kerangka Prodi")
+  test "form validasi kasus tidak menyamakan catatan supervisi dengan keputusan EPA" do
+    other = CompetencyFramework.create!(study_program: @pssk, name: "Kerangka Prodi")
     other.competency_items.create!(title: "Ranah Khusus Prodi")
     @pssk.update!(competency_framework: other)
 
     sign_in users(:budi)
     get clinical_case_path(clinical_cases(:submitted_case_siti))
-    assert_match "Ranah Khusus Prodi", response.body
+    assert_match "Catatan kasus ini tidak membuat atau memperbarui keputusan EPA", response.body
+    assert_no_match "Ranah Khusus Prodi", response.body
   end
 
   test "admin memilih kerangka di Program Studi, dan pilihan itu terlihat; hapus kerangka melepas pilihan" do
-    other = CompetencyFramework.create!(name: "Kerangka Prodi")
+    other = CompetencyFramework.create!(study_program: @pssk, name: "Kerangka Prodi")
     sign_in admin
     get edit_study_program_path(@pssk)
     assert_select "select[name='study_program[competency_framework_id]'] option", text: "Kerangka Prodi"

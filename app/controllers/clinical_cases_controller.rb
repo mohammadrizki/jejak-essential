@@ -3,6 +3,7 @@
 class ClinicalCasesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_clinical_case, only: %i[show edit update destroy submit verify request_revision reject cancel_verification comment initiate_workplace_assessment break_glass issue_consent revoke_consent initiate_assessment]
+  before_action :require_logbook_enabled_for_write, only: %i[new create edit update]
 
   def index
     # to_verify = antrean kasus "Menunggu Verifikasi" yang boleh diverifikasi
@@ -224,6 +225,13 @@ class ClinicalCasesController < ApplicationController
   end
 
   private
+
+  def require_logbook_enabled_for_write
+    return if ModuleConfiguration.for(current_user.study_program).enabled?("clinical_logbook")
+
+    redirect_to clinical_cases_path,
+      alert: "Input Logbook kasus untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."
+  end
 
   def workplace_rotation_for(clinical_case)
     rotations = clinical_case.user.clinical_rotations

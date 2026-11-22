@@ -20,7 +20,8 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "Akademik"
     assert_select "h2", text: "Informasi Kepegawaian", count: 0
     assert_select "label", text: "NPM / NIM"
-    assert_select "select[name=?]", "user[study_program_id]"
+    assert_select "select[name=?]", "user[study_program_id]", count: 0
+    assert_match study_programs(:sarjana_kedokteran).name, response.body
     assert_select "input[name=?]", "user[cohort_year]"
   end
 
@@ -33,6 +34,7 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "Akademik", count: 0
     assert_select "label", text: "NIP / NIDN"
     assert_select "select[name=?]", "user[profession_category]"
+    assert_select "select[name=?]", "user[study_program_id]", count: 0
   end
 
   test "mahasiswa menyimpan biodata lengkap" do
@@ -140,5 +142,16 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
 
     patch profile_path, params: { user: { full_name: "Dedi Kaprodi", study_program_id: study_programs(:profesi_dokter).id } }
     assert_equal study_programs(:sarjana_kedokteran), users(:dedi).reload.study_program
+  end
+
+  test "mahasiswa dan dosen tidak bisa memindahkan akun sendiri ke program studi lain" do
+    users(:budi).update!(study_program: study_programs(:sarjana_kedokteran))
+    sign_in users(:siti)
+    patch profile_path, params: { user: { study_program_id: study_programs(:profesi_dokter).id } }
+    assert_equal study_programs(:sarjana_kedokteran), users(:siti).reload.study_program
+
+    sign_in users(:budi)
+    patch profile_path, params: { user: { study_program_id: study_programs(:profesi_dokter).id } }
+    assert_equal study_programs(:sarjana_kedokteran), users(:budi).reload.study_program
   end
 end

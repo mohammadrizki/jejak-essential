@@ -5,10 +5,10 @@
       <h1 class="text-xl font-bold text-gray-900">Peta Artefak</h1>
       <p class="mt-1 max-w-3xl text-sm text-gray-500">Peta ini merupakan tampilan turunan dari indikator kompetensi, Blueprint Asesmen, dan Syarat Bukti. Tidak ada master artefak terpisah.</p>
     </div>
-    <%= link_to "Syarat Bukti", evidence_requirements_path, class: "rounded-lg border border-indigo-200 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" %>
+    <%= link_to "Syarat Bukti", (@read_only ? portfolio_path(section: "evidence-requirements", anchor: "evidence-requirements") : evidence_requirements_path), class: "rounded-lg border border-indigo-200 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50" %>
   </div>
 
-  <% if @study_programs.any? %>
+  <% if @study_programs.any? && !@read_only && current_user.has_role?("admin") %>
     <%= form_with url: artifact_map_path, method: :get, class: "mt-4" do %>
       <%= label_tag :study_program_id, "Program studi", class: "mr-2 text-sm font-medium text-gray-700" %>
       <%= select_tag :study_program_id, options_from_collection_for_select(@study_programs, :id, :name, @study_program&.id), class: "rounded-lg border-gray-300 text-sm", onchange: "this.form.requestSubmit()" %>
@@ -35,14 +35,18 @@
                   <% mappings.each do |mapping| %>
                     <p><%= mapping.blueprint_item.code %> · <%= mapping.blueprint_item.title %></p>
                     <% mapping.blueprint_item.evidence_requirements.select { |r| r.status == "active" }.each do |requirement| %>
-                      <p class="mt-1 text-xs text-gray-400"><%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %> × <%= requirement.required_count %></p>
+                      <% configuration = requirement.current_version&.configuration || requirement.configuration_snapshot %>
+                      <p class="mt-1 text-xs text-gray-400"><%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(configuration.fetch("source_type")) %> × <%= configuration.fetch("required_count") %></p>
                     <% end %>
                   <% end %>
                 <% else %><span class="text-xs text-gray-400">Belum dipetakan ke Blueprint</span><% end %>
               </td>
               <td class="px-4 py-3 text-xs text-gray-600">
                 <% if requirements.any? %>
-                  <% requirements.each do |requirement| %><p><%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %> × <%= requirement.required_count %><%= " · Kritis" if requirement.fulfillment_rule["critical"] %></p><% end %>
+                  <% requirements.each do |requirement| %>
+                    <% configuration = requirement.current_version&.configuration || requirement.configuration_snapshot %>
+                    <p><%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(configuration.fetch("source_type")) %> × <%= configuration.fetch("required_count") %><%= " · Kritis" if configuration.dig("fulfillment_rule", "critical") %></p>
+                  <% end %>
                 <% else %><span class="text-gray-400">Belum ditetapkan</span><% end %>
               </td>
             </tr>

@@ -94,8 +94,14 @@
         <h2 class="text-base font-semibold text-gray-900 mb-4">Akademik</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <%= f.label :study_program_id, "Program Studi", class: lbl %>
-            <%= f.collection_select :study_program_id, StudyProgram.ordered, :id, :name, { include_blank: "Pilih program studi..." }, class: cls %>
+            <% if current_user.has_role?("admin") %>
+              <%= f.label :study_program_id, "Program Studi", class: lbl %>
+              <%= f.collection_select :study_program_id, StudyProgram.ordered, :id, :name, { include_blank: "Pilih program studi..." }, class: cls %>
+            <% else %>
+              <label class="<%= lbl %>">Program Studi</label>
+              <p class="rounded-xl bg-gray-50 py-2.5 px-3.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200"><%= @user.study_program&.name || "Belum ditetapkan" %></p>
+              <p class="text-[11px] text-gray-400 mt-1">Perubahan Program Studi dikelola oleh admin atau melalui sinkronisasi akademik.</p>
+            <% end %>
           </div>
           <div>
             <%= f.label :cohort_year, "Angkatan", class: lbl %>
@@ -126,13 +132,13 @@
             <%= f.text_field :specialization, placeholder: "Kardiologi", class: cls %>
           </div>
           <div>
-            <% if @user.study_program_bound? %>
-              <label class="<%= lbl %>">Program Studi Binaan</label>
-              <p class="rounded-xl bg-gray-50 py-2.5 px-3.5 text-sm text-gray-500 ring-1 ring-inset ring-gray-200"><%= @user.study_program&.name || "Belum diatur" %></p>
-              <p class="text-[11px] text-gray-400 mt-1">Menentukan cakupan akses Kaprodi — hanya admin yang dapat mengubahnya.</p>
-            <% else %>
+            <% if current_user.has_role?("admin") %>
               <%= f.label :study_program_id, "Program Studi Binaan (opsional)", class: lbl %>
               <%= f.collection_select :study_program_id, StudyProgram.ordered, :id, :name, { include_blank: "—" }, class: cls %>
+            <% else %>
+              <label class="<%= lbl %>">Program Studi Binaan</label>
+              <p class="rounded-xl bg-gray-50 py-2.5 px-3.5 text-sm text-gray-500 ring-1 ring-inset ring-gray-200"><%= @user.study_program&.name || "Belum ditetapkan" %></p>
+              <p class="text-[11px] text-gray-400 mt-1">Menentukan cakupan akses dan hanya dapat diubah oleh admin atau sumber akademik yang berwenang.</p>
             <% end %>
           </div>
         </div>

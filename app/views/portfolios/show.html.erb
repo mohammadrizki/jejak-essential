@@ -19,6 +19,80 @@
   </div>
 </div>
 
+<section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="text-sm font-semibold text-gray-800">Portofolio Terpilih</h2>
+      <p class="mt-1 text-xs text-gray-500">Pilih artefak yang sudah ditelaah. Portofolio privat secara default; sumber tetap berada di Logbook atau Koleksi Bukti.</p>
+    </div>
+    <% if UserAssignment.active.exists?(user: current_user, assignment_role: "artifact_reviewer") %>
+      <%= link_to "Antrean telaah artefak", artifact_submissions_path, class: "text-sm font-medium text-indigo-700 hover:underline" %>
+    <% end %>
+  </div>
+  <% if @portfolio_selections.any? %>
+    <div class="mt-3 divide-y divide-gray-100">
+      <% @portfolio_selections.each do |selection| %>
+        <article class="flex flex-wrap items-center justify-between gap-3 py-3">
+          <div>
+            <p class="text-sm font-medium text-gray-800"><%= selection.artifact_submission.source_title %></p>
+            <p class="text-xs text-gray-500"><%= selection.artifact_submission.selection_reason %> · <%= selection.visibility == "private" ? "Privat" : "Dapat dilihat penelaah yang berwenang" %></p>
+          </div>
+          <%= button_to "Keluarkan", portfolio_selection_path(selection), method: :delete,
+            class: "rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700" %>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="mt-3 text-sm text-gray-500">Belum ada artefak terpilih.</p>
+  <% end %>
+</section>
+
+<section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+  <h2 class="text-sm font-semibold text-gray-800">Ajukan artefak untuk ditelaah</h2>
+  <p class="mt-1 text-xs text-gray-500">Kegiatan harus tervalidasi. Pengajuan tidak otomatis menjadi keputusan capaian kompetensi.</p>
+  <% if @artifact_sources.any? %>
+    <%= form_with model: ArtifactSubmission.new, class: "mt-3 grid gap-3" do |f| %>
+      <%= f.select :source_type, @artifact_sources.map { |label, type, id| [label, "#{type}:#{id}"] },
+        { prompt: "Pilih sumber artefak" }, { name: "artifact_submission[source_reference]", required: true, class: "rounded-lg border-gray-300 text-sm" } %>
+      <%= f.text_area :selection_reason, required: true, minlength: 10, maxlength: 2000, rows: 2,
+        placeholder: "Mengapa artefak ini bermakna bagi perkembangan kompetensi Anda?", class: "rounded-lg border-gray-300 text-sm" %>
+      <%= f.text_area :reflection, maxlength: 5000, rows: 3,
+        placeholder: "Refleksi (opsional): apa yang dipelajari dan tindak lanjut Anda?", class: "rounded-lg border-gray-300 text-sm" %>
+      <%= f.submit "Ajukan untuk ditelaah", class: "w-fit rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+    <% end %>
+  <% else %>
+    <p class="mt-3 text-sm text-gray-500">Belum ada logbook tervalidasi, refleksi, atau bukti tervalidasi yang dapat diajukan.</p>
+  <% end %>
+  <% if @artifact_submissions.any? %>
+    <div class="mt-4 divide-y divide-gray-100">
+      <% @artifact_submissions.each do |submission| %>
+        <article class="flex flex-wrap items-start justify-between gap-3 py-3">
+          <div>
+            <p class="text-sm font-medium text-gray-800"><%= submission.source_title %> · <%= submission.status.humanize %></p>
+            <p class="text-xs text-gray-500"><%= submission.selection_reason %></p>
+            <% if submission.review_notes.present? %><p class="mt-1 text-xs text-gray-600">Catatan telaah: <%= submission.review_notes %></p><% end %>
+          </div>
+          <div class="flex gap-2">
+            <% if submission.approved? && submission.portfolio_selection.blank? %>
+              <%= form_with model: PortfolioSelection.new, url: portfolio_selections_path, class: "flex gap-2" do |f| %>
+                <%= hidden_field_tag :artifact_submission_id, submission.id %>
+                <%= f.select :visibility, [["Privat", "private"], ["Penelaah berwenang", "assigned_reviewers"]], {}, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.submit "Pilih", class: "rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white" %>
+              <% end %>
+            <% elsif submission.status == "rejected" %>
+              <%= button_to "Ajukan ulang", resubmit_artifact_submission_path(submission), method: :patch,
+                class: "rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800" %>
+            <% elsif submission.submitted? %>
+              <%= button_to "Tarik", artifact_submission_path(submission), method: :delete,
+                class: "rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700" %>
+            <% end %>
+          </div>
+        </article>
+      <% end %>
+    </div>
+  <% end %>
+</section>
+
 <% if @epa_observations.any? %>
   <section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
     <h2 class="text-sm font-semibold text-gray-800">Observasi formatif EPA</h2>
@@ -39,22 +113,26 @@
 <% if @evidence_requirements.any? %>
   <section id="evidence-requirements" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
     <h2 class="text-sm font-semibold text-gray-800">Syarat bukti</h2>
-    <p class="mt-1 text-xs text-gray-500">Bukti dari observasi EPA dicatat otomatis; tautkan sumber asesmen, logbook, atau refleksi yang relevan. Kecukupan bukti terpisah dari keputusan ketercapaian kompetensi.</p>
+    <p class="mt-1 text-xs text-gray-500">Bukti dari observasi EPA dicatat otomatis; tautkan sumber asesmen, WPBA, logbook, atau refleksi yang relevan. Kecukupan bukti terpisah dari keputusan ketercapaian kompetensi.</p>
     <div class="mt-3 divide-y divide-gray-100">
       <% @evidence_requirements.each do |requirement| %>
-        <% progress = EvidenceRequirementProgress.new(requirement).call %>
+        <% progress = EvidenceRequirementProgress.new(requirement, student: @student).call %>
+        <% version = progress.requirement_version %>
+        <% rule = version&.fulfillment_rule || requirement.fulfillment_rule %>
+        <% source_type = version&.source_type || requirement.source_type %>
         <div class="py-3">
           <div class="flex items-center justify-between gap-3 text-sm">
-            <span class="font-medium text-gray-700"><%= requirement.competency_indicator&.description || requirement.competency_item&.title || requirement.epa&.title %> · <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %><%= " · Kritis" if requirement.fulfillment_rule["critical"] %></span>
+            <span class="font-medium text-gray-700"><%= requirement.competency_indicator&.description || requirement.competency_item&.title || requirement.epa&.title %> · <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(source_type) %><%= " · Kritis" if rule["critical"] %></span>
             <span class="text-xs text-gray-500"><%= progress.record_count %>/<%= progress.required_count %> bukti valid · <%= progress.status.to_s.humanize %></span>
           </div>
-          <% if requirement.fulfillment_rule["minimum_pass"].to_i.positive? || requirement.fulfillment_rule["minimum_distinct_cases"].to_i.positive? || requirement.fulfillment_rule["minimum_distinct_assessors"].to_i.positive? || requirement.fulfillment_rule["minimum_distinct_opportunities"].to_i.positive? || requirement.fulfillment_rule["minimum_distinct_dates"].to_i.positive? || requirement.fulfillment_rule["minimum_span_days"].to_i.positive? %>
-            <p class="mt-1 text-[11px] text-gray-500">Lulus: <%= progress.pass_count %>/<%= requirement.fulfillment_rule["minimum_pass"].to_i %> · Kasus berbeda: <%= progress.case_count %>/<%= requirement.fulfillment_rule["minimum_distinct_cases"].to_i %> · Penilai berbeda: <%= progress.assessor_count %>/<%= requirement.fulfillment_rule["minimum_distinct_assessors"].to_i %> · Kesempatan berbeda: <%= progress.opportunity_count %>/<%= requirement.fulfillment_rule["minimum_distinct_opportunities"].to_i %> · Tanggal berbeda: <%= progress.distinct_date_count %>/<%= requirement.fulfillment_rule["minimum_distinct_dates"].to_i %> · Rentang: <%= progress.span_days %>/<%= requirement.fulfillment_rule["minimum_span_days"].to_i %> hari</p>
+          <% if rule["minimum_pass"].to_i.positive? || rule["minimum_distinct_cases"].to_i.positive? || rule["minimum_distinct_assessors"].to_i.positive? || rule["minimum_distinct_opportunities"].to_i.positive? || rule["minimum_distinct_dates"].to_i.positive? || rule["minimum_span_days"].to_i.positive? %>
+            <p class="mt-1 text-[11px] text-gray-500">Lulus: <%= progress.pass_count %>/<%= rule["minimum_pass"].to_i %> · Kasus berbeda: <%= progress.case_count %>/<%= rule["minimum_distinct_cases"].to_i %> · Penilai berbeda: <%= progress.assessor_count %>/<%= rule["minimum_distinct_assessors"].to_i %> · Kesempatan berbeda: <%= progress.opportunity_count %>/<%= rule["minimum_distinct_opportunities"].to_i %> · Tanggal berbeda: <%= progress.distinct_date_count %>/<%= rule["minimum_distinct_dates"].to_i %> · Rentang: <%= progress.span_days %>/<%= rule["minimum_span_days"].to_i %> hari</p>
           <% end %>
-          <% if requirement.fulfillment_rule["additional_criteria"].present? %><p class="mt-1 text-[11px] text-gray-500"><%= requirement.fulfillment_rule["additional_criteria"] %></p><% end %>
-        <% if @evidence_sources.fetch(requirement.source_type, []).any? %>
+          <% if rule["additional_criteria"].present? %><p class="mt-1 text-[11px] text-gray-500"><%= rule["additional_criteria"] %></p><% end %>
+          <% if version.present? %><p class="mt-1 text-[11px] text-gray-400">Versi Syarat Bukti: <%= version.version %></p><% end %>
+        <% if @evidence_sources.fetch(source_type, []).any? %>
             <%= form_with url: evidence_requirement_evidence_records_path(requirement), scope: :evidence_record, class: "mt-2 flex flex-wrap gap-2" do |f| %>
-              <%= f.select :source_key, @evidence_sources.fetch(requirement.source_type, []), { prompt: "Pilih bukti aktual" }, class: "min-w-[16rem] rounded-lg border-gray-300 text-xs" %>
+              <%= f.select :source_key, @evidence_sources.fetch(source_type, []), { prompt: "Pilih bukti aktual" }, class: "min-w-[16rem] rounded-lg border-gray-300 text-xs" %>
               <%= f.date_field :evidence_date, value: Date.current, class: "rounded-lg border-gray-300 text-xs" %>
               <%= f.submit "Tautkan", class: "rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white cursor-pointer" %>
             <% end %>

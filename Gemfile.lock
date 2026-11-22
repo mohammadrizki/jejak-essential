@@ -517,6 +517,7 @@ DEPENDENCIES
   rqrcode
   rubocop-rails-omakase
   ruby-vips
+  rubyzip (~> 3.6)
   selenium-webdriver
   solid_cable
   solid_cache

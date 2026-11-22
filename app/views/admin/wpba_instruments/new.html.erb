@@ -1,0 +1,9 @@
+<div class="mx-auto max-w-2xl space-y-4 px-4 py-6">
+  <h1 class="text-2xl font-bold">Tambah Instrumen WPBA</h1>
+  <%= form_with model: @instrument, url: admin_wpba_instruments_path, class: "grid gap-3 rounded-2xl bg-white p-5 ring-1 ring-gray-200" do |f| %>
+    <%= f.label :code, "Kode" %><%= f.text_field :code, required: true, class: "rounded-lg border-gray-300" %>
+    <%= f.label :name, "Nama" %><%= f.text_field :name, required: true, class: "rounded-lg border-gray-300" %>
+    <%= f.label :instrument_type, "Jenis" %><%= f.select :instrument_type, WpbaInstrument::CREATABLE_TYPES.map { |type| [type.humanize, type] }, {}, class: "rounded-lg border-gray-300" %>
+    <%= f.submit "Buat instrumen", class: "w-fit rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white" %>
+  <% end %>
+</div>

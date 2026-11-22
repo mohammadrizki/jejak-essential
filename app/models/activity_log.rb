@@ -45,6 +45,7 @@ class ActivityLog < ApplicationRecord
   before_validation :complete_taxonomy
   before_validation :derive_from_taxonomy_and_time
   before_update :clear_verification_when_content_changes
+  before_destroy :prevent_deletion_when_selected_as_artifact
 
   validates :title, :activity_date, presence: true
   validates :category, inclusion: { in: CATEGORIES.keys }
@@ -132,6 +133,13 @@ class ActivityLog < ApplicationRecord
   end
 
   private
+
+  def prevent_deletion_when_selected_as_artifact
+    return unless ArtifactSubmission.exists?(source_type: "ActivityLog", source_id: id)
+
+    errors.add(:base, "Logbook yang menjadi sumber artefak tidak dapat dihapus; batalkan pengajuan artefak terlebih dahulu")
+    throw :abort
+  end
 
   # Verifikasi mengesahkan isi saat itu; isi yang berubah harus diperiksa lagi,
   # jadi kegiatan kembali ke antrean Validasi Kegiatan.

@@ -20,20 +20,19 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
 
   # ── Menu ────────────────────────────────────────────────────────────────
 
-  test "kaprodi tidak ditawari Validasi Kasus/Kegiatan, tetapi ditawari Jadwal & Learning Unit" do
+  test "kaprodi melihat rencana pembelajaran tanpa antrean validasi atau menu jadwal" do
     sign_in users(:dedi)
     get dashboard_path
 
     assert_select "aside#sidebar" do
-      assert_select "p", text: "Coaching Center"
+      assert_select "span", text: "2. PENGEMBANGAN KOMPETENSI"
       assert_select "a[href=?]", clinical_cases_path(scope: "to_verify"), 0
       assert_select "a[href=?]", activity_logs_path(scope: "to_verify"), 0
-      assert_select "a[href=?]", new_admin_student_relabel_path
-      assert_select "a[href=?]", admin_evaluation_schedules_path
       assert_select "a[href=?]", admin_learning_units_path
+      assert_select "a[href=?]", admin_evaluation_schedules_path, 0
     end
     assert_select ".mobile-bottom-nav a[href=?]", clinical_cases_path(scope: "to_verify"), 0
-    assert_select ".mobile-bottom-nav a[href=?]", assessments_path
+    assert_select ".mobile-bottom-nav a[href=?]", analytics_path
   end
 
   test "dosen tidak ditawari menu pengelolaan prodi" do
@@ -138,7 +137,7 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
 
   # ── Verifikasi & penilaian ──────────────────────────────────────────────
 
-  test "draf kasus hanya terbuka bagi pemilik dan admin" do
+  test "draf kasus hanya terbuka bagi pemilik; role admin teknis tidak memberi akses otomatis" do
     draft = clinical_cases(:draft_case_siti)
 
     sign_in users(:budi)
@@ -149,10 +148,19 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
 
     sign_in make_admin(users(:wati))
     get clinical_case_path(draft)
-    assert_response :success
+    assert_redirected_to root_path # draf hanya terbuka bagi pemiliknya
+
+    admin_teknis = users(:dedi)
+    admin_teknis.roles << roles(:admin)
+    sign_in admin_teknis
+    get clinical_case_path(draft)
+    assert_redirected_to root_path
   end
 
   test "antrean Validasi Kegiatan tidak memuat kegiatan milik sendiri" do
+    UserAssignment.create!(user: users(:budi), assigned_by: users(:dedi),
+      assignment_role: "logbook_verifier", study_program: study_programs(:sarjana_kedokteran),
+      scope_type: "StudyProgram", scope_id: study_programs(:sarjana_kedokteran).id)
     sign_in users(:budi) # pemilik Jaga IGD
     get activity_logs_path(scope: "to_verify")
     assert_response :success

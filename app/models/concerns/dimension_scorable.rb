@@ -41,6 +41,8 @@ module DimensionScorable
     scope :submitted, -> { where(status: "submitted") }
 
     after_commit :notify_student_when_submitted, on: %i[create update]
+    after_update :propagate_correction_evidence,
+      if: -> { corrects_id.present? && saved_change_to_status? && submitted? }
   end
 
   def score_for(key)
@@ -74,6 +76,24 @@ module DimensionScorable
     return if submitted?
 
     update!(status: "submitted")
+  end
+
+  # When a finalized observation is corrected, carry each existing expected-
+  # evidence link forward to the new revision. The canonical activity key is
+  # shared by the correction chain, so it remains one independent observation.
+  def propagate_correction_evidence
+    source = EvidenceSource.for_local_record!(self)
+    corrects.evidence_records.find_each do |previous_record|
+      attributes = previous_record.attributes.except("id", "created_at", "updated_at")
+      corrected_record = previous_record.class.new(attributes)
+      corrected_record.assign_attributes(
+        assessment_instance: nil, activity_log: nil, reflection_entry: nil, epa_observation: nil,
+        mini_cex_evaluation: (self if is_a?(MiniCexEvaluation)),
+        dops_evaluation: (self if is_a?(DopsEvaluation)), evidence_source: source,
+        metadata: previous_record.metadata.to_h.merge("supersedes_evidence_record_id" => previous_record.id)
+      )
+      corrected_record.save!
+    end
   end
 
   # Rata-rata tiap dimensi lintas beberapa evaluasi (mis. semua DOPS milik

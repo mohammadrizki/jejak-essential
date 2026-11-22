@@ -1,0 +1,23 @@
+<div class="mx-auto max-w-3xl space-y-5 px-4 py-6">
+  <header class="flex flex-wrap items-start justify-between gap-3"><div><h1 class="text-2xl font-bold"><%= @observation.multisource_feedback? && @observation.student_id == current_user.id ? "Umpan Balik Multisumber" : @observation.wpba_instrument_version.wpba_instrument.name %></h1><p class="text-sm text-gray-600">Versi <%= @observation.wpba_instrument_version.version_label %><%= " · #{@observation.student.full_name}" unless @observation.multisource_feedback? && @observation.student_id == current_user.id %></p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold"><%= @observation.status.humanize %></span></header>
+  <% if @observation.multisource_feedback? && @observation.student_id == current_user.id %>
+    <% if @multisource_ready %>
+      <section class="space-y-4 rounded-2xl border bg-white p-5">
+        <p class="text-sm text-gray-600">Ringkasan anonim dari <%= @multisource_group.map(&:observer_id).uniq.size %> penilai pada rotasi ini. Identitas dan tanggal tiap penilai tidak ditampilkan.</p>
+        <dl class="space-y-2"><% @observation.wpba_instrument_version.components.each do |raw| %><% component = raw.to_h.deep_stringify_keys; next unless component["type"] == "rating"; average = @observation.multisource_average_for(component["key"]) %><div class="border-b pb-2"><dt class="text-sm text-slate-600"><%= component["label"] %></dt><dd class="font-medium"><%= average ? "Rerata #{average} / #{component["maximum"]}" : "Belum ada respons" %></dd></div><% end %></dl>
+        <% comments = @multisource_group.filter_map { |record| record.overall_feedback.presence } %>
+        <% if comments.any? %><div><h2 class="text-sm font-semibold">Komentar anonim</h2><ul class="mt-2 space-y-2"><% comments.each do |comment| %><li class="rounded-lg bg-slate-50 p-3 text-sm whitespace-pre-line"><%= comment %></li><% end %></ul></div><% end %>
+      </section>
+    <% else %>
+      <section class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Ringkasan multisumber ditampilkan setelah sekurangnya <%= @observation.multisource_required_raters %> penilai mengirimkan umpan balik.</section>
+    <% end %>
+  <% else %>
+  <section class="space-y-4 rounded-2xl border bg-white p-5"><div><h2 class="text-sm font-semibold text-gray-500">Aktivitas diamati</h2><p><%= @observation.activity_summary %></p></div>
+    <div><h2 class="text-sm font-semibold text-gray-500">Komponen observasi</h2><dl class="mt-2 space-y-2"><% @observation.wpba_instrument_version.components.each do |raw| %><% c = raw.to_h.deep_stringify_keys; value = @observation.response_for(c["key"]) %><div class="border-b pb-2"><dt class="text-sm text-slate-600"><%= c["label"] %></dt><dd class="mt-1 font-medium"><%= @observation.wpba_instrument_version.component_response_label(c, value) || "—" %><% if value.present? && c["type"] == "rating" %><span class="ml-1 text-xs text-slate-500">(ordinal <%= value %>)</span><% end %></dd><% if @observation.wpba_instrument_version.component_response_description(c, value).present? %><dd class="mt-1 text-xs text-slate-500"><%= @observation.wpba_instrument_version.component_response_description(c, value) %></dd><% end %></div><% end %></dl></div>
+    <% if @observation.overall_feedback.present? %><div><h2 class="text-sm font-semibold text-gray-500">Umpan balik</h2><p class="whitespace-pre-wrap"><%= @observation.overall_feedback %></p></div><% end %>
+    <% if @observation.action_plan.present? %><div><h2 class="text-sm font-semibold text-gray-500">Rencana perbaikan</h2><p class="whitespace-pre-wrap"><%= @observation.action_plan %></p></div><% end %>
+    <% if @observation.correction_reason.present? %><p class="rounded-lg bg-amber-50 p-3 text-sm">Koreksi: <%= @observation.correction_reason %></p><% end %>
+  </section>
+  <% end %>
+  <% if policy(@observation).update? %><div class="flex flex-wrap gap-2"><%= link_to "Sunting", edit_wpba_observation_path(@observation), class: "rounded-lg border px-4 py-2 text-sm" %><%= button_to "Kirim observasi", submit_wpba_observation_path(@observation), method: :patch, class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %><%= button_to "Hapus draf", wpba_observation_path(@observation), method: :delete, class: "rounded-lg border border-rose-300 px-4 py-2 text-sm text-rose-700" %></div><% elsif @observation.submitted? && policy(@observation).correct? %><div><%= link_to "Buat koreksi", correction_wpba_observation_path(@observation), class: "rounded-lg border px-4 py-2 text-sm" %></div><% end %>
+</div>

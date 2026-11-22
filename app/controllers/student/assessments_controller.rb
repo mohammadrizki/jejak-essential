@@ -5,6 +5,7 @@
 # evaluasi diri, lihat nilai & umpan balik penguji.
 class Student::AssessmentsController < ApplicationController
   before_action :authenticate_user!
+  before_action :require_academic_record_viewer!, if: :viewing_other_student?
   before_action :set_instance, only: %i[show submit]
 
   def index
@@ -50,6 +51,7 @@ class Student::AssessmentsController < ApplicationController
   def set_instance
     owner = action_name == "show" ? viewed_student : current_user
     @instance = owner.assessment_instances.includes(:assessment_event, :examiner).find(params[:id])
+    authorize @instance, :show? if action_name == "show"
   end
 
   def notify_examiner

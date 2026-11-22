@@ -165,4 +165,25 @@ class Admin::ExportsControllerTest < ActionDispatch::IntegrationTest
     get admin_export_path("form_answers", format: :csv, form_template_id: template.id)
     assert_equal "Siti Mahasiswa", csv_rows.first["Responden"]
   end
+
+  test "ekspor jawaban formulir oleh kaprodi hanya mencakup kiriman terkait prodinya" do
+    template = assessment_form_templates(:tutor_evaluation)
+    outside_user = create_student("form-answer-outside@example.com", program: @pspd)
+    field = assessment_form_fields(:kejelasan_materi)
+    within_program = template.assessment_form_submissions.build(respondent: users(:siti),
+      subject_user: users(:budi), submitted_at: Time.current)
+    within_program.assessment_form_answers.build(assessment_form_field: field, value: "4")
+    within_program.save!
+    outside_program = template.assessment_form_submissions.build(respondent: outside_user,
+      subject_user: outside_user, submitted_at: Time.current)
+    outside_program.assessment_form_answers.build(assessment_form_field: field, value: "2")
+    outside_program.save!
+
+    sign_in @kaprodi
+    get admin_export_path("form_answers", format: :csv, form_template_id: template.id)
+
+    assert_response :success
+    assert_equal [ "Budi Dosen" ], csv_rows.map { |row| row["Subjek"] }.uniq
+    assert_no_match outside_user.email, response.body
+  end
 end

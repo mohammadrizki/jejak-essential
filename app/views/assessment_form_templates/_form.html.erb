@@ -17,6 +17,15 @@
           class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-500 text-sm resize-none" %>
   </div>
 
+  <% if current_user.has_role?("admin") %>
+    <div>
+      <%= f.label :study_program_id, "Lingkup program studi (kosong = tingkat institusi)", class: "block text-sm font-semibold text-gray-700 mb-1" %>
+      <%= f.collection_select :study_program_id, @study_programs, :id, :name, { include_blank: "Template institusi" }, class: "block w-full rounded-xl border-gray-300 text-sm" %>
+    </div>
+  <% elsif template.study_program.present? %>
+    <p class="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-800">Lingkup program studi: <strong><%= template.study_program.name %></strong></p>
+  <% end %>
+
   <div class="space-y-2">
     <label class="flex items-center gap-2 text-sm text-gray-700">
       <%= f.check_box :is_active, class: "rounded border-gray-300" %> Aktif (bisa diisi pengguna)

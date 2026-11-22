@@ -25,6 +25,18 @@ class CanonicalEvidenceIngestorTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { changed.call }
   end
 
+  test "batch provenance is reserved, immutable, and ignored for idempotent delivery" do
+    batch = ExternalImportBatch.create!(study_program: @student.study_program, uploaded_by: users(:dedi),
+      source_system: "moodle", filename: "hasil.csv", file_sha256: "a" * 64, row_count: 1, row_results: [])
+    source = ingestor(payload: { "metadata" => { "source_hash" => "x", "jejak_imported_by_id" => 999 } },
+      batch: batch, actor: users(:dedi)).call.evidence_source
+
+    assert_equal batch.id, source.metadata["jejak_import_batch_id"]
+    assert_equal users(:dedi).id, source.metadata["jejak_imported_by_id"]
+    assert_equal "x", source.metadata["source_hash"]
+    assert_equal source.id, ingestor(payload: { "metadata" => { "source_hash" => "x" } }).call.evidence_source.id
+  end
+
   test "a correction revision replaces the earlier revision for sufficiency" do
     old_source = ingestor.call.evidence_source
     old_source.validate_source!(by: users(:budi))
@@ -43,7 +55,7 @@ class CanonicalEvidenceIngestorTest < ActiveSupport::TestCase
 
   private
 
-  def ingestor(payload: {})
+  def ingestor(payload: {}, batch: nil, actor: nil)
     base = {
       "source_record_id" => "exam-42", "source_revision" => "revision-a",
       "activity_key" => "exam:semester-1:student-#{@student.id}", "student" => @student,
@@ -53,6 +65,6 @@ class CanonicalEvidenceIngestorTest < ActiveSupport::TestCase
       "metadata" => { "finalized" => true }
     }
     CanonicalEvidenceIngestor.new(source_system: "examtool-test", payload: base.merge(payload),
-      requirement: @requirement)
+      requirement: @requirement, batch: batch, actor: actor)
   end
 end

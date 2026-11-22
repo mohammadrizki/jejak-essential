@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 class ClinicalCasePolicy < ApplicationPolicy
-  # Draf belum diajukan ke pembimbing, jadi hanya pemiliknya (dan admin) yang
-  # melihatnya; pengajar lain baru melihat kasus sejak dikirim.
+  # Draf hanya terlihat pemilik. Kasus kiriman hanya terlihat pemilik,
+  # pembimbing/verifier yang tercatat, atau penilai yang ditugaskan.
   def show?
-    owner? || user.has_role?("admin") || (user.can_verify_clinical_cases? && record.status != "draft")
+    owner? || (record.status != "draft" && (assigned_supervisor? || record.supervised_by?(user) || record.verified_by_id == user.id ||
+      AssignmentAuthorization.assigned?(user: user, role: "clinical_case_verifier", student: record.user)))
   end
 
   def update?
@@ -24,7 +25,8 @@ class ClinicalCasePolicy < ApplicationPolicy
   # boleh memverifikasi kasus miliknya sendiri. Kasus yang menandai
   # pembimbing hanya boleh diverifikasi pembimbing itu, bukan pengajar lain.
   def verify?
-    !owner? && user.can_verify_clinical_cases? && record.status == "submitted" && assigned_verifier?
+    !owner? && user.can_verify_clinical_cases? && record.status == "submitted" &&
+      assigned_verifier?
   end
 
   def request_revision?
@@ -35,10 +37,11 @@ class ClinicalCasePolicy < ApplicationPolicy
     verify?
   end
 
-  # Hanya verifier kasus itu sendiri atau admin yang boleh membatalkan.
+  # Hanya verifier yang tercatat atau penilai yang ditugaskan boleh membatalkan.
   def cancel_verification?
     !owner? && record.status == "verified" &&
-      (record.verified_by_id == user.id || user.has_role?("admin"))
+      (record.verified_by_id == user.id || AssignmentAuthorization.assigned?(user: user,
+        role: "clinical_case_verifier", student: record.user))
   end
 
   # Pemilik dan pembimbing yang boleh membuka kasus boleh berdiskusi.
@@ -46,14 +49,14 @@ class ClinicalCasePolicy < ApplicationPolicy
     show?
   end
 
-  # Break Glass: siapa pun yang boleh membuka kasus (pemilik, pembimbing/
-  # verifier, admin) boleh membukanya — tetapi selalu beralasan & tercatat.
+  # Break Glass membuka identitas pasien dengan alasan, bagi pengguna yang
+  # sudah memiliki akses akademik sah ke kasus.
   def break_glass?
     show?
   end
 
   # Pembimbing kasus melihat identitas pasien tanpa Break Glass walau Privacy
-  # Mode menyala; pengajar lain dan pemilik kasus tetap lewat Break Glass.
+  # Mode menyala; pengguna lain tetap lewat Break Glass.
   def view_patient_identity?
     show? && !owner? && record.supervised_by?(user)
   end
@@ -74,11 +77,20 @@ class ClinicalCasePolicy < ApplicationPolicy
 
   class Scope < Scope
     def resolve
-      if user.can_verify_clinical_cases?
-        scope.all
-      else
-        scope.owned_by(user)
-      end
+      return scope.owned_by(user) unless user.can_verify_clinical_cases?
+
+      user_ids = UserAssignment.active.where(user: user, assignment_role: "clinical_case_verifier").filter_map do |assignment|
+        case assignment.scope_type
+        when "User" then assignment.scope_id
+        when "StudyProgram" then User.where(study_program_id: assignment.scope_id).pluck(:id)
+        when "ClinicalRotation" then ClinicalRotation.where(id: assignment.scope_id).pluck(:user_id)
+        else assignment.study_program_id && User.where(study_program_id: assignment.study_program_id).pluck(:id)
+        end
+      end.flatten.uniq
+      rotation_cases = scope.joins(user: :clinical_rotations).where(clinical_rotations: { preceptor_id: user.id })
+        .where("clinical_rotations.start_date <= clinical_cases.case_date AND clinical_rotations.end_date >= clinical_cases.case_date")
+      scope.where(user_id: [user.id, *user_ids]).or(scope.where(supervisor_id: user.id))
+        .or(scope.where(verified_by_id: user.id)).or(rotation_cases)
     end
   end
 
@@ -89,6 +101,14 @@ class ClinicalCasePolicy < ApplicationPolicy
   end
 
   def assigned_verifier?
-    record.supervisor_id.nil? || record.supervisor_id == user.id
+    return true if record.supervisor_id == user.id
+    return false if record.supervisor_id.present?
+
+    record.user.clinical_rotations.covering(record.case_date).exists?(preceptor: user) ||
+      AssignmentAuthorization.assigned?(user: user, role: "clinical_case_verifier", student: record.user)
+  end
+
+  def assigned_supervisor?
+    record.supervisor_id == user.id
   end
 end

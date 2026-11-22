@@ -47,6 +47,55 @@ class EpaPromotionReadinessTest < ActiveSupport::TestCase
     assert EpaPromotion.exists?(student: @student, epa: @epa, status: "ready")
   end
 
+  test "active entrustment prevents duplicate promotion readiness" do
+    EntrustmentDecision.decide!(student: @student, epa: @epa, level: 2,
+      justification: "Keputusan entrustment sudah ditetapkan oleh akademik.", decided_by: users(:dedi))
+
+    result = EpaPromotionReadiness.new(student: @student, epa: @epa).call
+
+    assert_not result.eligible
+    assert_includes result.reasons, "sudah ada keputusan entrustment aktif; tinjau atau cabut melalui workflow panel sebelum promosi baru"
+  end
+
+  test "pengingat tinjauan keputusan EPA dikirim sekali ke mahasiswa dan pihak yang relevan" do
+    decision = EntrustmentDecision.decide!(student: @student, epa: @epa, level: 2,
+      justification: "Keputusan perlu ditinjau setelah masa praktik berikutnya.", decided_by: users(:dedi),
+      review_due_at: 1.day.ago)
+
+    assert_difference "Notification.count", 3 do
+      EpaEntrustmentReviewDueJob.perform_now
+    end
+
+    assert_equal Time.current.to_date, decision.reload.review_due_notified_at.to_date
+    assert_equal 3, Notification.where(notifiable: decision, notification_type: "epa_entrustment_review_due").count
+    assert Notification.exists?(recipient: @student, notifiable: decision, notification_type: "epa_entrustment_review_due")
+    assert Notification.exists?(recipient: @preceptor, notifiable: decision, notification_type: "epa_entrustment_review_due")
+    assert Notification.exists?(recipient: users(:dedi), notifiable: decision, notification_type: "epa_entrustment_review_due")
+
+    assert_no_difference "Notification.count" do
+      EpaEntrustmentReviewDueJob.perform_now
+    end
+  end
+
+  test "pengingat tidak dikirim sebelum tanggal tinjauan atau setelah keputusan digantikan" do
+    future = EntrustmentDecision.decide!(student: @student, epa: @epa, level: 2,
+      justification: "Keputusan akan ditinjau pada tanggal yang telah ditentukan.", decided_by: users(:dedi),
+      review_due_at: 1.day.from_now)
+
+    assert_no_difference "Notification.count" do
+      EpaEntrustmentReviewDueJob.perform_now
+    end
+
+    past = EntrustmentDecision.decide!(student: @student, epa: @epa, level: 3,
+      justification: "Keputusan baru menggantikan keputusan lama untuk EPA ini.", decided_by: users(:dedi),
+      review_due_at: 1.day.ago)
+    assert future.reload.superseded_at
+    assert_difference "Notification.count", 3 do
+      EpaEntrustmentReviewDueJob.perform_now
+    end
+    assert_not past.reload.superseded_at
+  end
+
   private
 
   def build_observation(safety_flag: false)

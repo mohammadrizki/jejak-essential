@@ -17,7 +17,7 @@
       <% if @can_edit %>
         <%= link_to "Sunting akun", edit_admin_user_path(@student), class: "text-xs font-semibold rounded-xl ring-1 ring-gray-300 px-3 py-2 hover:bg-gray-50" %>
       <% end %>
-      <%= link_to "Peta EPA", entrustment_decisions_path(student_id: @student.id), class: "text-xs font-semibold rounded-xl bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700" %>
+      <% if @epa_available %><%= link_to "Peta EPA", entrustment_decisions_path(student_id: @student.id), class: "text-xs font-semibold rounded-xl bg-indigo-600 text-white px-3 py-2 hover:bg-indigo-700" %><% end %>
     </div>
   </div>
 
@@ -32,6 +32,34 @@
 
   <%= render "dashboard/assessment_hub", student: @student, pending_count: @pending_count %>
 
+  <% cycles_with_requirements = @evidence_cycle_summaries.select { |cycle| cycle.requirement_count.positive? } %>
+  <% if cycles_with_requirements.any? %>
+    <section class="rounded-2xl bg-white p-5 ring-1 ring-gray-200" data-testid="evidence-cycle-summary">
+      <h2 class="text-sm font-semibold text-gray-800">Kecukupan bukti per siklus akademik</h2>
+      <p class="mt-1 text-xs text-gray-500">Bukti dikelompokkan menurut tanggal bukti pada periode akademik. Ringkasan ini menunjukkan kecukupan, bukan keputusan capaian kompetensi.</p>
+      <div class="mt-3 divide-y divide-gray-100">
+        <% cycles_with_requirements.each do |cycle| %>
+          <details class="py-3">
+            <summary class="cursor-pointer list-none">
+              <div class="grid gap-2 text-xs sm:grid-cols-6 sm:items-center">
+                <span class="font-semibold text-gray-800 sm:col-span-2"><%= cycle.academic_period.name %></span>
+                <span><strong><%= cycle.fulfilled_count %>/<%= cycle.requirement_count %></strong> terpenuhi</span>
+                <span><%= cycle.in_progress_count %> berjalan</span>
+                <span><%= cycle.not_started_count %> belum mulai</span>
+                <span class="<%= cycle.critical_gap_count.positive? ? 'font-semibold text-rose-700' : 'text-gray-600' %>"><%= cycle.critical_gap_count %> wajib/kritis tersisa</span>
+              </div>
+            </summary>
+            <ul class="mt-2 space-y-1 pl-2 text-xs text-gray-600">
+              <% cycle.requirements.each do |entry| %>
+                <li><%= entry[:requirement].epa&.code || entry[:requirement].competency_indicator&.code || entry[:requirement].competency_item&.code || "Syarat Bukti" %> · <%= entry[:progress].record_count %>/<%= entry[:progress].required_count %> bukti valid · <%= entry[:progress].status.to_s.humanize %><%= " · Wajib/kritis" if entry[:critical] %></li>
+              <% end %>
+            </ul>
+          </details>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
   <% if @framework %>
     <section class="rounded-2xl bg-white p-5 ring-1 ring-gray-200">
       <h2 class="text-sm font-semibold text-gray-800">Pencapaian kompetensi · framework versi <%= @framework.version %></h2>
@@ -41,15 +69,24 @@
           <div class="py-3">
             <div class="flex items-start justify-between gap-3">
               <div><p class="text-sm font-medium text-gray-800"><%= "— " if item.parent_id.present? %><%= item.title %></p>
-                <% if attainment %><p class="mt-1 text-xs text-gray-500">Level <%= attainment.attainment_level || "—" %> · <%= attainment.status.humanize %> · <%= attainment.decision_by&.full_name %> · <%= l(attainment.decision_date, format: :short) %></p><p class="text-xs text-gray-500"><%= attainment.rationale %></p><% end %>
+                <% if attainment %><p class="mt-1 text-xs text-gray-500">Level <%= attainment.attainment_level || "—" %> · <%= attainment.status.humanize %> · diusulkan <%= attainment.decision_by&.full_name %> · <%= l(attainment.decision_date, format: :short) %><%= " · framework v#{attainment.framework_version}" if attainment.framework_version.present? %></p><p class="text-xs text-gray-500"><%= attainment.rationale %></p>
+                  <% if attainment.status == "proposed" && @can_review_attainment %>
+                    <%= form_with url: review_student_competency_attainment_path(@student, attainment), method: :patch,
+                      class: "mt-2 grid gap-2 sm:grid-cols-[10rem_1fr_auto]" do |f| %>
+                      <%= f.select :decision, [["Setujui", "approved"], ["Tolak", "rejected"]], {}, class: "rounded-lg border-gray-300 text-xs" %>
+                      <%= f.text_field :review_notes, required: true, minlength: 10, placeholder: "Catatan keputusan Otoritas Akademik", class: "rounded-lg border-gray-300 text-xs" %>
+                      <%= f.submit "Tinjau usulan", class: "rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white" %>
+                    <% end %>
+                  <% end %>
+                <% end %>
               </div>
             </div>
-            <% if @can_decide_attainment %>
+            <% if @can_propose_attainment %>
               <%= form_with url: student_competency_attainments_path(@student), class: "mt-2 grid grid-cols-1 sm:grid-cols-[10rem_1fr_auto] gap-2" do |f| %>
                 <%= hidden_field_tag :competency_item_id, item.id %>
                 <%= select_tag :attainment_level, options_for_select((1..5).map { |level| ["Level #{level}", level] }), class: "rounded-lg border-gray-300 text-xs" %>
                 <%= text_field_tag :rationale, nil, required: true, minlength: 10, placeholder: "Alasan keputusan berdasarkan bukti…", class: "rounded-lg border-gray-300 text-xs" %>
-                <%= submit_tag "Catat keputusan", class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white cursor-pointer" %>
+                <%= submit_tag "Ajukan capaian", class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white cursor-pointer" %>
               <% end %>
             <% end %>
           </div>

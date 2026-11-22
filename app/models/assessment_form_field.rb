@@ -36,6 +36,7 @@ class AssessmentFormField < ApplicationRecord
   validates :weight, numericality: { greater_than: 0, less_than_or_equal_to: 100 }
   validate :field_type_locked_once_answered
   validate :options_present_for_option_types
+  validate :competency_matches_template_program, if: -> { new_record? || will_save_change_to_competency_item_id? }
 
   before_validation :normalize_options
   before_validation :normalize_scale
@@ -196,5 +197,12 @@ class AssessmentFormField < ApplicationRecord
     return unless persisted? && field_type_changed? && answered?
 
     errors.add(:field_type, "tidak dapat diubah karena pertanyaan ini sudah punya jawaban — buat pertanyaan baru sebagai gantinya")
+  end
+
+  def competency_matches_template_program
+    return if competency_item.blank? || assessment_form_template&.study_program.blank?
+    return if assessment_form_template.study_program.framework_versions.exists?(id: competency_item.competency_framework_id)
+
+    errors.add(:competency_item, "harus berasal dari kerangka program studi pemilik formulir")
   end
 end

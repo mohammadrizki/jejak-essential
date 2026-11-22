@@ -3,7 +3,12 @@ require "test_helper"
 class ActivityLogsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  setup { sign_in users(:budi) }
+  setup do
+    sign_in users(:budi)
+    UserAssignment.create!(user: users(:budi), assigned_by: users(:dedi),
+      assignment_role: "logbook_verifier", study_program: study_programs(:sarjana_kedokteran),
+      scope_type: "StudyProgram", scope_id: study_programs(:sarjana_kedokteran).id)
+  end
 
   def verified_log(**attrs)
     log = users(:budi).activity_logs.create!(title: "Jaga malam", activity_date: Date.new(2026, 10, 1), category: "klinis",

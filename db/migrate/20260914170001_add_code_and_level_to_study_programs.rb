@@ -1,6 +1,4 @@
 class AddCodeAndLevelToStudyPrograms < ActiveRecord::Migration[8.1]
-  disable_ddl_transaction!
-
   def up
     add_column :study_programs, :code, :string
     add_column :study_programs, :level, :string
@@ -13,7 +11,7 @@ class AddCodeAndLevelToStudyPrograms < ActiveRecord::Migration[8.1]
       SQL
     end
 
-    add_index :study_programs, :code, unique: true, algorithm: :concurrently
+    safety_assured { add_index :study_programs, :code, unique: true }
   end
 
   def down

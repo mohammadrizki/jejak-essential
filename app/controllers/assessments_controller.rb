@@ -8,18 +8,23 @@ class AssessmentsController < ApplicationController
   def index
     dops_scope = policy_scope(DopsEvaluation).includes(:student, :evaluator)
     mini_cex_scope = policy_scope(MiniCexEvaluation).includes(:student, :evaluator)
+    generic_wpba_scope = policy_scope(WpbaObservation).includes(:student, :observer, wpba_instrument_version: :wpba_instrument)
 
     @draft_dops_evaluations = dops_scope.pending_for_evaluator.where(evaluator: current_user).recent
     @draft_mini_cex_evaluations = mini_cex_scope.pending_for_evaluator.where(evaluator: current_user).recent
+    @draft_wpba_observations = generic_wpba_scope.where(status: "draft", observer: current_user).recent
     @my_requests = (dops_scope.requested.where(student: current_user).to_a +
                     mini_cex_scope.requested.where(student: current_user).to_a).sort_by(&:created_at).reverse
+    @my_wpba_observations = generic_wpba_scope.where(student: current_user).submitted.recent
 
     # Dari Dasbor Mahasiswa: hanya evaluasi mahasiswa itu (tetap dalam policy_scope).
     if viewing_other_student?
       dops_scope = dops_scope.where(student: viewed_student)
       mini_cex_scope = mini_cex_scope.where(student: viewed_student)
+      generic_wpba_scope = generic_wpba_scope.where(student: viewed_student)
     end
     @dops_evaluations = dops_scope.submitted.recent.limit(10)
     @mini_cex_evaluations = mini_cex_scope.submitted.recent.limit(10)
+    @wpba_observations = generic_wpba_scope.submitted.recent.limit(10)
   end
 end

@@ -1,0 +1,46 @@
+<div class="mx-auto max-w-5xl space-y-5 px-4 py-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">Penugasan & Hak Akses Akademik</h1>
+    <p class="mt-1 text-sm text-gray-600">Tugas bersifat terbatas waktu dan lingkupnya. Admin teknis tidak otomatis menjadi penilai atau anggota panel.</p>
+  </header>
+  <section class="rounded-2xl border border-gray-200 bg-white p-5">
+    <h2 class="font-semibold">Buat penugasan</h2>
+    <%= form_with scope: :user_assignment, url: user_assignments_path, class: "mt-3 grid gap-3 sm:grid-cols-2" do |f| %>
+      <% if current_user.has_role?("admin") %>
+        <%= f.collection_select :study_program_id, @study_programs, :id, :name, { prompt: "Program studi" }, required: true, class: "rounded-lg border-gray-300" %>
+      <% else %>
+        <%= f.hidden_field :study_program_id, value: current_user.study_program_id %>
+        <p class="rounded-lg bg-slate-50 p-2 text-sm"><%= current_user.study_program&.name %></p>
+      <% end %>
+      <%= f.collection_select :user_id, @assignees, :id, :full_name, { prompt: "Pilih petugas" }, required: true, class: "rounded-lg border-gray-300" %>
+      <%= f.select :assignment_role, [["Penelaah artefak", "artifact_reviewer"], ["Penelaah bukti eksternal", "evidence_reviewer"], ["Pengamat EPA", "epa_observer"], ["Anggota panel EPA", "epa_panel_member"], ["Ketua panel EPA", "epa_panel_chair"], ["Pengusul capaian kompetensi", "competency_attainment_proposer"], ["Pengambil keputusan capaian", "competency_attainment_decider"], ["Penilai WPBA", "wpba_assessor"], ["Pemvalidasi Logbook", "logbook_verifier"], ["Penilai kasus klinis", "clinical_case_verifier"], ["Pengelola data eksternal", "external_data_manager"]], {}, class: "rounded-lg border-gray-300" %>
+      <%= f.select :scope_type, [["Seluruh program studi", "program"], ["Mahasiswa tertentu", "student"], ["Rotasi tertentu", "rotation"]], {}, class: "rounded-lg border-gray-300" %>
+      <%= f.collection_select :student_id, @students, :id, :full_name, { include_blank: "Pilih mahasiswa bila lingkup individual" }, class: "rounded-lg border-gray-300" %>
+      <%= f.collection_select :clinical_rotation_id, ClinicalRotation.joins(:user)
+        .where(users: { study_program_id: @study_programs.select(:id) }).includes(:user).order(start_date: :desc),
+        :id, :station_name, { include_blank: "Pilih rotasi bila lingkup rotasi" }, class: "rounded-lg border-gray-300" %>
+      <%= f.date_field :starts_on, class: "rounded-lg border-gray-300", aria: { label: "Mulai berlaku" } %>
+      <%= f.date_field :ends_on, class: "rounded-lg border-gray-300", aria: { label: "Akhir berlaku" } %>
+      <%= f.text_field :reason, required: true, minlength: 10, maxlength: 1000,
+        placeholder: "Alasan penugasan", class: "rounded-lg border-gray-300 sm:col-span-2" %>
+      <%= f.submit "Simpan penugasan", class: "w-fit rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+    <% end %>
+  </section>
+  <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <h2 class="border-b p-5 font-semibold">Riwayat penugasan</h2>
+    <% @assignments.each do |assignment| %>
+      <article class="flex flex-wrap items-center justify-between gap-3 border-b p-4 last:border-0">
+        <div>
+          <p class="text-sm font-medium"><%= assignment.user.full_name %> · <%= assignment.assignment_role.humanize %></p>
+          <p class="text-xs text-gray-500"><%= assignment.study_program&.name %> · dibuat oleh <%= assignment.assigned_by.full_name %> · <%= assignment.starts_on || "sekarang" %>–<%= assignment.ends_on || "tanpa batas akhir" %></p>
+          <% if assignment.revoked_at.present? %><p class="text-xs text-rose-700">Dicabut <%= l(assignment.revoked_at, format: :long) %> oleh <%= assignment.revoked_by&.full_name || "pengguna terdahulu" %>: <%= assignment.reason %></p><% elsif assignment.reason.present? %><p class="text-xs text-gray-500"><%= assignment.reason %></p><% end %>
+        </div>
+        <% if assignment.revoked_at.blank? %>
+          <%= button_to "Cabut", user_assignment_path(assignment), method: :delete,
+            params: { reason: "Penugasan ditinjau ulang sesuai kebutuhan program studi." },
+            class: "rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-700" %>
+        <% end %>
+      </article>
+    <% end %>
+  </section>
+</div>

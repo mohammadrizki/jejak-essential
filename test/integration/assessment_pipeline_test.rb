@@ -219,6 +219,7 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
 
   # ── Mahasiswa ──
   test "mahasiswa melihat event yang cocok prodi & bloknya, mendaftar, mengumpulkan, lalu dinilai penguji" do
+    users(:budi).roles.delete(roles(:admin)) # skenario penguji dosen, bukan hak admin teknis dari setup umum
     sign_in users(:siti) # PSSK, enrolment Sistem Kardiovaskular aktif (fixture)
     get student_assessments_path
     assert_response :success
@@ -345,19 +346,19 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
     end
 
     post entrustment_decisions_path, params: { student_id: users(:siti).id, epa_id: epa.id, level: 4, justification: "Sudah mandiri di tiga kasus terakhir." }
-    assert_redirected_to entrustment_decisions_path(student_id: users(:siti).id)
+    assert_redirected_to root_path
     assert_not EntrustmentDecision.exists?(student: users(:siti), competency_item: epa)
 
     get entrustment_decisions_path(student_id: users(:siti).id)
-    assert_response :success
-    assert_match "tinjauan Otoritas Akademik", response.body
+    assert_redirected_to dashboard_path
+    assert_match "Modul EPA tidak aktif", flash[:alert]
   end
 
   test "mahasiswa melihat Peta EPA miliknya tanpa form; pengajar tanpa relasi ditolak menilai" do
     sign_in users(:siti)
     get entrustment_decisions_path
-    assert_response :success
-    assert_no_match "Isi Penilaian", response.body
+    assert_redirected_to dashboard_path
+    assert_match "Modul EPA tidak aktif", flash[:alert]
 
     stranger = User.create!(full_name: "Dosen Asing", email: "asing@example.com", password: "rahasia-kuat-1", confirmed_at: Time.current)
     stranger.roles << roles(:dosen)
@@ -365,6 +366,14 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
     assert_no_difference "EntrustmentDecision.count" do
       post entrustment_decisions_path, params: { student_id: users(:siti).id, competency_item_id: competency_frameworks(:skdi_ringkas).domains.first.id, level: 5, justification: "Coba-coba menilai tanpa relasi" }
     end
+  end
+
+  test "admin teknis tanpa assignment tidak dapat membuka dossier EPA mahasiswa" do
+    admin = users(:dedi)
+    admin.roles << roles(:admin) unless admin.has_role?("admin")
+    sign_in admin
+    get entrustment_decisions_path(student_id: users(:siti).id)
+    assert_redirected_to root_path
   end
 
   test "Peta Kompetensi periode ini membaca nilai dari AssessmentInstance" do

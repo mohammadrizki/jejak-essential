@@ -15,18 +15,10 @@ class Epa < ApplicationRecord
   validates :code, :title, presence: true
   validates :code, uniqueness: { scope: :competency_framework_id }
   validates :status, inclusion: { in: %w[draft published archived] }
-  validate :available_at_framework_stage
   validate :framework_is_draft_for_changes
   before_destroy :prevent_published_epa_deletion
 
   private
-
-  def available_at_framework_stage
-    return if competency_framework.blank? || competency_framework.education_stage != "undergraduate"
-    return if code.to_s.start_with?("LEGACY-")
-
-    errors.add(:base, "EPA hanya tersedia pada tahap Profesi, Spesialis, dan Subspesialis")
-  end
 
   def framework_is_draft_for_changes
     return if competency_framework&.status == "draft"

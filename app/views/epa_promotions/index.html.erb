@@ -2,26 +2,64 @@
   <div><h1 class="text-2xl font-bold">Promosi EPA ke Otoritas Akademik</h1><p class="text-sm text-gray-600">Penanda kesiapan menunjukkan kecukupan bukti; panel tetap mengambil keputusan entrustment secara terpisah.</p></div>
   <% @promotions.each do |promotion| %>
     <% readiness = @readiness[promotion] %>
+    <% current_decision = @current_decisions[[promotion.student_id, promotion.epa_id]] %>
     <article class="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
-      <div class="flex flex-wrap justify-between gap-2"><div><h2 class="font-semibold"><%= promotion.student.full_name %> · <%= promotion.epa.code %></h2><p class="text-sm text-gray-600"><%= promotion.epa.title %></p></div><span class="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-800"><%= promotion.status.humanize %></span></div>
-      <% if readiness.eligible %><p class="text-sm text-emerald-800">Siap dipromosikan: semua Syarat Bukti aktif terpenuhi dan tidak ada flag keselamatan terbuka.</p><% else %><ul class="list-disc pl-5 text-sm text-amber-800"><% readiness.reasons.each do |reason| %><li><%= reason %></li><% end %></ul><% end %>
+      <div class="flex flex-wrap justify-between gap-2"><div><h2 class="font-semibold"><%= promotion.student.full_name %> · <%= promotion.epa.code %></h2><p class="text-sm text-gray-600"><%= promotion.epa.title %></p><% if promotion.renewal_of_decision.present? %><p class="mt-1 text-xs text-indigo-800">Tinjauan ulang keputusan #<%= promotion.renewal_of_decision_id %>. Keputusan lama tetap aktif sampai panel mengesahkan keputusan baru.</p><% end %></div><span class="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-800"><%= promotion.status.humanize %></span></div>
+      <% if promotion.renewal_of_decision.present? %><p class="text-sm <%= readiness.eligible ? 'text-emerald-800' : 'text-amber-800' %>">Tinjauan ulang keputusan aktif yang telah jatuh tempo. <%= readiness.eligible ? "Syarat Bukti dan keselamatan saat ini layak dibahas panel." : readiness.reasons.join("; ") %> Keputusan lama tetap berlaku sampai keputusan baru disahkan.</p>
+      <% elsif readiness.eligible %><p class="text-sm text-emerald-800">Siap dipromosikan: semua Syarat Bukti aktif terpenuhi dan tidak ada flag keselamatan terbuka.</p><% else %><ul class="list-disc pl-5 text-sm text-amber-800"><% readiness.reasons.each do |reason| %><li><%= reason %></li><% end %></ul><% end %>
       <% if promotion.epa_promotion_reviews.any? %>
         <div class="rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
           <p class="font-semibold">Tinjauan panel</p>
-          <% promotion.epa_promotion_reviews.includes(:reviewer, :supervision_level).order(:created_at).each do |review| %>
-            <p class="mt-1"><%= review.reviewer.full_name %> · <%= review.recommendation.humanize %><%= " · #{review.supervision_level.label}" if review.supervision_level %> — <%= review.notes %></p>
+          <% promotion.epa_promotion_reviews.includes(:reviewer, :supervision_level, events: :supervision_level).order(:created_at).each do |review| %>
+            <p class="mt-1"><%= review.reviewer.full_name %> · ronde <%= review.round_number %> · <%= review.recused? ? "recusal/conflict dinyatakan" : "rekomendasi: #{review.recommendation.humanize}" %><%= " · #{review.supervision_level.label}" if review.supervision_level %> — <%= review.notes %></p>
+            <% review.events.order(:recorded_at).each do |event| %>
+              <p class="ml-3 text-[11px] text-slate-500"><%= l(event.recorded_at, format: :long) %> · <%= event.event_kind == "recusal" ? "Recusal/conflict" : event.recommendation.humanize %><%= " · #{event.supervision_level.label}" if event.supervision_level %> — <%= event.notes %></p>
+            <% end %>
           <% end %>
         </div>
       <% end %>
-      <% if promotion.status == "ready" && (current_user.has_role?("preseptor") || current_user.has_role?("admin")) && readiness.eligible %>
+      <% if promotion.status == "ready" && current_user.has_role?("preseptor") &&
+          promotion.student.clinical_rotations.ongoing.exists?(preceptor: current_user) && readiness.eligible %>
         <%= button_to "Ajukan ke Otoritas Akademik", promote_epa_promotion_path(promotion), method: :patch, class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
-      <% elsif promotion.status.in?(%w[promoted under_review]) && (current_user.has_role?("kaprodi") || current_user.has_role?("admin")) %>
+      <% elsif promotion.status.in?(%w[promoted under_review appeal_pending]) &&
+          AssignmentAuthorization.assigned?(user: current_user, role: "epa_panel_member", student: promotion.student, object: promotion) %>
         <%= form_with url: review_epa_promotion_path(promotion), method: :patch, class: "grid gap-3 sm:grid-cols-2" do |f| %>
-          <%= f.select :recommendation, [["Setuju level supervisi", "approved"], ["Minta bukti tambahan", "needs_more_evidence"], ["Rekomendasikan belum dientrust", "not_entrusted"]], {}, class: "rounded-lg border-gray-300" %>
-          <%= f.collection_select :supervision_level_id, SupervisionLevel.joins(:supervision_scale_version).where(supervision_scale_versions: { active: true, use_case: "prospective_entrustment" }), :id, :label, { include_blank: "Level target (wajib saat disetujui)" }, class: "rounded-lg border-gray-300" %>
+          <%= f.select :recommendation, [["Setujui target supervisi", "approved"], ["Setujui dengan pembatasan", "restricted"], ["Tunda keputusan", "deferred"], ["Minta bukti tambahan", "needs_more_evidence"], ["Putuskan belum dientrust", "not_entrusted"], ["Cabut entrustment aktif", "revoked"]], {}, class: "rounded-lg border-gray-300" %>
+          <%= f.collection_select :supervision_level_id, SupervisionLevel.joins(:supervision_scale_version).where(supervision_scale_versions: { active: true, use_case: "prospective_entrustment" }), :id, :label, { include_blank: "Level target (wajib untuk setuju / pembatasan)" }, class: "rounded-lg border-gray-300" %>
           <%= f.text_area :notes, rows: 2, placeholder: "Alasan / catatan panel", class: "rounded-lg border-gray-300 sm:col-span-2" %>
+          <label class="sm:col-span-2 flex items-center gap-2 text-sm"><%= f.check_box :conflict_disclosed %> Saya memiliki konflik kepentingan yang perlu dicatat</label>
+          <label class="sm:col-span-2 flex items-center gap-2 text-sm"><%= f.check_box :recuse %> Recusal: saya tidak ikut memberikan rekomendasi pada dossier ini</label>
+          <%= f.text_area :recusal_reason, rows: 2, placeholder: "Alasan recusal (minimal 10 karakter bila dipilih)", class: "rounded-lg border-gray-300 sm:col-span-2" %>
           <%= f.submit "Kirim rekomendasi panel", class: "rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white sm:col-span-2" %>
         <% end %>
+      <% end %>
+      <% if promotion.status.in?(%w[under_review appeal_pending]) && promotion.quorum_reached_at.present? &&
+          AssignmentAuthorization.assigned?(user: current_user, role: "epa_panel_chair", student: promotion.student, object: promotion) %>
+        <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
+          <p class="text-sm font-semibold text-indigo-900">Quorum tercapai · pengesahan Ketua Panel</p>
+          <%= form_with url: finalize_epa_promotion_path(promotion), method: :patch, class: "grid gap-3 sm:grid-cols-2" do |f| %>
+            <%= f.select :recommendation, @chair_recommendations[promotion].map { |r| ["#{r[:label]} (#{r[:count]} suara)", r[:recommendation]] }, { include_blank: "Pilih rekomendasi quorum" }, class: "rounded-lg border-gray-300" %>
+            <%= f.collection_select :supervision_level_id, SupervisionLevel.joins(:supervision_scale_version).where(supervision_scale_versions: { active: true, use_case: "prospective_entrustment" }), :id, :label, { include_blank: "Pilih target bila disetujui/dibatasi" }, class: "rounded-lg border-gray-300" %>
+            <%= f.date_field :review_due_at, class: "rounded-lg border-gray-300", aria: { label: "Tanggal tinjauan ulang" } %>
+            <%= f.text_area :notes, rows: 2, required: true, minlength: 10, placeholder: "Alasan pengesahan ketua panel", class: "rounded-lg border-gray-300 sm:col-span-2" %>
+            <%= f.submit "Sahkan keputusan panel", class: "rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white sm:col-span-2" %>
+          <% end %>
+        </div>
+      <% elsif promotion.status.in?(%w[approved restricted]) &&
+          AssignmentAuthorization.assigned?(user: current_user, role: "epa_panel_member", student: promotion.student, object: promotion) &&
+          EntrustmentDecision.current.exists?(student: promotion.student, epa: promotion.epa) %>
+        <%= form_with url: review_epa_promotion_path(promotion), method: :patch, class: "grid gap-3" do |f| %>
+          <%= hidden_field_tag :recommendation, "revoked" %>
+          <%= f.text_area :notes, rows: 2, required: true, minlength: 10, placeholder: "Alasan keselamatan / perubahan konteks untuk pencabutan", class: "rounded-lg border-gray-300" %>
+          <%= f.submit "Ajukan pencabutan ke panel", class: "rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white" %>
+        <% end %>
+      <% end %>
+      <% if %w[approved restricted].include?(promotion.status) && current_decision&.review_due? &&
+          current_user.has_role?("preseptor") && promotion.student.clinical_rotations.ongoing.exists?(preceptor: current_user) %>
+        <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p class="text-sm text-amber-900">Tanggal tinjauan ulang telah tercapai. Pengajuan ini membuka dossier panel baru dan tidak mengubah keputusan aktif.</p>
+          <%= button_to "Ajukan tinjauan ulang ke panel", request_epa_renewal_path(current_decision), method: :post, class: "mt-2 rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white" %>
+        </div>
       <% end %>
     </article>
   <% end %>

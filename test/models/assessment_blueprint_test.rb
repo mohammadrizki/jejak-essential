@@ -1,8 +1,14 @@
 require "test_helper"
 
 class AssessmentBlueprintTest < ActiveSupport::TestCase
+  def empty_blueprint
+    blueprint = assessment_blueprints(:osce_blueprint)
+    blueprint.assessment_blueprint_mappings.destroy_all
+    blueprint
+  end
+
   test "lengkap ketika bobot mapping kompetensi berjumlah 100" do
-    blueprint = AssessmentBlueprint.create!(name: "Blueprint Baru")
+    blueprint = empty_blueprint
     blueprint.assessment_blueprint_mappings.create!(competency_item: competency_items(:domain_klinis), weight: 60)
     blueprint.assessment_blueprint_mappings.create!(competency_item: competency_items(:domain_komunikasi), weight: 40)
 
@@ -13,7 +19,7 @@ class AssessmentBlueprintTest < ActiveSupport::TestCase
   # Mapping ditambah satu per satu — selama penyusunan total belum 100%, dan
   # itu tidak boleh mengunci sunting nama/deskripsi blueprint.
   test "bobot belum 100 ditandai belum lengkap tapi blueprint tetap bisa disunting" do
-    blueprint = AssessmentBlueprint.create!(name: "Blueprint Baru")
+    blueprint = empty_blueprint
     blueprint.assessment_blueprint_mappings.create!(competency_item: competency_items(:domain_klinis), weight: 60)
     blueprint.assessment_blueprint_mappings.create!(competency_item: competency_items(:domain_komunikasi), weight: 30)
 
@@ -23,7 +29,7 @@ class AssessmentBlueprintTest < ActiveSupport::TestCase
   end
 
   test "mapping yang mendorong total melewati 100 ditolak" do
-    blueprint = AssessmentBlueprint.create!(name: "Blueprint Baru")
+    blueprint = empty_blueprint
     blueprint.assessment_blueprint_mappings.create!(competency_item: competency_items(:domain_klinis), weight: 70)
     mapping = blueprint.assessment_blueprint_mappings.new(competency_item: competency_items(:domain_komunikasi), weight: 40)
 
@@ -40,7 +46,8 @@ class AssessmentBlueprintTest < ActiveSupport::TestCase
   end
 
   test "boleh tanpa peta kompetensi sama sekali" do
-    blueprint = AssessmentBlueprint.new(name: "Blueprint Draf")
+    blueprint = empty_blueprint
+    blueprint.assessment_blueprint_mappings.destroy_all
     assert blueprint.valid?
   end
 

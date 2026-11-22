@@ -11,7 +11,7 @@ class EvidenceRecordsController < ApplicationController
     source = owned_source
     source_record = owned_source_record
     return redirect_back fallback_location: portfolio_path, alert: "Pilih bukti yang Anda miliki." if source.blank? || source_record.blank?
-    unless source_matches_requirement?(source, requirement.source_type)
+    unless source_matches_requirement?(source, source_record, requirement.source_type)
       return redirect_back fallback_location: portfolio_path, alert: "Jenis bukti tidak sesuai dengan syarat ini."
     end
 
@@ -45,13 +45,16 @@ class EvidenceRecordsController < ApplicationController
       current_user.mini_cex_evaluations_as_student.submitted.find_by(id: id) if type == "mini_cex_evaluation"
     when :dops_evaluation
       current_user.dops_evaluations_as_student.submitted.find_by(id: id) if type == "dops_evaluation"
+    when :wpba_observation
+      current_user.wpba_observations_as_student.submitted.find_by(id: id) if type == "wpba_observation"
     end
   end
 
-  def source_matches_requirement?(source, required_type)
+  def source_matches_requirement?(source, source_record, required_type)
     case required_type
     when "assessment" then source == :assessment_instance
-    when "wpba" then source.in?(%i[mini_cex_evaluation dops_evaluation])
+    when "wpba" then source.in?(%i[mini_cex_evaluation dops_evaluation wpba_observation])
+      || (source == :assessment_instance && source_record.assessment_event.assessment_type == "cbd")
     when "logbook" then source == :activity_log
     when "reflection" then source == :reflection_entry
     when "portfolio", "other" then true

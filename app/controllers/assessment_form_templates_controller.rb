@@ -6,7 +6,7 @@ class AssessmentFormTemplatesController < ApplicationController
 
   def index
     authorize AssessmentFormTemplate
-    @templates = AssessmentFormTemplate.all
+    @templates = policy_scope(AssessmentFormTemplate).includes(:study_program).order(:name)
   end
 
   def show
@@ -16,22 +16,27 @@ class AssessmentFormTemplatesController < ApplicationController
   def new
     authorize AssessmentFormTemplate, :create?
     @template = AssessmentFormTemplate.new
+    @template.study_program = current_user.study_program unless current_user.has_role?("admin")
+    load_study_programs
   end
 
   def create
     authorize AssessmentFormTemplate, :create?
     @template = AssessmentFormTemplate.new(template_params)
     @template.created_by = current_user
+    @template.study_program = current_user.study_program unless current_user.has_role?("admin")
 
     if @template.save
       redirect_to @template, notice: "Formulir berhasil dibuat. Sekarang tambahkan pertanyaan."
     else
+      load_study_programs
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
     authorize @template
+    load_study_programs
   end
 
   def update
@@ -39,6 +44,7 @@ class AssessmentFormTemplatesController < ApplicationController
     if @template.update(template_params)
       redirect_to @template, notice: "Formulir diperbarui."
     else
+      load_study_programs
       render :edit, status: :unprocessable_entity
     end
   end
@@ -63,10 +69,16 @@ class AssessmentFormTemplatesController < ApplicationController
   private
 
   def set_template
-    @template = AssessmentFormTemplate.find(params[:id])
+    @template = policy_scope(AssessmentFormTemplate).find(params[:id])
   end
 
   def template_params
-    params.require(:assessment_form_template).permit(:name, :description, :is_active, :anonymous, :requires_subject_user)
+    permitted = %i[name description is_active anonymous requires_subject_user]
+    permitted << :study_program_id if current_user.has_role?("admin")
+    params.require(:assessment_form_template).permit(*permitted)
+  end
+
+  def load_study_programs
+    @study_programs = StudyProgram.ordered if current_user.has_role?("admin")
   end
 end

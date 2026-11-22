@@ -27,6 +27,9 @@ class ClinicalCasesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "dosen bisa melihat antrean perlu diverifikasi" do
+    UserAssignment.create!(user: users(:budi), assigned_by: users(:dedi),
+      assignment_role: "clinical_case_verifier", study_program: users(:siti).study_program,
+      scope_type: "User", scope_id: users(:siti).id, reason: "Penugasan validasi kasus mahasiswa.")
     sign_in users(:budi)
     get clinical_cases_path(scope: "to_verify")
 
@@ -77,6 +80,25 @@ class ClinicalCasesControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller='wizard']"
     assert_select "[data-wizard-target='step']", count: 6
     assert_select "input[type=submit][value='Simpan sebagai Draf']:not([hidden])"
+  end
+
+  test "Logbook kasus yang dinonaktifkan menolak input lewat URL langsung tetapi mempertahankan baca riwayat" do
+    admin = users(:budi)
+    admin.roles << roles(:admin)
+    ModuleConfiguration.for(users(:siti).study_program).update!({ clinical_logbook: "0" }, actor: admin)
+    sign_in users(:siti)
+
+    get new_clinical_case_path
+    assert_redirected_to clinical_cases_path
+    assert_no_difference "ClinicalCase.count" do
+      post clinical_cases_path, params: { clinical_case: {
+        case_date: Date.current, chief_complaint: "Kasus tidak boleh dibuat setelah Logbook dimatikan."
+      } }
+    end
+    assert_redirected_to clinical_cases_path
+
+    get clinical_case_path(clinical_cases(:draft_case_siti))
+    assert_response :success
   end
 
   test "mahasiswa mengirim draf untuk verifikasi" do

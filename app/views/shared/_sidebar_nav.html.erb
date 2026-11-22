@@ -1,54 +1,78 @@
-<%# Navigasi mengikuti empat tahap OBE. Gerbang controller/policy tetap menjadi sumber otorisasi. %>
+<%# Menu hanya menampilkan alur yang tersedia bagi role, assignment, jenjang, dan modul pengguna. %>
 <%
   is_student = local_assigns[:is_student] || false
   is_instructor = local_assigns[:is_instructor] || false
+  is_dosen = local_assigns[:is_dosen] || false
+  is_preceptor = local_assigns[:is_preceptor] || false
+  is_kaprodi = local_assigns[:is_kaprodi] || false
+  is_admin = local_assigns[:is_admin] || false
+  is_tendik = local_assigns[:is_tendik] || false
+  assigned_external_data_manager = local_assigns[:assigned_external_data_manager] || false
   is_verifier = local_assigns[:is_verifier] || false
   is_config_manager = local_assigns[:is_config_manager] || false
   is_prodi_manager = local_assigns[:is_prodi_manager] || false
   is_form_manager = local_assigns[:is_form_manager] || false
   is_srq_monitor = local_assigns[:is_srq_monitor] || false
   is_srq_student = local_assigns[:is_srq_student] || false
+  has_external_data_access = is_config_manager || is_prodi_manager || (is_tendik && assigned_external_data_manager)
   has_evidence_requirements = local_assigns[:has_evidence_requirements] || false
+  logbook_visible = local_assigns[:logbook_visible] || false
+  wpba_visible = local_assigns[:wpba_visible] || false
+  assigned_logbook_verifier = local_assigns[:assigned_logbook_verifier] || false
+  assigned_evidence_reviewer = local_assigns[:assigned_evidence_reviewer] || false
+  can_review_artifacts = local_assigns[:can_review_artifacts] || false
+  epa_relevant = local_assigns[:epa_relevant] || false
+  epa_staff_visible = local_assigns[:epa_staff_visible] || false
   pending_verifications = local_assigns[:pending_verifications] || 0
   pending_activity_verifications = local_assigns[:pending_activity_verifications] || 0
   active_class = ->(paths) { Array(paths).any? { |path| request.path == path || request.path.start_with?(path) } }
   phase_active = ->(paths) { Array(paths).any? { |path| active_class.call(path) } }
   verification_scope = params[:scope].in?(%w[to_verify reviewed])
-  development_active = phase_active.call(%w[/admin/learning_units /clinical_cases /clinical_rotations /tutorial_enrollments /activity_logs /kalender /portfolio /reflection_entries /final_projects /kesehatan-mental]) && !(request.path.start_with?("/clinical_cases", "/activity_logs") && verification_scope)
-  assessment_active = phase_active.call(%w[/asesmen /nilai-ujian /student/assessments /examiner_evaluations /capaian-belajar /dashboard/entrustment /epa_observations /epa_promotions]) || (verification_scope && request.path.start_with?("/clinical_cases", "/activity_logs"))
-  validation_active = phase_active.call(%w[/nilai-ujian /student/assessments /examiner_evaluations /assessment_form_templates /assessment_form_submissions]) || (verification_scope && request.path.start_with?("/clinical_cases", "/activity_logs"))
+  development_active = phase_active.call(%w[/admin/learning_units /activity_logs /kalender /clinical_cases /portfolio /reflection_entries /student/feedback_journal]) &&
+    !(request.path.start_with?("/clinical_cases", "/activity_logs") && verification_scope)
+  assessment_active = phase_active.call(%w[/asesmen /nilai-ujian /student/assessments /examiner_evaluations /wpba_observations /evidence_sources /capaian-belajar /dashboard/entrustment /epa_observations /epa_promotions /artifact_submissions]) ||
+    (verification_scope && request.path.start_with?("/clinical_cases", "/activity_logs"))
+  validation_active = phase_active.call(%w[/nilai-ujian /student/assessments /examiner_evaluations /assessment_form_templates /assessment_form_submissions /artifact_submissions /evidence_sources]) ||
+    (verification_scope && request.path.start_with?("/clinical_cases", "/activity_logs"))
   current_program = current_user.study_program
-  module_configuration = ModuleConfiguration.for(current_program)
-  logbook_history_visible = current_user.activity_logs.exists? ||
-    (is_verifier && ActivityLog.awaiting_verification_by(current_user).exists?)
-  logbook_visible = module_configuration.enabled?("clinical_logbook") || logbook_history_visible
-  epa_relevant = is_student && current_program&.level.in?(%w[profesi spesialis subspesialis]) &&
-    (module_configuration.enabled?("epa") || current_user.epa_observations.exists? || current_user.entrustment_decisions.exists?)
-  epa_staff_visible = (is_instructor || is_prodi_manager) &&
-    (module_configuration.enabled?("epa") || current_user.epa_observations.exists? || current_user.epa_promotions.exists?)
+  has_user_directory = is_dosen || is_preceptor || is_kaprodi || is_admin
+  has_epa_panel_assignment = UserAssignment.active.exists?(user: current_user, assignment_role: "epa_panel_member")
+  can_review_promotions = epa_staff_visible && (is_kaprodi || is_preceptor || has_epa_panel_assignment)
+  can_review_logbook = is_verifier && (is_admin || assigned_logbook_verifier)
+  can_review_cases = is_verifier
+  can_review_submissions = can_review_artifacts
+  has_student_assessment_results = is_student && current_user.assessment_instances.exists?
+  has_assessment_events = is_student && AssessmentEvent.published.any? { |event| event.visible_to?(current_user) }
 %>
 
 <div>
   <p class="px-2 mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">DASHBOARD</p>
-  <%= render "shared/nav_item", label: "Dashboard", path: dashboard_path,
+  <%= render "shared/nav_item", label: (is_student ? "Dashboard Saya" : "Dashboard"), path: dashboard_path,
       active: request.path == "/dashboard" || request.path == "/" %>
 </div>
 
 <div>
   <p class="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">SIKLUS OUTCOME-BASED EDUCATION</p>
 
-  <%= render "shared/nav_accordion", label: "1. PERUMUSAN CAPAIAN", open: phase_active.call(%w[/competency_framework_templates /competency_frameworks /assessment_blueprints /evidence_requirements /peta-artefak]) do %>
+  <%= render "shared/nav_accordion", label: "1. PERUMUSAN CAPAIAN", open: phase_active.call(%w[/competency_framework_templates /competency_frameworks /assessment_blueprints /evidence_requirements /peta-artefak /portfolio]) do %>
     <%= render "shared/nav_item", label: "Pustaka Kerangka Kompetensi", path: competency_framework_templates_path,
         active: active_class.call("/competency_framework_templates") %>
-    <%= render "shared/nav_item", label: "Peta Kompetensi", path: competency_frameworks_path,
+    <%= render "shared/nav_item", label: (is_student ? "Peta Kompetensi Saya" : "Peta Kompetensi"), path: competency_frameworks_path,
         active: active_class.call(%w[/competency_frameworks /competency_items]) %>
-    <% if is_config_manager %>
+    <% if is_config_manager || is_prodi_manager %>
       <%= render "shared/nav_item", label: "Blueprint Asesmen", path: assessment_blueprints_path,
           active: active_class.call("/assessment_blueprints") %>
       <%= render "shared/nav_item", label: "Syarat Bukti", path: evidence_requirements_path,
           active: active_class.call("/evidence_requirements") %>
       <%= render "shared/nav_item", label: "Peta Artefak", path: artifact_map_path,
           active: active_class.call("/peta-artefak") %>
+    <% elsif is_student %>
+      <%= render "shared/nav_item", label: "Peta Artefak Saya", path: artifact_map_path,
+          active: active_class.call("/peta-artefak") %>
+      <% if has_evidence_requirements %>
+        <%= render "shared/nav_item", label: "Syarat Bukti Saya", path: portfolio_path(section: "evidence-requirements", anchor: "evidence-requirements"),
+            active: request.path == "/portfolio" && params[:section] == "evidence-requirements" %>
+      <% end %>
     <% end %>
   <% end %>
 
@@ -57,172 +81,200 @@
       <%= render "shared/nav_item", label: "Rencana Pembelajaran", path: admin_learning_units_path,
           active: active_class.call("/admin/learning_units") %>
     <% end %>
-    <%= render "shared/nav_accordion", label: "Konteks Praktik", open: phase_active.call(%w[/clinical_cases /clinical_rotations /tutorial_enrollments /final_projects]) do %>
-      <%= render "shared/nav_item", label: "Kasus Klinis", path: clinical_cases_path,
-          active: active_class.call("/clinical_cases") && !params[:scope].in?(%w[to_verify reviewed]) %>
-      <%= render "shared/nav_item", label: "Rotasi Klinis", path: clinical_rotations_path,
-          active: active_class.call("/clinical_rotations") %>
-      <%= render "shared/nav_item", label: "Tutorial", path: tutorial_enrollments_path,
-          active: active_class.call("/tutorial_enrollments") %>
-      <%= render "shared/nav_item", label: "Proyek Akhir", path: final_projects_path,
-          active: active_class.call("/final_projects") %>
-    <% end %>
     <% if logbook_visible %>
-      <%= render "shared/nav_item", label: "Logbook", path: activity_logs_path,
-          active: active_class.call(%w[/activity_logs /kalender]) && !verification_scope %>
-    <% end %>
-    <% if is_student %>
-      <%= render "shared/nav_item", label: "Portofolio", path: portfolio_path,
-          active: active_class.call("/portfolio") %>
-    <% end %>
-    <%= render "shared/nav_accordion", label: "Refleksi & Umpan Balik", open: phase_active.call(%w[/reflection_entries /student/feedback_journal]) do %>
-      <%= render "shared/nav_item", label: "Refleksi", path: reflection_entries_path,
-          active: active_class.call("/reflection_entries") %>
-      <% if is_student %>
-        <%= render "shared/nav_item", label: "Jurnal Umpan Balik", path: student_feedback_journal_path,
-            active: active_class.call("/student/feedback_journal") %>
+      <%= render "shared/nav_accordion", label: "Logbook Klinis", open: phase_active.call(%w[/activity_logs /kalender /clinical_cases]) && !verification_scope do %>
+        <%= render "shared/nav_item", label: term("nav.activity_logs"), path: activity_logs_path,
+            active: active_class.call(%w[/activity_logs /kalender]) && !verification_scope %>
+        <% if is_student || current_user.clinical_cases.exists? || is_admin %>
+          <%= render "shared/nav_item", label: "Kasus Klinis", path: clinical_cases_path,
+              active: active_class.call("/clinical_cases") && !verification_scope %>
+        <% end %>
       <% end %>
     <% end %>
+    <% if is_student %>
+      <%= render "shared/nav_item", label: "Portofolio Saya", path: portfolio_path,
+          active: active_class.call("/portfolio") %>
+      <%= render "shared/nav_item", label: "Refleksi Pengalaman Belajar", path: reflection_entries_path,
+          active: active_class.call("/reflection_entries") %>
+      <%= render "shared/nav_item", label: "Umpan Balik", path: student_feedback_journal_path,
+          active: active_class.call("/student/feedback_journal") %>
+    <% end %>
+    <% if wpba_visible %>
+      <%= render "shared/nav_item", label: "Workplace-Based Assessment (WPBA)", path: assessments_path,
+          active: active_class.call(%w[/asesmen /dops_evaluations /mini_cex_evaluations /wpba_observations]) %>
+    <% end %>
     <% if is_srq_student %>
-      <%= render "shared/nav_item", label: "Skrining Kesehatan (SRQ-20)", path: srq_screenings_path,
-          active: active_class.call("/kesehatan-mental") %>
     <% end %>
   <% end %>
 
   <%= render "shared/nav_accordion", label: "3. ASESMEN CAPAIAN", open: assessment_active do %>
-    <%= render "shared/nav_item", label: "Pelaksanaan Asesmen", path: assessments_path,
-        active: active_class.call(%w[/asesmen /dops_evaluations /mini_cex_evaluations]) %>
-    <% if is_student || is_instructor || is_verifier || is_form_manager %>
+    <% if is_student && has_assessment_events %>
+      <%= render "shared/nav_item", label: "Pelaksanaan Asesmen", path: student_assessments_path,
+          active: active_class.call("/student/assessments") %>
+    <% elsif wpba_visible %>
+      <%= render "shared/nav_item", label: "Pelaksanaan Asesmen", path: assessments_path,
+          active: active_class.call(%w[/asesmen /dops_evaluations /mini_cex_evaluations /wpba_observations]) %>
+    <% end %>
+    <% if is_student || is_instructor || can_review_cases || can_review_logbook || can_review_submissions || assigned_evidence_reviewer %>
       <%= render "shared/nav_accordion", label: "Penilaian & Validasi Bukti", open: validation_active do %>
-        <% if is_student %>
-          <%= render "shared/nav_item", label: "Penilaian Akademik", path: exam_scores_path,
+        <% if is_student && has_student_assessment_results %>
+          <%= render "shared/nav_item", label: "Hasil Asesmen", path: exam_scores_path,
               active: active_class.call("/nilai-ujian") %>
-          <%= render "shared/nav_item", label: "Hasil Asesmen", path: student_assessments_path,
-              active: active_class.call("/student/assessments") %>
         <% end %>
-        <% if is_instructor %>
-          <%= render "shared/nav_item", label: "Lembar Penilaian", path: examiner_evaluations_path,
+        <% if is_instructor && wpba_visible %>
+          <%= render "shared/nav_item", label: "Penilaian WPBA", path: examiner_evaluations_path,
               active: active_class.call("/examiner_evaluations") %>
         <% end %>
-        <% if is_verifier %>
+        <% if can_review_cases %>
           <%= render "shared/nav_item", label: "Validasi Kasus", path: clinical_cases_path(scope: "to_verify"),
-              active: active_class.call("/clinical_cases") && params[:scope].in?(%w[to_verify reviewed]),
+              active: active_class.call("/clinical_cases") && verification_scope,
               badge: (pending_verifications.positive? ? (pending_verifications > 9 ? "9+" : pending_verifications) : nil) %>
+        <% end %>
+        <% if can_review_logbook %>
           <%= render "shared/nav_item", label: "Validasi Logbook", path: activity_logs_path(scope: "to_verify"),
               active: active_class.call("/activity_logs") && params[:scope] == "to_verify",
               badge: (pending_activity_verifications.positive? ? (pending_activity_verifications > 9 ? "9+" : pending_activity_verifications) : nil) %>
         <% end %>
-        <% if is_form_manager %>
-          <%= render "shared/nav_item", label: "Formulir Asesmen", path: assessment_form_templates_path,
-              active: active_class.call(%w[/assessment_form_templates /assessment_form_submissions]) %>
+        <% if can_review_submissions %>
+          <%= render "shared/nav_item", label: "Telaah Artefak", path: artifact_submissions_path,
+              active: active_class.call("/artifact_submissions") %>
+        <% end %>
+        <% if assigned_evidence_reviewer %>
+          <%= render "shared/nav_item", label: "Validasi Bukti Eksternal", path: evidence_sources_path,
+              active: active_class.call("/evidence_sources") %>
+        <% end %>
+        <% if is_student && has_evidence_requirements %>
+          <%= render "shared/nav_item", label: "Kecukupan Bukti", path: portfolio_path(section: "evidence-requirements", anchor: "evidence-requirements"),
+              active: request.path == "/portfolio" && params[:section] == "evidence-requirements" %>
         <% end %>
       <% end %>
     <% end %>
-    <% if is_student && has_evidence_requirements %>
-      <%= render "shared/nav_item", label: "Kecukupan Bukti", path: portfolio_path(anchor: "evidence-requirements"),
-          active: active_class.call("/portfolio") %>
-    <% end %>
     <% if is_student %>
-      <%= render "shared/nav_item", label: "Capaian Kompetensi", path: academic_assessments_path,
+      <%= render "shared/nav_item", label: "Capaian Kompetensi Saya", path: academic_assessments_path,
           active: active_class.call("/capaian-belajar") %>
     <% end %>
     <% if epa_relevant %>
       <%= render "shared/nav_item", label: "Keputusan EPA", path: entrustment_decisions_path,
           active: active_class.call("/dashboard/entrustment") %>
-      <%= render "shared/nav_item", label: "Observasi EPA", path: epa_observations_path,
-          active: active_class.call("/epa_observations") %>
     <% end %>
-    <% if epa_staff_visible %>
-      <%= render "shared/nav_item", label: "Promosi EPA", path: epa_promotions_path,
-          active: active_class.call("/epa_promotions") %>
+    <% if can_review_promotions %>
+      <%= render "shared/nav_item", label: "Promosi & Tinjauan EPA", path: epa_promotions_path,
+          active: active_class.call(%w[/epa_promotions /epa_observations]) %>
     <% end %>
   <% end %>
 
-  <%= render "shared/nav_accordion", label: "4. EVALUASI & PENINGKATAN MUTU", open: phase_active.call(%w[/analitik /monitoring-srq]) do %>
-    <% if is_instructor %>
+  <%= render "shared/nav_accordion", label: "4. EVALUASI & PENINGKATAN MUTU", open: phase_active.call("/analitik") do %>
+    <% if is_instructor || is_kaprodi %>
       <%= render "shared/nav_item", label: "Dashboard Capaian", path: analytics_path,
           active: active_class.call("/analitik") %>
-    <% end %>
-    <% if is_srq_monitor %>
-      <%= render "shared/nav_item", label: "Monitoring SRQ", path: srq_monitoring_path,
-          active: active_class.call("/monitoring-srq") %>
     <% end %>
   <% end %>
 </div>
 
-<% if is_config_manager || is_prodi_manager || current_user.can_view_students? %>
+<% if is_config_manager || is_prodi_manager || has_user_directory || (is_tendik && assigned_external_data_manager) %>
   <div>
-    <p class="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">ADMINISTRASI</p>
-    <% if is_config_manager || is_prodi_manager %>
-  <%= render "shared/nav_accordion", label: "Program Studi & Kurikulum", open: phase_active.call(%w[/study_programs /academic_periods /admin/learning_units /admin/evaluation_schedules /admin/student_relabel]) do %>
+    <p class="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"><%= term("nav.groups.configuration") %></p>
+    <% if is_config_manager %>
+      <%= render "shared/nav_accordion", label: "Program Studi & Kurikulum", open: phase_active.call(%w[/study_programs /academic_periods /clinical_rotations /tutorial_enrollments /admin/learning_units]) do %>
         <% if is_config_manager %>
           <%= render "shared/nav_item", label: "Program Studi", path: study_programs_path,
               active: active_class.call("/study_programs") %>
           <%= render "shared/nav_item", label: "Periode Akademik", path: academic_periods_path,
               active: active_class.call("/academic_periods") %>
         <% end %>
-        <% if is_config_manager || is_prodi_manager %>
-          <%= render "shared/nav_item", label: "Jadwal Evaluasi", path: admin_evaluation_schedules_path,
-              active: active_class.call("/admin/evaluation_schedules") %>
-          <%= render "shared/nav_item", label: "Unit Pembelajaran", path: admin_learning_units_path,
-              active: active_class.call("/admin/learning_units") %>
-          <% if is_prodi_manager %>
-            <%= render "shared/nav_item", label: "Ekspor Data", path: admin_exports_path,
-                active: active_class.call("/admin/exports") %>
-          <% end %>
-      <%= render "shared/nav_item", label: "Relabel Mahasiswa", path: new_admin_student_relabel_path,
-          active: active_class.call("/admin/student_relabel") %>
+        <% if is_config_manager %>
+          <%= render "shared/nav_item", label: term("nav.clinical_rotations"), path: clinical_rotations_path,
+              active: active_class.call("/clinical_rotations") %>
+          <%= render "shared/nav_item", label: "Penempatan Tutorial", path: tutorial_enrollments_path,
+              active: active_class.call("/tutorial_enrollments") %>
         <% end %>
       <% end %>
     <% end %>
 
-    <% if current_user.can_view_students? || is_config_manager %>
-      <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: phase_active.call(%w[/admin/users /cari]) do %>
-        <% if current_user.can_view_students? %>
-          <%= render "shared/nav_item", label: "Direktori Mahasiswa", path: search_path,
+    <% if has_user_directory || is_config_manager || is_prodi_manager || (is_tendik && assigned_external_data_manager) %>
+      <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: phase_active.call(%w[/admin/users /admin/student_relabel /cari /user_assignments /external_identity_mappings /external_evidence_imports]) do %>
+        <% if has_user_directory %>
+          <%= render "shared/nav_item", label: "Mahasiswa dalam Lingkup Saya", path: search_path,
               active: active_class.call("/cari") %>
         <% end %>
         <% if is_config_manager %>
-          <%= render "shared/nav_item", label: "Pengguna", path: admin_users_path,
+          <%= render "shared/nav_item", label: "Pengguna & Role", path: admin_users_path,
               active: active_class.call("/admin/users") %>
+        <% end %>
+        <% if is_config_manager || is_prodi_manager || (is_tendik && assigned_external_data_manager) %>
+          <% if is_config_manager || is_prodi_manager %>
+            <%= render "shared/nav_item", label: term("nav.student_relabel"), path: new_admin_student_relabel_path,
+                active: active_class.call("/admin/student_relabel") %>
+            <%= render "shared/nav_item", label: "Penugasan & Reviewer", path: user_assignments_path,
+                active: active_class.call("/user_assignments") %>
+          <% end %>
+          <% if has_external_data_access %>
+            <%= render "shared/nav_item", label: "Pemetaan Identifier Eksternal", path: external_identity_mappings_path,
+                active: active_class.call("/external_identity_mappings") %>
+            <%= render "shared/nav_item", label: "Impor Bukti Eksternal", path: external_evidence_imports_path,
+                active: active_class.call("/external_evidence_imports") %>
+          <% end %>
         <% end %>
       <% end %>
     <% end %>
 
-    <% if is_config_manager %>
-      <%= render "shared/nav_accordion", label: "Master Data", open: phase_active.call(%w[/admin/assessment_events /admin/cbt_exams /admin/glide_syncs /admin/logbook_case_targets /admin/academic_activity_domains /admin/diagnosis_definitions /admin/skill_definitions /admin/medication_definitions /admin/exports]) do %>
-        <%= render "shared/nav_item", label: "Event Asesmen", path: admin_assessment_events_path,
-            active: active_class.call("/admin/assessment_events") %>
-        <%= render "shared/nav_item", label: "Ujian CBT", path: admin_cbt_exams_path,
-            active: active_class.call("/admin/cbt_exams") %>
-        <%= render "shared/nav_item", label: "Impor Data Asesmen", path: admin_glide_syncs_path,
-            active: active_class.call("/admin/glide_syncs") %>
-        <%= render "shared/nav_item", label: "Target Kasus Logbook", path: admin_logbook_case_targets_path,
-            active: active_class.call("/admin/logbook_case_targets") %>
-        <%= render "shared/nav_item", label: "Taksonomi Kegiatan", path: admin_academic_activity_domains_path,
-            active: active_class.call("/admin/academic_activity_domains") %>
-        <%= render "shared/nav_item", label: "Diagnosis", path: admin_diagnosis_definitions_path,
-            active: active_class.call("/admin/diagnosis_definitions") %>
-        <%= render "shared/nav_item", label: "Keterampilan", path: admin_skill_definitions_path,
-            active: active_class.call("/admin/skill_definitions") %>
-        <%= render "shared/nav_item", label: "Obat", path: admin_medication_definitions_path,
-            active: active_class.call("/admin/medication_definitions") %>
-        <%= render "shared/nav_item", label: "Ekspor Data", path: admin_exports_path,
-            active: active_class.call("/admin/exports") %>
+    <% if is_config_manager || is_form_manager %>
+      <%= render "shared/nav_accordion", label: "Master Data", open: phase_active.call(%w[/admin/assessment_events /admin/wpba_instruments /assessment_form_templates /admin/glide_syncs /admin/logbook_case_targets /admin/academic_activity_domains /admin/diagnosis_definitions /admin/skill_definitions /admin/medication_definitions /admin/exports]) do %>
+        <% if is_form_manager %>
+          <%= render "shared/nav_item", label: "Instrumen Asesmen Internal", path: assessment_form_templates_path,
+              active: active_class.call(%w[/assessment_form_templates /assessment_form_submissions]) %>
+        <% end %>
+        <% if is_config_manager %>
+          <%= render "shared/nav_item", label: "Event Asesmen", path: admin_assessment_events_path,
+              active: active_class.call("/admin/assessment_events") %>
+          <%= render "shared/nav_item", label: "Katalog Instrumen WPBA", path: admin_wpba_instruments_path,
+              active: active_class.call("/admin/wpba_instruments") %>
+          <%= render "shared/nav_item", label: "Impor Hasil Asesmen Eksternal", path: csv_import_admin_glide_syncs_path,
+              active: active_class.call("/admin/glide_syncs") %>
+          <%= render "shared/nav_item", label: "Target Kasus Logbook", path: admin_logbook_case_targets_path,
+              active: active_class.call("/admin/logbook_case_targets") %>
+          <%= render "shared/nav_item", label: term("nav.activity_taxonomy"), path: admin_academic_activity_domains_path,
+              active: active_class.call("/admin/academic_activity_domains") %>
+          <%= render "shared/nav_item", label: "Diagnosis", path: admin_diagnosis_definitions_path,
+              active: active_class.call("/admin/diagnosis_definitions") %>
+          <%= render "shared/nav_item", label: "Keterampilan", path: admin_skill_definitions_path,
+              active: active_class.call("/admin/skill_definitions") %>
+          <%= render "shared/nav_item", label: "Obat", path: admin_medication_definitions_path,
+              active: active_class.call("/admin/medication_definitions") %>
+        <% end %>
+        <% if is_config_manager || is_prodi_manager %>
+          <%= render "shared/nav_item", label: term("nav.data_exports"), path: admin_exports_path,
+              active: active_class.call("/admin/exports") %>
+        <% end %>
       <% end %>
     <% end %>
+
     <% if is_config_manager || is_prodi_manager %>
       <%= render "shared/nav_accordion", label: "Pengaturan Sistem", open: phase_active.call(%w[/module_configuration /admin/terminology /admin/data_governance]) do %>
         <%= render "shared/nav_item", label: "Aktivasi Modul", path: edit_module_configuration_path(
-              study_program_id: (current_user.has_role?("admin") ? StudyProgram.ordered.first&.id : current_user.study_program_id)),
+              study_program_id: (is_config_manager ? StudyProgram.ordered.first&.id : current_user.study_program_id)),
             active: active_class.call("/module_configuration") %>
         <% if is_config_manager %>
-          <%= render "shared/nav_item", label: "Istilah Aplikasi", path: admin_terminology_path,
+          <%= render "shared/nav_item", label: term("nav.terminology"), path: admin_terminology_path,
               active: active_class.call("/admin/terminology") %>
           <%= render "shared/nav_item", label: "Tata Kelola Data", path: admin_data_governance_path,
               active: active_class.call("/admin/data_governance") %>
         <% end %>
       <% end %>
+    <% end %>
+  </div>
+<% end %>
+
+<% if is_srq_student || is_srq_monitor %>
+  <div>
+    <p class="px-2 mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">LAYANAN MAHASISWA</p>
+    <% if is_srq_student %>
+      <%= render "shared/nav_item", label: "Skrining Kesehatan (SRQ-20)", path: srq_screenings_path,
+          active: active_class.call("/kesehatan-mental") %>
+    <% end %>
+    <% if is_srq_monitor %>
+      <%= render "shared/nav_item", label: "Tindak Lanjut SRQ", path: srq_monitoring_path,
+          active: active_class.call("/monitoring-srq") %>
     <% end %>
   </div>
 <% end %>

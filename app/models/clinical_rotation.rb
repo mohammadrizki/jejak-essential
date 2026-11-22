@@ -12,10 +12,12 @@ class ClinicalRotation < ApplicationRecord
   # rotasi yang sudah dinilai tidak bisa dihapus.
   has_many :dops_evaluations, dependent: :restrict_with_error
   has_many :mini_cex_evaluations, dependent: :restrict_with_error
+  has_many :wpba_observations, dependent: :restrict_with_error
   has_many :evaluation_schedules, dependent: :nullify
 
   validates :station_name, :start_date, :end_date, presence: true
   validate :end_date_after_start_date
+  validate :preceptor_is_academic_staff, if: :will_save_change_to_preceptor_id?
 
   scope :for_student, ->(user) { where(user: user) }
   scope :for_preceptor, ->(user) { where(preceptor: user) }
@@ -42,5 +44,11 @@ class ClinicalRotation < ApplicationRecord
     return if start_date.blank? || end_date.blank?
 
     errors.add(:end_date, "harus setelah atau sama dengan tanggal mulai") if end_date < start_date
+  end
+
+  def preceptor_is_academic_staff
+    return if preceptor.blank? || preceptor.has_role?("dosen") || preceptor.has_role?("preseptor")
+
+    errors.add(:preceptor, "harus memiliki peran dosen atau preseptor")
   end
 end

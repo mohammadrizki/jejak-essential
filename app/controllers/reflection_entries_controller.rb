@@ -54,9 +54,14 @@ class ReflectionEntriesController < ApplicationController
   def load_linkable_records
     @activity_logs = current_user.activity_logs.recent.limit(20)
     @clinical_cases = current_user.clinical_cases.recent.limit(20)
+    framework = current_user.study_program&.peta_kompetensi
+    @competency_items = framework ? framework.competency_items.order(:position, :title) : CompetencyItem.none
+    @evidence_sources = current_user.evidence_sources.order(occurred_on: :desc, id: :desc).limit(100)
   end
 
   def reflection_entry_params
-    params.require(:reflection_entry).permit(:entry_date, :title, :content, :activity_log_id, :clinical_case_id)
+    params.require(:reflection_entry).permit(:entry_date, :title, :content, :what_happened, :what_learned,
+      :what_to_improve, :next_action, :activity_log_id, :clinical_case_id,
+      competency_item_ids: [], evidence_source_ids: [])
   end
 end

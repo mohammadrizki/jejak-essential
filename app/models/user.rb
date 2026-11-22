@@ -26,9 +26,12 @@ class User < ApplicationRecord
   has_many :tutored_enrollments, class_name: "TutorialEnrollment", foreign_key: :tutor_id, inverse_of: :tutor, dependent: :nullify
   belongs_to :study_program, optional: true
   has_many :reflection_entries, dependent: :destroy
+  has_many :evidence_sources, foreign_key: :student_id, inverse_of: :student, dependent: :restrict_with_error
   has_many :dops_evaluations_as_student, class_name: "DopsEvaluation", foreign_key: :student_id, inverse_of: :student, dependent: :destroy
   has_many :dops_evaluations_as_evaluator, class_name: "DopsEvaluation", foreign_key: :evaluator_id, inverse_of: :evaluator, dependent: :destroy
   has_many :mini_cex_evaluations_as_student, class_name: "MiniCexEvaluation", foreign_key: :student_id, inverse_of: :student, dependent: :destroy
+  has_many :wpba_observations_as_student, class_name: "WpbaObservation", foreign_key: :student_id, inverse_of: :student, dependent: :restrict_with_error
+  has_many :wpba_observations_as_observer, class_name: "WpbaObservation", foreign_key: :observer_id, inverse_of: :observer, dependent: :restrict_with_error
   has_many :mini_cex_evaluations_as_evaluator, class_name: "MiniCexEvaluation", foreign_key: :evaluator_id, inverse_of: :evaluator, dependent: :destroy
   has_many :assessment_form_submissions, foreign_key: :respondent_id, inverse_of: :respondent, dependent: :destroy
   has_many :final_projects, foreign_key: :student_id, inverse_of: :student, dependent: :destroy
@@ -44,6 +47,11 @@ class User < ApplicationRecord
   has_many :srq_screenings, dependent: :destroy
   has_many :followed_up_srq_screenings, class_name: "SrqScreening", foreign_key: :followed_up_by_id,
                                         inverse_of: :followed_up_by, dependent: :nullify
+  has_many :user_assignments, dependent: :restrict_with_error
+  has_many :artifact_submissions, foreign_key: :student_id, dependent: :restrict_with_error
+  has_many :reviewed_artifact_submissions, class_name: "ArtifactSubmission", foreign_key: :reviewer_id,
+    dependent: :nullify
+  has_many :portfolio_selections, foreign_key: :student_id, dependent: :restrict_with_error
 
   # Peran yang boleh menilai/memverifikasi mahasiswa (DOPS, Mini-CEX, Kasus
   # Klinis) — dosen, preseptor (pembimbing klinis di wahana), dan admin.
@@ -61,10 +69,11 @@ class User < ApplicationRecord
     active_accounts.where(id: UserRole.joins(:role).where(roles: { code: %w[dosen preseptor] }).select(:user_id)).order(:full_name)
   }
 
-  # Boleh membuka halaman mahasiswa lain (Peta EPA dsb.) — pengajar, plus
-  # kaprodi yang memantau tanpa menilai.
+  # Boleh membuka data akademik mahasiswa — dosen/preseptor atau Kaprodi.
+  # Hak admin teknis untuk mencari/mengelola akun tidak otomatis memberi
+  # akses ke portofolio dan capaian akademik.
   def can_view_students?
-    instructor? || has_role?("kaprodi")
+    has_role?("dosen") || has_role?("preseptor") || has_role?("kaprodi")
   end
 
   # Monitoring SRQ: data kesehatan mental, jadi hanya kaprodi yang terhubung ke

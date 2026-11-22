@@ -2,8 +2,8 @@
 
 class DopsEvaluationsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_dops_evaluation, only: %i[show edit update destroy submit]
-  before_action :require_wpba_enabled, only: %i[new create edit update destroy submit]
+  before_action :set_dops_evaluation, only: %i[show edit update destroy submit correction create_correction]
+  before_action :require_wpba_enabled, only: %i[new create edit update destroy submit correction create_correction]
 
   def show
     authorize @dops_evaluation
@@ -11,7 +11,8 @@ class DopsEvaluationsController < ApplicationController
 
   def new
     authorize DopsEvaluation
-    @dops_evaluation = DopsEvaluation.new(evaluated_at: Date.current, evaluator: current_user)
+    @dops_evaluation = DopsEvaluation.new(evaluated_at: Date.current, evaluator: current_user,
+      wpba_instrument_version: WpbaInstrumentCatalog.version_for("dops"))
     load_form_collections
   end
 
@@ -19,6 +20,7 @@ class DopsEvaluationsController < ApplicationController
     authorize DopsEvaluation
     @dops_evaluation = DopsEvaluation.new(dops_evaluation_params)
     @dops_evaluation.evaluator = current_user
+    @dops_evaluation.wpba_instrument_version ||= WpbaInstrumentCatalog.version_for("dops")
     authorize @dops_evaluation, :create_for_assigned_student?
 
     if @dops_evaluation.save
@@ -59,12 +61,42 @@ class DopsEvaluationsController < ApplicationController
     redirect_to @dops_evaluation, notice: "Evaluasi DOPS dikirim ke mahasiswa."
   end
 
+  def correction
+    authorize @dops_evaluation, :correct?
+  end
+
+  def create_correction
+    authorize @dops_evaluation, :correct?
+    reason = params.require(:correction_reason).to_s.strip
+    raise ArgumentError, "Alasan koreksi minimal 10 karakter." if reason.length < 10
+
+    @correction = @dops_evaluation.dup
+    @correction.assign_attributes(status: "draft", evaluator: current_user,
+      corrects: @dops_evaluation, correction_reason: reason)
+    @correction.save!
+    redirect_to edit_dops_evaluation_path(@correction), notice: "Draf koreksi dibuat. Evaluasi terkirim sebelumnya tetap menjadi riwayat."
+  rescue ArgumentError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActionController::ParameterMissing => error
+    redirect_to dops_evaluation_path(@dops_evaluation), alert: error.message
+  end
+
   private
 
   def require_wpba_enabled
-    return if ModuleConfiguration.for(current_user.study_program).enabled?("wpba")
+    if action_name == "new"
+      allowed = AssessmentAssignment.wpba_enabled_rotations_for(current_user).exists?
+    else
+      student = @dops_evaluation&.student || student_for_submitted_rotation
+      allowed = student.present? && ModuleConfiguration.for(student.study_program).enabled?("wpba")
+    end
+    return if allowed
 
     redirect_to assessments_path, alert: "Input WPBA untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."
+  end
+
+  def student_for_submitted_rotation
+    rotation = ClinicalRotation.find_by(id: params.dig(:dops_evaluation, :clinical_rotation_id))
+    student_id = params.dig(:dops_evaluation, :student_id)
+    rotation.user if rotation && rotation.user_id.to_s == student_id.to_s
   end
 
   def set_dops_evaluation
@@ -72,7 +104,7 @@ class DopsEvaluationsController < ApplicationController
   end
 
   def load_form_collections
-    @clinical_rotations = AssessmentAssignment.rotations_for(current_user).includes(:user).order(start_date: :desc)
+    @clinical_rotations = AssessmentAssignment.wpba_enabled_rotations_for(current_user).includes(:user).order(start_date: :desc)
     @students = User.active_accounts.where(id: @clinical_rotations.select(:user_id)).order(:full_name)
   end
 

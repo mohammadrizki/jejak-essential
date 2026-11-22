@@ -27,7 +27,7 @@
     <% [
       ["clinical_logbook", "Logbook Klinis", "Catatan aktivitas profesional dan validasi aktivitas."],
       ["wpba", "Workplace-Based Assessment", "Mini-CEX, DOPS dan instrumen observasi tempat kerja yang tersedia."],
-      ["epa", "EPA", "Observasi dan workflow EPA. Tidak berlaku untuk jenjang Sarjana."]
+      ["epa", "EPA", "Observasi formatif EPA bawaan dan workflow panel. Dapat berjalan terpisah dari modul WPBA umum; tidak berlaku untuk jenjang Sarjana."]
     ].each do |key, label, description| %>
       <label class="flex gap-3 rounded-xl border border-slate-200 p-4">
         <%= f.check_box key, checked: @configuration.enabled?(key), disabled: (key == "epa" && @study_program.level == "sarjana"),
@@ -38,7 +38,22 @@
         </span>
       </label>
     <% end %>
-    <p class="text-xs text-slate-500">Adapter SIA, Moodle, Examtool dan OSCE belum tersedia sebagai konektor yang dapat diaktifkan. Impor CSV yang sudah ada tetap berjalan sesuai izin.</p>
+    <div class="border-t border-slate-200 pt-5">
+      <h2 class="font-semibold text-slate-900">Adapter eksternal (opsional)</h2>
+      <p class="mt-1 text-sm text-slate-500">Menyalakan adapter hanya mengizinkan bridge JEJAK menerima data. Kredensial dan endpoint dikelola terpisah; tanpa adapter, Core tetap berjalan.</p>
+      <% [
+        ["integration_sia", "SIA", "Pemetaan identitas dan konteks akademik; bukan administrasi akademik lengkap."],
+        ["integration_moodle", "Moodle", "Referensi artefak, hasil, refleksi pilihan, dan umpan balik."],
+        ["integration_examtool", "Examtool", "Hasil final dan metadata ujian MCQ."],
+        ["integration_osce", "Aplikasi OSCE", "Hasil final per station dan domain kompetensi."],
+        ["integration_clinical_wpba", "WPBA klinis eksternal", "Sumber tambahan observasi WPBA/EPA. Impor tetap belum tervalidasi sampai ditinjau."]
+      ].each do |key, label, description| %>
+        <label class="mt-2 flex gap-3 rounded-xl border border-slate-200 p-4">
+          <%= f.check_box key, checked: @configuration.enabled?(key), class: "mt-1 rounded border-slate-300 text-indigo-600" %>
+          <span><span class="block font-semibold"><%= label %></span><span class="mt-1 block text-sm text-slate-600"><%= description %></span></span>
+        </label>
+      <% end %>
+    </div>
     <%= f.submit "Simpan konfigurasi", class: "rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700" %>
   <% end %>
 

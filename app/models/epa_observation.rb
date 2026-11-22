@@ -45,10 +45,11 @@ class EpaObservation < ApplicationRecord
     framework = epa&.competency_framework
     return if framework.blank? || student.blank?
     return if framework.study_program_id == student.study_program_id &&
-              framework.education_stage.in?(%w[professional specialist subspecialist]) &&
+              framework.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
+              ModuleConfiguration.for(student.study_program).enabled?("epa") &&
               framework.status == "published" && epa.status == "published"
 
-    errors.add(:epa, "EPA harus berasal dari framework jenjang Profesi, Spesialis, atau Subspesialis mahasiswa")
+    errors.add(:epa, "EPA harus berasal dari framework aktif dan modul EPA program mahasiswa")
   end
 
   def retrospective_scale_required

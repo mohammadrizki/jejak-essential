@@ -60,7 +60,9 @@ class AssessmentFormFieldsController < ApplicationController
 
   # Ranah kompetensi beserta sub-kompetensinya, ditampilkan bertingkat.
   def load_competency_choices
-    @competency_choices = CompetencyItem.includes(:children).where(parent_id: nil).order(:position).flat_map do |domain|
+    domains = CompetencyItem.where(parent_id: nil)
+    domains = domains.where(competency_framework_id: @template.study_program.framework_versions.select(:id)) if @template.study_program
+    @competency_choices = domains.includes(:children).order(:position).flat_map do |domain|
       [ [ domain.title, domain.id ] ] + domain.children.map { |child| [ "— #{child.title}", child.id ] }
     end
   end

@@ -34,14 +34,17 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_equal student_dashboard_path(users(:siti)), card["href"]
   end
 
-  test "kartu mahasiswa mengarah ke Dasbor Mahasiswa bagi kaprodi, dan Peta EPA-nya bisa dibuka" do
+  test "kartu mahasiswa mengarah ke Dasbor Mahasiswa dan EPA Sarjana tidak dapat dibuka" do
+    UserAssignment.create!(user: users(:dedi), assigned_by: users(:dedi),
+      assignment_role: "epa_panel_member", study_program: users(:siti).study_program,
+      scope_type: "User", scope_id: users(:siti).id, reason: "Penugasan panel untuk telaah dossier EPA.")
     sign_in users(:dedi)
     get search_path, params: { q: "siti" }
     assert_equal student_dashboard_path(users(:siti)), card_for(users(:siti))["href"]
 
     get entrustment_decisions_path(student_id: users(:siti).id)
-    assert_response :success
-    assert_match users(:siti).full_name, response.body
+    assert_redirected_to dashboard_path
+    assert_match "Modul EPA tidak aktif", flash[:alert]
   end
 
   test "kartu pengguna non-mahasiswa mengarah ke sunting pengguna bagi admin" do
@@ -77,5 +80,18 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     users(:budi).roles << roles(:admin)
     get search_path, params: { q: "example.com" }
     [ :siti, :wati, :dedi ].each { |u| assert_match users(u).email, response.body }
+  end
+
+  test "admin teknis tetap bisa mencari akun tetapi tidak mendapat tautan data akademik mahasiswa" do
+    admin = User.create!(full_name: "Admin Direktori", email: "admin-direktori@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current)
+    admin.roles << roles(:admin)
+    sign_in admin
+
+    get search_path, params: { q: "siti" }
+
+    assert_response :success
+    assert_match users(:siti).email, response.body
+    assert_equal edit_admin_user_path(users(:siti)), card_for(users(:siti))["href"]
   end
 end

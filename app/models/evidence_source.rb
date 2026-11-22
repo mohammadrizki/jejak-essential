@@ -21,6 +21,8 @@ class EvidenceSource < ApplicationRecord
   validates :source_record_id, uniqueness: { scope: %i[source_system source_revision] }
   validates :activity_key, length: { maximum: 255 }
   validate :validation_metadata_is_consistent
+  validate :external_source_review_transition
+  validate :external_source_payload_is_immutable
 
   def self.for_local_record!(record)
     source_type = case record
@@ -28,7 +30,7 @@ class EvidenceSource < ApplicationRecord
     when ActivityLog then "logbook"
     when ReflectionEntry then "reflection"
     when EpaObservation then "epa_observation"
-    when MiniCexEvaluation, DopsEvaluation then "wpba"
+    when MiniCexEvaluation, DopsEvaluation, WpbaObservation then "wpba"
     end
     raise ArgumentError, "Jenis sumber bukti lokal tidak dikenali." if source_type.blank?
 
@@ -50,6 +52,7 @@ class EvidenceSource < ApplicationRecord
     when ActivityLog then record.activity_date
     when ReflectionEntry then record.entry_date
     when EpaObservation then record.observed_at.to_date
+    when WpbaObservation then record.observed_at.to_date
     else record.evaluated_at
     end
     assessor = case record
@@ -57,6 +60,7 @@ class EvidenceSource < ApplicationRecord
     when ActivityLog then record.verified_by
     when EpaObservation then record.observer
     when MiniCexEvaluation, DopsEvaluation then record.evaluator
+    when WpbaObservation then record.observer
     end
     result = case record
     when ActivityLog then record.verified_at.present? ? "pass" : "not_assessed"
@@ -69,7 +73,12 @@ class EvidenceSource < ApplicationRecord
     when AssessmentInstance then record.status == "scored" && record.examiner.present?
     when ReflectionEntry then false
     when EpaObservation then record.status == "recorded" && (!record.safety_flag? || record.safety_resolved_at.present?)
-    when MiniCexEvaluation, DopsEvaluation then record.submitted?
+    when MiniCexEvaluation, DopsEvaluation, WpbaObservation then record.submitted?
+    end
+    instrument_version = case record
+    when AssessmentInstance then record.assessment_event&.wpba_instrument_version
+    when MiniCexEvaluation, DopsEvaluation then record.wpba_instrument_version
+    when WpbaObservation then record.wpba_instrument_version
     end
     context = case record
     when ActivityLog
@@ -85,16 +94,21 @@ class EvidenceSource < ApplicationRecord
     when MiniCexEvaluation, DopsEvaluation
       { "rotation_id" => record.clinical_rotation_id, "case_id" => record.clinical_case_id,
         "complexity" => record.case_complexity }
+    when WpbaObservation
+      record.clinical_context.to_h.merge("rotation_id" => record.clinical_rotation_id,
+        "case_id" => record.clinical_case_id)
     else
       {}
     end
     {
       student: student, assessor: assessor, source_system: "jejak", source_type: source_type,
       source_record_id: record.id.to_s, source_revision: revision,
-      activity_key: "#{record.model_name.singular}:#{record.id}", occurred_on: occurred_on,
+      activity_key: record.respond_to?(:source_activity_key) ? record.source_activity_key : "#{record.model_name.singular}:#{record.id}", occurred_on: occurred_on,
       validation_status: validated ? "validated" : "unverified",
-      instrument_code: source_type == "wpba" ? record.class.name.underscore : source_type,
-      instrument_version: source_type == "wpba" ? "legacy-v1" : nil,
+      instrument_code: instrument_version&.wpba_instrument&.code ||
+        (source_type == "wpba" ? record.class.name.underscore : source_type),
+      instrument_version: instrument_version&.version_label ||
+        (source_type == "wpba" ? "legacy-v1" : nil),
       score: record.respond_to?(:score) ? record.score : record.respond_to?(:average_score) ? record.average_score : nil,
       result: result, feedback: record.respond_to?(:overall_feedback) ? record.overall_feedback : nil,
       context: context.compact, metadata: { "source_revision" => revision },
@@ -105,6 +119,7 @@ class EvidenceSource < ApplicationRecord
 
   def validate_source!(by:)
     self.class.transaction do
+      ensure_external_source_pending!
       update!(validation_status: "validated", validated_by: by, validated_at: Time.current)
       evidence_records.find_each do |record|
         record.update!(result: result.presence || "other", score: score, feedback: feedback)
@@ -114,6 +129,7 @@ class EvidenceSource < ApplicationRecord
 
   def reject_source!(by:, reason:)
     raise ArgumentError, "Alasan penolakan wajib diisi." if reason.to_s.strip.length < 10
+    ensure_external_source_pending!
 
     update!(validation_status: "rejected", validated_by: by, validated_at: Time.current,
       metadata: metadata.merge("rejection_reason" => reason.to_s.strip))
@@ -121,10 +137,40 @@ class EvidenceSource < ApplicationRecord
 
   private
 
+  def ensure_external_source_pending!
+    raise ArgumentError, "Hanya bukti eksternal yang menunggu validasi dapat ditinjau." unless
+      source_type == "external" && validation_status == "unverified"
+  end
+
   def validation_metadata_is_consistent
     return unless validation_status == "validated" || validation_status == "rejected"
 
     errors.add(:validated_at, "wajib dicatat") if validated_at.blank?
     errors.add(:validated_by, "wajib dicatat") if validated_by.blank?
+  end
+
+  def external_source_review_transition
+    return unless persisted? && source_type == "external" && will_save_change_to_validation_status?
+
+    previous = validation_status_in_database
+    unless previous == "unverified" && validation_status.in?(%w[validated rejected])
+      errors.add(:validation_status, "bukti eksternal hanya dapat ditinjau satu kali dari status menunggu")
+    end
+  end
+
+  def external_source_payload_is_immutable
+    return unless persisted? && source_type == "external"
+
+    %w[student_id source_system source_record_id source_revision activity_key occurred_on instrument_code
+      instrument_version score result feedback context].each do |attribute|
+      if will_save_change_to_attribute?(attribute)
+        errors.add(attribute, "payload sumber yang diimpor tidak dapat diubah setelah pencatatan")
+      end
+    end
+    return unless will_save_change_to_metadata?
+
+    before = metadata_in_database.to_h.except("rejection_reason")
+    after = metadata.to_h.except("rejection_reason")
+    errors.add(:metadata, "provenance sumber tidak dapat diubah") unless before == after
   end
 end

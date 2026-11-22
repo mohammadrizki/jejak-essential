@@ -4,7 +4,13 @@ class CompetencyFrameworkPolicy < ApplicationPolicy
   def index?
     true
   end
-  alias show? index?
+
+  def show?
+    return true if user.has_role?("admin")
+    return false unless record.is_a?(CompetencyFramework)
+
+    record.study_program_id.present? && record.study_program_id == user.study_program_id
+  end
 
   def manage?
     return true if user.has_role?("admin")

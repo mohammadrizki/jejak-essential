@@ -28,9 +28,9 @@ class ProfilesController < ApplicationController
       :identifier_number, :phone, :gender, :birth_place, :birth_date, :address,
       :cohort_year, :work_unit, :position, :profession_category, :specialization
     )
-    # Prodi kaprodi adalah batas hak aksesnya (Analitik prodi, Relabel Prodi)
-    # — hanya admin yang boleh mengubahnya, lewat Konfigurasi → Pengguna.
-    permitted.delete(:study_program_id) if current_user.study_program_bound?
+    # Prodi menentukan batas akses akademik. Selain admin, pengguna tidak
+    # boleh memindahkan akun sendiri ke program studi lain lewat profil.
+    permitted.delete(:study_program_id) unless current_user.has_role?("admin")
     permitted
   end
 end

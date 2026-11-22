@@ -17,11 +17,12 @@
         <tbody class="divide-y divide-gray-100">
           <% @requirements.each do |requirement| %>
             <% framework = requirement.competency_item&.competency_framework || requirement.epa&.competency_framework || requirement.blueprint_item&.blueprint_version&.competency_framework %>
-            <% rule = requirement.fulfillment_rule || {} %>
+            <% configuration = requirement.current_version&.configuration || requirement.configuration_snapshot %>
+            <% rule = configuration.fetch("fulfillment_rule", {}) %>
             <tr>
               <td class="px-4 py-3">
                 <p class="font-medium text-gray-800"><%= framework&.study_program&.name || "—" %></p>
-                <p class="mt-1 text-xs text-gray-500"><%= requirement.origin == "blueprint" ? "Blueprint Asesmen" : "Manual" %> · <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(requirement.source_type) %></p>
+                <p class="mt-1 text-xs text-gray-500"><%= configuration.fetch("origin") == "blueprint" ? "Blueprint Asesmen" : "Manual" %> · <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(configuration.fetch("source_type")) %> · v<%= requirement.current_version&.version || 1 %></p>
               </td>
               <td class="px-4 py-3 text-gray-700">
                 <% target_path = if requirement.origin == "blueprint" && requirement.blueprint_item
@@ -34,7 +35,7 @@
                 <% if requirement.competency_indicator %><span class="block text-xs text-gray-400"><%= requirement.competency_indicator.code %></span><% end %>
               </td>
               <td class="px-4 py-3 text-xs text-gray-600">
-                <%= requirement.required_count %> bukti valid minimum
+                <%= configuration.fetch("required_count") %> bukti valid minimum
                 <% if rule["minimum_pass"].to_i.positive? %><span class="block">Lulus minimal <%= rule["minimum_pass"] %></span><% end %>
                 <% if rule["minimum_distinct_cases"].to_i.positive? %><span class="block">Kasus berbeda <%= rule["minimum_distinct_cases"] %></span><% end %>
                 <% if rule["minimum_distinct_assessors"].to_i.positive? %><span class="block">Penilai berbeda <%= rule["minimum_distinct_assessors"] %></span><% end %>
@@ -44,7 +45,7 @@
                 <% if rule["critical"] %><span class="mt-1 inline-block rounded bg-rose-50 px-1.5 py-0.5 font-semibold text-rose-700">Kritis</span><% end %>
                 <% if rule["additional_criteria"].present? %><span class="mt-1 block"><%= rule["additional_criteria"] %></span><% end %>
               </td>
-              <td class="px-4 py-3 text-xs text-gray-500"><%= requirement.status.humanize %></td>
+              <td class="px-4 py-3 text-xs text-gray-500"><%= configuration.fetch("status").humanize %></td>
             </tr>
           <% end %>
         </tbody>

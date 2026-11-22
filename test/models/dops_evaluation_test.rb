@@ -76,9 +76,10 @@ class DopsEvaluationTest < ActiveSupport::TestCase
     assert_difference -> { users(:siti).notifications.count }, 1 do
       dops.update!(status: "submitted", scores: { "komunikasi" => 6, "profesionalisme" => 7, "penilaian_global" => 6 })
     end
-    assert_no_difference "Notification.count" do
+    assert_raises(ActiveRecord::RecordNotSaved) do
       dops.update!(overall_feedback: "Suntingan sesudah terkirim")
     end
+    assert_equal "submitted", dops.reload.status
   end
 
   test "avg_dimension_scores menghitung rata-rata per dimensi lintas evaluasi" do

@@ -1,6 +1,4 @@
 class AddProfileFieldsToUsers < ActiveRecord::Migration[8.1]
-  disable_ddl_transaction!
-
   # Biodata profil, dikelompokkan menjadi Biodata Pribadi / Akademik / Informasi
   # Kepegawaian.
   def change
@@ -21,6 +19,6 @@ class AddProfileFieldsToUsers < ActiveRecord::Migration[8.1]
     add_column :users, :profession_category, :string # Dokter Umum, Dokter Spesialis, ...
     add_column :users, :specialization, :string
 
-    add_index :users, :identifier_number, algorithm: :concurrently
+    safety_assured { add_index :users, :identifier_number }
   end
 end

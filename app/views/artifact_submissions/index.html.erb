@@ -1,0 +1,31 @@
+<div class="mx-auto max-w-5xl space-y-4 px-4 py-6">
+  <header>
+    <h1 class="text-2xl font-bold text-gray-900">Telaah Pengajuan Artefak</h1>
+    <p class="mt-1 text-sm text-gray-600">Telaah artefak hanya menentukan kelayakan tampil di Portofolio Terpilih. Penilaian bukti dan capaian kompetensi tetap terpisah.</p>
+  </header>
+  <% @submissions.each do |submission| %>
+    <article class="space-y-3 rounded-2xl border border-gray-200 bg-white p-5">
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 class="font-semibold text-gray-900"><%= submission.student.full_name %> · <%= submission.source_title %></h2>
+          <p class="mt-1 text-xs text-gray-500">Diajukan <%= l(submission.submitted_at, format: :long) %> · <%= submission.status.humanize %></p>
+        </div>
+      </div>
+      <p class="text-sm"><span class="font-medium">Alasan pemilihan:</span> <%= submission.selection_reason %></p>
+      <% if submission.reflection.present? %><p class="text-sm"><span class="font-medium">Refleksi:</span> <%= submission.reflection %></p><% end %>
+      <% if submission.submitted? && policy(submission).update? %>
+        <%= form_with url: artifact_submission_path(submission), method: :patch, class: "grid gap-3 sm:grid-cols-[12rem_1fr_auto]" do |f| %>
+          <%= f.select :decision, [["Setujui untuk dipilih", "approved"], ["Minta revisi / tolak", "rejected"]], {}, class: "rounded-lg border-gray-300 text-sm" %>
+          <%= f.text_field :review_notes, required: true, minlength: 10, placeholder: "Catatan telaah minimal 10 karakter", class: "rounded-lg border-gray-300 text-sm" %>
+          <%= f.submit "Simpan telaah", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+        <% end %>
+      <% elsif submission.review_notes.present? %>
+        <p class="text-xs text-gray-600">Catatan telaah oleh <%= submission.reviewer&.full_name %>: <%= submission.review_notes %></p>
+      <% end %>
+      <% if submission.portfolio_selection&.visibility == "assigned_reviewers" %>
+        <%= link_to "Lihat artefak terpilih", selected_portfolio_path(submission.student), class: "text-xs font-medium text-indigo-700 hover:underline" %>
+      <% end %>
+    </article>
+  <% end %>
+  <% if @submissions.empty? %><p class="rounded-xl bg-white p-5 text-sm text-gray-500">Tidak ada pengajuan artefak dalam lingkup akses Anda.</p><% end %>
+</div>

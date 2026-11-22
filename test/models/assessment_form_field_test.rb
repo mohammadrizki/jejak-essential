@@ -17,4 +17,13 @@ class AssessmentFormFieldTest < ActiveSupport::TestCase
     assert_includes field.errors.full_messages.join, "Daftar pilihan / jenjang harus diisi"
     assert_not_includes field.errors.full_messages.join, "Options text"
   end
+
+  test "pemetaan kompetensi harus sesuai program studi pemilik template" do
+    template = AssessmentFormTemplate.create!(name: "Form Profesi", study_program: study_programs(:profesi_dokter))
+    field = template.assessment_form_fields.build(label: "Penalaran", field_type: "rating",
+      competency_item: competency_items(:sub_anamnesis))
+
+    assert_not field.valid?
+    assert_includes field.errors[:competency_item], "harus berasal dari kerangka program studi pemilik formulir"
+  end
 end

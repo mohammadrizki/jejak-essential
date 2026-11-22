@@ -118,6 +118,7 @@ class Admin::StudentRelabelsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "kaprodi melihat pilihan aksi dan menu di Coaching Center" do
+    @kaprodi.update!(active_role: roles(:kaprodi))
     sign_in @kaprodi
     get new_admin_student_relabel_path
 

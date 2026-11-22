@@ -69,6 +69,7 @@ gem "kramdown"       # render Panduan Pengguna
 gem "web-push"       # notifikasi push
 gem "discard"        # soft-delete logbook/evaluasi
 gem "csv"            # import CBT/OSCE generik
+gem "rubyzip", "~> 3.6" # membaca workbook XLSX pada staging bukti eksternal
 
 # ── Hardening dasar ───────────────────────────────────────────────────────────
 gem "rack-attack"

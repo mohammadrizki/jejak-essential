@@ -133,50 +133,57 @@ if profession_framework.new_record?
 end
 profession_framework.publish! if profession_framework.status == "draft"
 
-osce_blueprint = AssessmentBlueprint.find_or_create_by!(name: "Blueprint OSCE Komprehensif") do |b|
-  b.study_program = profesi
-  b.description = "Distribusi bobot stasiun OSCE akhir tahap profesi."
-  b.learning_outcomes = [
-    "Mampu melakukan anamnesis & pemeriksaan fisik sistematis",
-    "Mampu menegakkan diagnosis banding yang rasional",
-    "Mampu berkomunikasi secara empatik dengan pasien simulasi",
-    "Menunjukkan perilaku profesional selama ujian"
-  ]
-end
-osce_blueprint.update!(study_program: profesi) if osce_blueprint.study_program_id.nil?
-
-blueprint_framework = osce_blueprint.study_program.peta_kompetensi
-if osce_blueprint.assessment_blueprint_mappings.none? && blueprint_framework
-  {
-    "Keterampilan Klinis" => 35,
-    "Komunikasi Efektif" => 20,
-    "Pengelolaan Masalah Kesehatan" => 30,
-    "Profesionalitas yang Luhur" => 15
-  }.each do |domain_name, weight|
-    item = blueprint_framework.competency_items.find_by(title: domain_name, parent_id: nil)
-    osce_blueprint.assessment_blueprint_mappings.create!(competency_item: item, weight: weight) if item
-  end
-end
-
-if blueprint_framework && osce_blueprint.blueprint_versions.none? { |version| version.blueprint_items.exists? }
-  blueprint_version = osce_blueprint.draft_version || osce_blueprint.blueprint_versions.create!(
-    competency_framework: blueprint_framework,
-    version: (osce_blueprint.blueprint_versions.maximum(:version) || 0) + 1,
-    status: "draft", change_notes: "Pemetaan awal ke komponen asesmen"
+osce_blueprint = AssessmentBlueprint.find_by(study_program: profesi)
+if osce_blueprint.nil?
+  osce_blueprint = AssessmentBlueprint.create!(
+    study_program: profesi,
+    name: "Blueprint OSCE Komprehensif",
+    description: "Distribusi bobot stasiun OSCE akhir tahap profesi.",
+    learning_outcomes: [
+      "Mampu melakukan anamnesis & pemeriksaan fisik sistematis",
+      "Mampu menegakkan diagnosis banding yang rasional",
+      "Mampu berkomunikasi secara empatik dengan pasien simulasi",
+      "Menunjukkan perilaku profesional selama ujian"
+    ]
   )
-  if blueprint_version.blueprint_items.empty?
-    osce_method = AssessmentMethod.find_by!(code: "osce")
-    component = blueprint_version.blueprint_items.create!(
-      assessment_method: osce_method, code: "OSCE-CORE", title: "OSCE Komprehensif",
-      assessment_context: "Blueprint OSCE keseluruhan program studi", weight: 100, position: 1
-    )
-    osce_blueprint.assessment_blueprint_mappings.includes(:competency_item).each do |mapping|
-      component.blueprint_item_competencies.create!(
-        competency_item: mapping.competency_item, assessment_weight: mapping.weight
-      )
+end
+
+# Lengkapi hanya blueprint contoh buatan seed. Jangan menyisipkan contoh OSCE
+# ke blueprint kustom yang sudah dimiliki program studi.
+if osce_blueprint.name == "Blueprint OSCE Komprehensif"
+  blueprint_framework = osce_blueprint.study_program.peta_kompetensi
+  if osce_blueprint.assessment_blueprint_mappings.none? && blueprint_framework
+    {
+      "Keterampilan Klinis" => 35,
+      "Komunikasi Efektif" => 20,
+      "Pengelolaan Masalah Kesehatan" => 30,
+      "Profesionalitas yang Luhur" => 15
+    }.each do |domain_name, weight|
+      item = blueprint_framework.competency_items.find_by(title: domain_name, parent_id: nil)
+      osce_blueprint.assessment_blueprint_mappings.create!(competency_item: item, weight: weight) if item
     end
   end
-  blueprint_version.publish! if blueprint_version.status == "draft"
+
+  if blueprint_framework && osce_blueprint.blueprint_versions.none? { |version| version.blueprint_items.exists? }
+    blueprint_version = osce_blueprint.draft_version || osce_blueprint.blueprint_versions.create!(
+      competency_framework: blueprint_framework,
+      version: (osce_blueprint.blueprint_versions.maximum(:version) || 0) + 1,
+      status: "draft", change_notes: "Pemetaan awal ke komponen asesmen"
+    )
+    if blueprint_version.blueprint_items.empty?
+      osce_method = AssessmentMethod.find_by!(code: "osce")
+      component = blueprint_version.blueprint_items.create!(
+        assessment_method: osce_method, code: "OSCE-CORE", title: "OSCE Komprehensif",
+        assessment_context: "Blueprint OSCE keseluruhan program studi", weight: 100, position: 1
+      )
+      osce_blueprint.assessment_blueprint_mappings.includes(:competency_item).each do |mapping|
+        component.blueprint_item_competencies.create!(
+          competency_item: mapping.competency_item, assessment_weight: mapping.weight
+        )
+      end
+    end
+    blueprint_version.publish! if blueprint_version.status == "draft"
+  end
 end
 
 # Fase 24 — Master Diagnosis (SKDI 2012 / ICD-10) & Keterampilan Klinis —

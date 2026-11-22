@@ -32,6 +32,48 @@ class EvidenceRequirementProgressTest < ActiveSupport::TestCase
     assert_empty CompetencyAttainment.where(competency_item: item)
   end
 
+  test "student-specific sufficiency excludes evidence belonging to other students" do
+    requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
+      source_type: "logbook", required_count: 1)
+    other = User.create!(full_name: "Mahasiswa Lain", email: "progress.lain@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:sarjana_kedokteran))
+    other.roles << roles(:mahasiswa)
+    EvidenceRecord.create!(evidence_requirement: requirement, activity_log: verified_logbook(user: other),
+      evidence_date: Date.current, result: "pass")
+
+    assert_equal :fulfilled, EvidenceRequirementProgress.new(requirement, student: other).call.status
+    result = EvidenceRequirementProgress.new(requirement, student: users(:siti)).call
+    assert_equal :not_started, result.status
+    assert_equal 0, result.record_count
+  end
+
+  test "evidence stays pinned to the requirement version first used by each student" do
+    requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
+      source_type: "logbook", required_count: 1)
+    student = users(:siti)
+    first_log = verified_logbook(user: student)
+    first_record = EvidenceRecord.create!(evidence_requirement: requirement, activity_log: first_log,
+      evidence_date: Date.current, result: "pass")
+
+    requirement.update!(required_count: 2)
+    next_log = verified_logbook(user: student)
+    next_record = EvidenceRecord.create!(evidence_requirement: requirement, activity_log: next_log,
+      evidence_date: Date.current, result: "pass")
+    other_student = User.create!(full_name: "Mahasiswa Versi Baru", email: "progress.versi@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:sarjana_kedokteran))
+    other_student.roles << roles(:mahasiswa)
+    other_record = EvidenceRecord.create!(evidence_requirement: requirement,
+      activity_log: verified_logbook(user: other_student), evidence_date: Date.current, result: "pass")
+
+    assert_equal 1, first_record.evidence_requirement_version.version
+    assert_equal 1, next_record.evidence_requirement_version.version
+    assert_equal 2, other_record.evidence_requirement_version.version
+    assert_equal :fulfilled, EvidenceRequirementProgress.new(requirement, student: student).call.status
+    assert_equal 1, EvidenceRequirementProgress.new(requirement, student: student).call.required_count
+    assert_equal :in_progress, EvidenceRequirementProgress.new(requirement, student: other_student).call.status
+    assert_equal 2, EvidenceRequirementProgress.new(requirement, student: other_student).call.required_count
+  end
+
   test "submitted Mini-CEX and DOPS can contribute as distinct WPBA evidence" do
     item = competency_items(:sub_anamnesis)
     requirement = EvidenceRequirement.create!(origin: "manual", competency_item: item,
@@ -57,8 +99,9 @@ class EvidenceRequirementProgressTest < ActiveSupport::TestCase
     item = competency_items(:sub_anamnesis)
     requirement = EvidenceRequirement.create!(origin: "manual", competency_item: item,
       source_type: "wpba", required_count: 1)
-    evaluation = mini_cex_evaluations(:minicex_siti_demam)
-    evaluation.update!(status: "requested")
+    evaluation = mini_cex_evaluations(:minicex_siti_demam).dup
+    evaluation.status = "requested"
+    evaluation.save!
     requirement.evidence_records.create!(mini_cex_evaluation: evaluation,
       evidence_date: evaluation.evaluated_at, result: "other")
 
@@ -68,8 +111,8 @@ class EvidenceRequirementProgressTest < ActiveSupport::TestCase
 
   private
 
-  def verified_logbook
-    log = ActivityLog.create!(user: users(:siti), title: "Aktivitas terverifikasi", category: "klinis",
+  def verified_logbook(user: users(:siti))
+    log = ActivityLog.create!(user: user, title: "Aktivitas terverifikasi", category: "klinis",
       activity_type: "Observasi", activity_date: Date.current)
     log.verify!(by: users(:budi))
     log

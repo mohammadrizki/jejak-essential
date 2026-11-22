@@ -53,6 +53,9 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
 
   test "Break Glass beralasan membuka identitas 30 menit dan tercatat" do
     dosen = instructor("dosen")
+    UserAssignment.create!(user: dosen, assigned_by: users(:dedi),
+      assignment_role: "clinical_case_verifier", study_program: @case.user.study_program,
+      scope_type: "User", scope_id: @case.user_id, reason: "Penugasan validasi kasus klinis.")
     sign_in dosen
 
     assert_difference "BreakGlassAccess.count", 1 do
@@ -88,6 +91,9 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
 
   test "preseptor yang rotasinya tidak mencakup tanggal kasus tetap tersamar" do
     @case.update!(case_date: 30.days.ago.to_date)
+    UserAssignment.create!(user: users(:wati), assigned_by: users(:dedi),
+      assignment_role: "clinical_case_verifier", study_program: @case.user.study_program,
+      scope_type: "StudyProgram", scope_id: @case.user.study_program_id, reason: "Penugasan pemantauan kasus program.")
     sign_in users(:wati)
     get clinical_case_path(@case)
 
@@ -108,9 +114,7 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
 
     sign_in instructor("dosen", email: "dosen.lain@example.com")
     get clinical_case_path(@case)
-    assert_response :success
-    assert_no_match "Ahmad Fauzi", response.body
-    assert_match "AF***", response.body
+    assert_redirected_to root_path
   end
 
   test "Break Glass tanpa alasan memadai ditolak" do
@@ -132,6 +136,14 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
       post break_glass_clinical_case_path(@case), params: { reason: "Ingin tahu saja padahal bukan kasus saya" }
     end
     assert_response :redirect
+  end
+
+  test "admin teknis tanpa assignment tidak dapat membuka dossier kasus pasien" do
+    admin = users(:dedi)
+    admin.roles << roles(:admin) unless admin.has_role?("admin")
+    sign_in admin
+    get clinical_case_path(@case)
+    assert_redirected_to root_path
   end
 
   test "admin mematikan Privacy Mode lalu identitas tampil; audit terlihat di Data Governance" do
@@ -201,6 +213,9 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
     @case.create_patient_consent!.sign!(answers: { "education" => "1" }, signer_name: "Ahmad Fauzi", signer_relation: "pasien")
     outsider = User.create!(full_name: "Dosen Luar", email: "dosen-luar@example.com", password: "Str0ngPass!x", confirmed_at: Time.current)
     outsider.roles << roles(:dosen)
+    UserAssignment.create!(user: outsider, assigned_by: users(:dedi),
+      assignment_role: "clinical_case_verifier", study_program: @case.user.study_program,
+      scope_type: "StudyProgram", scope_id: @case.user.study_program_id, reason: "Penugasan penelaahan kasus klinis.")
 
     sign_in outsider
     get clinical_case_path(@case)

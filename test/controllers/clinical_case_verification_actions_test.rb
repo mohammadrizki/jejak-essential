@@ -59,10 +59,12 @@ class ClinicalCaseVerificationActionsTest < ActionDispatch::IntegrationTest
     assert_equal "verification_cancelled", @kasus.case_verification_comments.last.action
 
     get entrustment_decisions_path(student_id: users(:siti).id)
-    assert_response :success
+    assert_redirected_to dashboard_path
   end
 
   test "pengajar lain tidak boleh membatalkan verifikasi orang lain" do
+    assert users(:siti).clinical_rotations.covering(@kasus.case_date).exists?(preceptor: users(:budi))
+    assert_predicate ClinicalCasePolicy.new(users(:budi), @kasus), :verify?
     sign_in users(:budi)
     patch verify_clinical_case_path(@kasus), params: { entrustment_level: "mandiri" }
 

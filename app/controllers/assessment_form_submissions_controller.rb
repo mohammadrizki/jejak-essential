@@ -22,6 +22,12 @@ class AssessmentFormSubmissionsController < ApplicationController
   def create
     @template = AssessmentFormTemplate.active.find(params[:assessment_form_template_id])
     authorize @template, :show?
+    requested_subject_id = params.dig(:assessment_form_submission, :subject_user_id)
+    if requested_subject_id.present? && !allowed_subject_users.exists?(id: requested_subject_id)
+      return redirect_to assessment_form_template_path(@template),
+        alert: "Subjek formulir berada di luar program studi yang dapat Anda kelola."
+    end
+
     @submission = @template.assessment_form_submissions.build(submission_params)
     @submission.respondent = current_user
     @submission.submitted_at = Time.current
@@ -45,9 +51,20 @@ class AssessmentFormSubmissionsController < ApplicationController
   # ?subject_user_id= (sah atau tidak) berakhir ArgumentError → galat 500.
   def load_subject_candidates
     codes = params[:subject_role].to_s == "mahasiswa" ? %w[mahasiswa] : %w[dosen preseptor]
-    scope = User.where(id: User.active_accounts.joins(:roles).where(roles: { code: codes }).select(:id))
-    scope = scope.or(User.where(id: params[:subject_user_id])) if params[:subject_user_id].present?
+    role_candidate_ids = User.active_accounts.joins(:roles).where(roles: { code: codes }).select(:id)
+    scope = allowed_subject_users.where(id: role_candidate_ids)
+    if params[:subject_user_id].present?
+      scope = scope.or(allowed_subject_users.where(id: params[:subject_user_id]))
+    end
     @subject_candidates = scope.order(:full_name)
+  end
+
+  def allowed_subject_users
+    return User.active_accounts if current_user.has_role?("admin")
+    return User.active_accounts.where(study_program_id: [ current_user.study_program_id, nil ]) if
+      current_user.has_role?("kaprodi") && current_user.study_program_id.present?
+
+    User.none
   end
 
   def submission_params

@@ -12,9 +12,33 @@
     </div>
   </div>
 
-  <div class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 p-5">
-    <p class="text-sm text-gray-700 whitespace-pre-line"><%= @reflection_entry.content %></p>
-  </div>
+  <% if @reflection_entry.what_happened.present? || @reflection_entry.what_learned.present? || @reflection_entry.what_to_improve.present? || @reflection_entry.next_action.present? %>
+    <% [["Apa yang saya alami?", @reflection_entry.what_happened], ["Apa yang saya pelajari?", @reflection_entry.what_learned],
+        ["Apa yang masih perlu saya perbaiki?", @reflection_entry.what_to_improve], ["Apa yang akan saya lakukan selanjutnya?", @reflection_entry.next_action]].each do |prompt, answer| %>
+      <% next if answer.blank? %>
+      <section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+        <h2 class="text-sm font-semibold text-gray-700"><%= prompt %></h2>
+        <p class="mt-2 whitespace-pre-line text-sm text-gray-700"><%= answer %></p>
+      </section>
+    <% end %>
+  <% else %>
+    <div class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 p-5">
+      <p class="text-sm text-gray-700 whitespace-pre-line"><%= @reflection_entry.content %></p>
+    </div>
+  <% end %>
+  <% if @reflection_entry.competency_items.any? %>
+    <p class="mt-4 text-xs text-indigo-700">Kompetensi terkait: <%= @reflection_entry.competency_items.map(&:title).join(" · ") %></p>
+  <% end %>
+  <% if @reflection_entry.evidence_sources.any? %>
+    <section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+      <h2 class="text-sm font-semibold text-gray-700">Bukti yang direfleksikan</h2>
+      <ul class="mt-2 space-y-1 text-xs text-gray-600">
+        <% @reflection_entry.evidence_sources.each do |source| %>
+          <li><%= l(source.occurred_on, format: :long) %> · <%= source.instrument_code.presence || source.source_type.humanize %> · <%= source.validation_status.humanize %></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
 
   <% if @reflection_entry.activity_log.present? %>
     <p class="mt-3 text-xs text-gray-400">

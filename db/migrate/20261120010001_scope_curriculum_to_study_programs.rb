@@ -18,16 +18,32 @@ class ScopeCurriculumToStudyPrograms < ActiveRecord::Migration[8.1]
   end
 
   def up
-    add_reference :competency_frameworks, :study_program, index: { unique: true }, foreign_key: true
-    add_reference :assessment_blueprints, :study_program, index: { unique: true }, foreign_key: true
-    add_column :competency_items, :expected_evidence_text, :text
-    add_column :competency_items, :expected_evidence_types, :jsonb, null: false, default: []
+    # This historical migration is the prerequisite for the following
+    # program-competency migration. All DDL and backfills remain atomic.
+    safety_assured do
+      add_reference :competency_frameworks, :study_program, index: { unique: true },
+        foreign_key: { validate: false } unless column_exists?(:competency_frameworks, :study_program_id)
+      add_reference :assessment_blueprints, :study_program, index: { unique: true },
+        foreign_key: { validate: false } unless column_exists?(:assessment_blueprints, :study_program_id)
+      add_column :competency_items, :expected_evidence_text, :text unless
+        column_exists?(:competency_items, :expected_evidence_text)
+      add_column :competency_items, :expected_evidence_types, :jsonb, null: false, default: [] unless
+        column_exists?(:competency_items, :expected_evidence_types)
+      add_foreign_key :competency_frameworks, :study_programs, validate: false unless
+        foreign_key_exists?(:competency_frameworks, :study_programs)
+      add_foreign_key :assessment_blueprints, :study_programs, validate: false unless
+        foreign_key_exists?(:assessment_blueprints, :study_programs)
+    end
 
     backfill_frameworks
     backfill_blueprints
 
-    change_column_null :competency_frameworks, :study_program_id, false
-    change_column_null :assessment_blueprints, :study_program_id, false
+    safety_assured do
+      change_column_null :competency_frameworks, :study_program_id, false
+      change_column_null :assessment_blueprints, :study_program_id, false
+      validate_foreign_key :competency_frameworks, :study_programs
+      validate_foreign_key :assessment_blueprints, :study_programs
+    end
   end
 
   def down

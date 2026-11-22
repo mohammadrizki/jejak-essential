@@ -10,17 +10,26 @@ class EpaPromotionReadiness
     @epa = epa
   end
 
-  def call
+  def call(allow_current_decision: false)
     return Result.new(false, [], ["EPA tidak berlaku untuk jenjang Sarjana"]) unless applicable?
 
     requirements = @epa.evidence_requirements.where(status: "active").to_a
+    if !allow_current_decision && EntrustmentDecision.current.exists?(student: @student, epa: @epa)
+      return Result.new(false, requirements, ["sudah ada keputusan entrustment aktif; tinjau atau cabut melalui workflow panel sebelum promosi baru"])
+    end
+    progress_by_requirement = requirements.index_with do |requirement|
+      EvidenceRequirementProgress.new(requirement, student: @student).call
+    end
     gating_requirements = requirements.select do |requirement|
-      requirement.is_mandatory? || (requirement.fulfillment_rule || {}).fetch("critical", false)
+      version = progress_by_requirement.fetch(requirement).requirement_version
+      configuration = version&.configuration || requirement.configuration_snapshot
+      configuration.fetch("is_mandatory", requirement.is_mandatory?) ||
+        configuration.dig("fulfillment_rule", "critical")
     end
     reasons = []
     reasons << "belum ada Syarat Bukti EPA wajib atau kritis yang aktif" if gating_requirements.empty?
     gating_requirements.each do |requirement|
-      progress = EvidenceRequirementProgress.new(requirement).call
+      progress = progress_by_requirement.fetch(requirement)
       reasons << "Syarat Bukti ##{requirement.id} belum terpenuhi" unless progress.status == :fulfilled
     end
     flagged = @student.epa_observations.where(epa: @epa, safety_flag: true, status: %w[submitted recorded], safety_resolved_at: nil).exists?
@@ -48,7 +57,7 @@ class EpaPromotionReadiness
     @student.study_program_id.present? &&
       ModuleConfiguration.for(@student.study_program).enabled?("epa") &&
       @epa.competency_framework.study_program_id == @student.study_program_id &&
-      @epa.competency_framework.education_stage.in?(%w[professional specialist subspecialist]) &&
+      @epa.competency_framework.education_stage.in?(%w[undergraduate professional specialist subspecialist]) &&
       @epa.competency_framework.status == "published" && @epa.status == "published"
   end
 

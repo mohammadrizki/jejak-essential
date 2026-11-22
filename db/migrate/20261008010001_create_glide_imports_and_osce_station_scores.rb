@@ -1,6 +1,4 @@
 class CreateGlideImportsAndOsceStationScores < ActiveRecord::Migration[8.1]
-  disable_ddl_transaction!
-
   # Unggah CSV hasil CBT & OSCE berformat ekspor Glide.
   #
   #   - assessment_events.external_code: kunci event dari berkas (exam_code
@@ -39,7 +37,9 @@ class CreateGlideImportsAndOsceStationScores < ActiveRecord::Migration[8.1]
 
     add_column :assessment_events, :external_code, :string
     add_column :assessment_events, :exam_purpose, :string
-    add_index :assessment_events, :external_code, unique: true, where: "external_code IS NOT NULL", algorithm: :concurrently
+    safety_assured do
+      add_index :assessment_events, :external_code, unique: true, where: "external_code IS NOT NULL"
+    end
 
     add_column :assessment_dimensions, :category, :string
 

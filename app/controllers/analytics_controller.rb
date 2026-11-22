@@ -1,11 +1,8 @@
 # frozen_string_literal: true
 
-# Dashboard Analitik — tiga sudut pandang berbeda dalam satu halaman (bukan
-# tiga controller terpisah) karena akun bisa menyandang lebih dari satu
-# peran sekaligus (pilar multi-peran JEJAK Essential): dosen melihat mahasiswa
-# bimbingannya, preseptor melihat mahasiswa di rotasi yang dibimbingnya,
-# Kaprodi melihat seluruh mahasiswa satu program studi. Admin melihat
-# ketiganya sekaligus (tanpa filter kepemilikan).
+# Dashboard analitik mengikuti kapasitas akademik akun. Role admin teknis saja
+# tidak memberi akses ke data mahasiswa; akun multi-role tetap melihat bagian
+# sesuai role akademik yang dimilikinya.
 class AnalyticsController < ApplicationController
   before_action :authenticate_user!
   before_action :require_analytics_access!
@@ -28,22 +25,22 @@ class AnalyticsController < ApplicationController
   private
 
   def require_analytics_access!
-    return if %w[dosen preseptor kaprodi admin].any? { |code| current_user.has_role?(code) }
+    return if %w[dosen preseptor kaprodi].any? { |code| current_user.has_role?(code) }
 
     flash[:alert] = "Anda tidak memiliki akses untuk melakukan itu."
     redirect_to dashboard_path
   end
 
   def show_lecturer_section?
-    current_user.has_role?("dosen") || current_user.has_role?("admin")
+    current_user.has_role?("dosen")
   end
 
   def show_preceptor_section?
-    current_user.has_role?("preseptor") || current_user.has_role?("admin")
+    current_user.has_role?("preseptor")
   end
 
   def show_program_section?
-    current_user.has_role?("kaprodi") || current_user.has_role?("admin")
+    current_user.has_role?("kaprodi")
   end
 
   def selected_academic_period
@@ -98,13 +95,13 @@ class AnalyticsController < ApplicationController
   end
 
   def accessible_study_programs
-    current_user.has_role?("admin") ? StudyProgram.order(:name) : [ current_user.study_program ].compact
+    [ current_user.study_program ].compact
   end
 
   def selected_study_program
     return @study_programs.find { |p| p.id == params[:study_program_id].to_i } if params[:study_program_id].present?
 
-    current_user.has_role?("admin") ? @study_programs.first : current_user.study_program
+    current_user.study_program
   end
 
   def program_student_snapshots(program)

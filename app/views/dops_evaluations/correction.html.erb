@@ -1,0 +1,20 @@
+<div class="mx-auto max-w-2xl space-y-4 px-4 py-6">
+  <header>
+    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Koreksi DOPS</p>
+    <h1 class="mt-1 text-2xl font-bold text-gray-900">Buat draf koreksi</h1>
+    <p class="mt-2 text-sm text-gray-600">Evaluasi terkirim tetap tersimpan. Koreksi akan menjadi versi baru dan baru menggantikan hasil aktif setelah dikirim.</p>
+    <p class="mt-1 text-sm text-gray-500"><%= @dops_evaluation.procedure_name %> · <%= @dops_evaluation.student.full_name %> · <%= l(@dops_evaluation.evaluated_at, format: :long) %></p>
+  </header>
+  <%= form_with url: create_correction_dops_evaluation_path(@dops_evaluation), method: :post,
+    class: "space-y-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200" do |f| %>
+    <div>
+      <%= f.label :correction_reason, "Alasan koreksi", class: "mb-1 block text-sm font-semibold text-gray-700" %>
+      <%= f.text_area :correction_reason, required: true, minlength: 10, maxlength: 1000, rows: 3,
+        placeholder: "Jelaskan mengapa catatan final perlu dikoreksi", class: "w-full rounded-xl border-gray-300 text-sm" %>
+    </div>
+    <div class="flex gap-2">
+      <%= f.submit "Buat draf koreksi", class: "rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+      <%= link_to "Batal", dops_evaluation_path(@dops_evaluation), class: "rounded-xl border px-4 py-2 text-sm" %>
+    </div>
+  <% end %>
+</div>

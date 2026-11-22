@@ -7,6 +7,7 @@
 # punya grafik "kemajuan dari waktu ke waktu".
 class AcademicAssessmentsController < ApplicationController
   before_action :authenticate_user!
+  before_action :require_academic_record_viewer!, if: :viewing_other_student?
 
   def index
     @academic_periods = AcademicPeriod.ordered

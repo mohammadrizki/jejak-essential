@@ -17,3 +17,7 @@ kaprodi:
 admin:
   code: admin
   name: Admin
+
+tenaga_kependidikan:
+  code: tenaga_kependidikan
+  name: Tenaga Kependidikan

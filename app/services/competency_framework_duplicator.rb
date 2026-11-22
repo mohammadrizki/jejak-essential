@@ -138,11 +138,7 @@ class CompetencyFrameworkDuplicator
     end
 
     copy_progressions(item_map)
-    epa_map = if framework.education_stage == "undergraduate"
-      {}
-    else
-      copy_epas(framework, item_map, indicator_map)
-    end
+    epa_map = copy_epas(framework, item_map, indicator_map)
     [ item_map, indicator_map, epa_map ]
   end
 

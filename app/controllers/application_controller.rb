@@ -34,7 +34,14 @@ class ApplicationController < ActionController::Base
   # yang menunjuk akun bukan-mahasiswa atau mahasiswa di luar prodi binaannya
   # (kaprodi) ditolak, bukan diam-diam dialihkan ke dirinya sendiri.
   def viewed_student
-    @viewed_student ||= if params[:student_id].present? && current_user.can_view_students?
+    @viewed_student ||= if params[:student_id].present?
+      unless current_user.can_view_students?
+        # Mahasiswa tidak dapat mengubah lingkup melalui parameter; akun lain
+        # tanpa kapasitas akademik ditolak, bukan dialihkan diam-diam.
+        return current_user if current_user.has_role?("mahasiswa")
+
+        raise Pundit::NotAuthorizedError
+      end
       student = User.find(params[:student_id])
       raise Pundit::NotAuthorizedError unless current_user.can_view_student?(student)
 
@@ -46,6 +53,19 @@ class ApplicationController < ActionController::Base
 
   def viewing_other_student?
     viewed_student != current_user
+  end
+
+  # Ringkasan akademik dapat dibuka untuk mahasiswa lain oleh dosen/preseptor
+  # atau Kaprodi pada prodi binaannya. Role admin teknis saja tidak memberi
+  # akses ke nilai, hasil asesmen, atau umpan balik mahasiswa.
+  def require_academic_record_viewer!
+    return unless viewing_other_student?
+
+    student = viewed_student
+    academic_staff = current_user.has_role?("dosen") || current_user.has_role?("preseptor")
+    assigned_kaprodi = current_user.has_role?("kaprodi") && current_user.study_program_id.present? &&
+      current_user.study_program_id == student.study_program_id
+    raise Pundit::NotAuthorizedError unless academic_staff || assigned_kaprodi
   end
 
   # Parameter yang harus dibawa tautan antar-halaman mahasiswa supaya

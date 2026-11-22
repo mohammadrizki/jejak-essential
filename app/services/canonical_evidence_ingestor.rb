@@ -3,10 +3,14 @@
 # Idempotent bridge entry point for approved external adapters. Imported data
 # remains unverified until a JEJAK reviewer validates its provenance/result.
 class CanonicalEvidenceIngestor
-  def initialize(source_system:, payload:, requirement:)
+  RESERVED_METADATA_KEYS = %w[jejak_import_batch_id jejak_imported_by_id].freeze
+
+  def initialize(source_system:, payload:, requirement:, batch: nil, actor: nil)
     @source_system = source_system.to_s
     @payload = payload.to_h.deep_stringify_keys
     @requirement = requirement
+    @batch = batch
+    @actor = actor
   end
 
   def call
@@ -42,7 +46,7 @@ class CanonicalEvidenceIngestor
         result: @payload["result"],
         feedback: @payload["feedback"],
         context: @payload.fetch("context", {}),
-        metadata: @payload.fetch("metadata", {})
+        metadata: external_metadata.merge(import_provenance)
       )
     )
   end
@@ -54,11 +58,24 @@ class CanonicalEvidenceIngestor
       occurred_on: Date.iso8601(@payload.fetch("occurred_on").to_s),
       instrument_code: @payload["instrument_code"], instrument_version: @payload["instrument_version"],
       score: @payload["score"], result: @payload["result"], feedback: @payload["feedback"],
-      context: @payload.fetch("context", {}), metadata: @payload.fetch("metadata", {})
+      context: @payload.fetch("context", {}), metadata: external_metadata
     }
-    return source if expected_payload.all? { |attribute, value| source.public_send(attribute) == value }
+    existing_metadata = source.metadata.to_h.except(*RESERVED_METADATA_KEYS)
+    return source if expected_payload.all? do |attribute, value|
+      attribute == :metadata ? existing_metadata == value : source.public_send(attribute) == value
+    end
 
     raise ArgumentError, "Identifier sumber dan revisi yang sama datang dengan payload yang berbeda."
+  end
+
+  def external_metadata
+    @external_metadata ||= @payload.fetch("metadata", {}).to_h.deep_stringify_keys.except(*RESERVED_METADATA_KEYS)
+  end
+
+  def import_provenance
+    return {} unless @batch || @actor
+
+    { "jejak_import_batch_id" => @batch&.id, "jejak_imported_by_id" => @actor&.id }.compact
   end
 
   def validate_payload!
@@ -73,5 +90,11 @@ class CanonicalEvidenceIngestor
       @requirement.epa&.competency_framework ||
       @requirement.blueprint_item&.blueprint_version&.competency_framework
     raise ArgumentError, "Bukti harus sesuai program studi pemilik syarat." unless framework&.study_program_id == student.study_program_id
+    if @requirement.epa.present?
+      configuration = ModuleConfiguration.for(framework.study_program)
+      raise ArgumentError, "Observasi EPA eksternal harus berasal dari WPBA klinis." unless @source_system == "clinical_wpba"
+      raise ArgumentError, "EPA atau adapter WPBA klinis eksternal belum diaktifkan." unless
+        configuration.enabled?("epa") && configuration.enabled?("integration_clinical_wpba")
+    end
   end
 end

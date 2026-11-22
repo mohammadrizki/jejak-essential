@@ -4,11 +4,14 @@
     <div class="flex items-center gap-2">
       <%= link_to "+ DOPS", new_dops_evaluation_path, class: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
       <%= link_to "+ Mini-CEX", new_mini_cex_evaluation_path, class: "bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
+      <% if ModuleConfiguration.for(current_user.study_program).enabled?("wpba") && WpbaInstrument.active.where(instrument_type: "other").joins(:versions).merge(WpbaInstrumentVersion.where.not(published_at: nil)).exists? %>
+        <%= link_to "+ WPBA lainnya", new_wpba_observation_path, class: "bg-sky-700 hover:bg-sky-800 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
+      <% end %>
     </div>
   <% end %>
 </div>
 
-<% if @draft_dops_evaluations.any? || @draft_mini_cex_evaluations.any? %>
+<% if @draft_dops_evaluations.any? || @draft_mini_cex_evaluations.any? || @draft_wpba_observations.any? %>
   <div class="mt-6 bg-amber-50/60 ring-1 ring-amber-100 rounded-2xl p-4">
     <h2 class="text-sm font-semibold text-amber-700 uppercase tracking-wide mb-2">Menunggu Diselesaikan (Permintaan & Draf Anda)</h2>
     <div class="space-y-2">
@@ -24,9 +27,12 @@
           <span class="text-xs font-bold uppercase text-amber-600"><%= ev.requested? ? "Diminta mahasiswa" : "Draf" %></span>
         <% end %>
       <% end %>
+      <% @draft_wpba_observations.each do |ev| %><%= link_to wpba_observation_path(ev), class: "flex items-center justify-between bg-white rounded-xl ring-1 ring-amber-200 p-3" do %><span class="text-sm font-medium"><%= ev.wpba_instrument_version.wpba_instrument.name %> · <%= ev.student.full_name %></span><span class="text-xs font-bold text-amber-600">Draf</span><% end %><% end %>
     </div>
   </div>
 <% end %>
+
+<% if @my_wpba_observations.any? %><section class="mt-6 rounded-2xl bg-sky-50 p-4"><h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-800">Observasi WPBA Anda</h2><div class="space-y-2"><% @my_wpba_observations.each do |ev| %><%= link_to wpba_observation_path(ev), class: "block rounded-xl bg-white p-3 text-sm" do %><%= ev.wpba_instrument_version.wpba_instrument.name %> · <%= ev.activity_summary %> · <%= l(ev.observed_at.to_date) %><% end %><% end %></div></section><% end %>
 
 <% if @my_requests.any? %>
   <div class="mt-6 bg-sky-50/60 ring-1 ring-sky-100 rounded-2xl p-4">
@@ -61,6 +67,8 @@
     <% end %>
   </div>
 </div>
+
+<% if @wpba_observations.any? %><div class="mt-8"><h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Observasi WPBA tambahan</h2><div class="space-y-2"><% @wpba_observations.each do |ev| %><%= link_to wpba_observation_path(ev), class: "block rounded-2xl bg-white p-4 ring-1 ring-gray-200" do %><span class="font-semibold"><%= ev.wpba_instrument_version.wpba_instrument.name %></span><span class="text-sm text-gray-500"> · <%= ev.student.full_name %> · <%= l(ev.observed_at.to_date) %></span><p class="mt-1 text-sm"><%= ev.activity_summary %></p><% end %><% end %></div></div><% end %>
 
 <div class="mt-8">
   <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Mini-CEX Terbaru</h2>

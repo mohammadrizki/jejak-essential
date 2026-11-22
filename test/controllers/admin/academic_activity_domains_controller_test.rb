@@ -8,6 +8,7 @@ class Admin::AcademicActivityDomainsControllerTest < ActionDispatch::Integration
   setup do
     @admin = users(:budi)
     @admin.roles << roles(:admin)
+    @admin.update!(active_role: roles(:admin))
     sign_in @admin
   end
 

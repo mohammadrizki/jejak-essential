@@ -7,6 +7,7 @@ class Admin::TerminologyOverridesControllerTest < ActionDispatch::IntegrationTes
   setup do
     @admin = users(:budi)
     @admin.roles << roles(:admin)
+    @admin.update!(active_role: roles(:admin))
     sign_in @admin
   end
 
@@ -26,7 +27,7 @@ class Admin::TerminologyOverridesControllerTest < ActionDispatch::IntegrationTes
     assert_select "aside#sidebar a[href=?]", admin_terminology_path, text: "Taksonomi Istilah"
     Terminology::SECTIONS.each_value { |title| assert_select "h2", text: title }
     assert_select "input[name=?][placeholder=?]", "terms[nav.clinical_rotations]", "Rotasi Klinik"
-    assert_select "input[name=?][placeholder=?]", "terms[nav.groups.configuration]", "Konfigurasi"
+    assert_select "input[name=?][placeholder=?]", "terms[nav.groups.configuration]", "Administrasi"
     assert_select "input[name=?][placeholder=?]", "terms[nav.mobile.activity]", "Log Keg."
     assert_select "input[name=?][placeholder=?]", "terms[terms.activity_subdomain]", "Subdomain / Kategori"
   end
@@ -44,7 +45,7 @@ class Admin::TerminologyOverridesControllerTest < ActionDispatch::IntegrationTes
     assert_select "aside#sidebar p", text: "Pengaturan Sistem"
     assert_select "aside#sidebar p", text: "Konfigurasi", count: 0
 
-    patch admin_terminology_path, params: { terms: { "nav.clinical_rotations" => "", "nav.groups.configuration" => "Konfigurasi" } }
+    patch admin_terminology_path, params: { terms: { "nav.clinical_rotations" => "", "nav.groups.configuration" => "Administrasi" } }
     assert_not TerminologyOverride.exists?, "isian kosong / sama dengan bawaan menghapus penggantian"
     get dashboard_path
     assert_select "aside#sidebar a[href=?]", clinical_rotations_path, text: "Rotasi Klinik"

@@ -18,11 +18,37 @@
     </div>
   </div>
 
+  <% [
+    [:what_happened, "Apa yang saya alami?"],
+    [:what_learned, "Apa yang saya pelajari?"],
+    [:what_to_improve, "Apa yang masih perlu saya perbaiki?"],
+    [:next_action, "Apa yang akan saya lakukan selanjutnya?"]
+  ].each do |attribute, prompt| %>
+    <div>
+      <%= f.label attribute, prompt, class: "block text-sm font-semibold text-gray-700 mb-1" %>
+      <%= f.text_area attribute, rows: 3,
+        class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-500 text-sm" %>
+    </div>
+  <% end %>
+  <% if reflection_entry.persisted? && reflection_entry.what_happened.blank? && reflection_entry.content.present? %>
+    <div class="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">Refleksi lama tetap dipertahankan: <%= truncate(reflection_entry.content, length: 240) %></div>
+  <% end %>
+
   <div>
-    <%= f.label :content, "Tulisan Refleksi", class: "block text-sm font-semibold text-gray-700 mb-1" %>
-    <p class="text-xs text-gray-400 mb-1">Apa yang terjadi, apa yang Anda rasakan, apa yang Anda pelajari, dan apa yang akan dilakukan berbeda?</p>
-    <%= f.text_area :content, rows: 6,
-          class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-500 text-sm" %>
+    <%= f.label :competency_item_ids, "Kompetensi terkait (opsional)", class: "block text-sm font-semibold text-gray-700 mb-1" %>
+    <%= f.collection_select :competency_item_ids, @competency_items, :id, :title,
+      { include_hidden: false }, multiple: true,
+      class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-gray-900 ring-1 ring-inset ring-gray-300 text-sm" %>
+    <p class="mt-1 text-xs text-gray-400">Hanya kompetensi dari Peta Kompetensi program studi Anda yang dapat dipilih.</p>
+  </div>
+
+  <div>
+    <%= f.label :evidence_source_ids, "Bukti yang direfleksikan (opsional)", class: "block text-sm font-semibold text-gray-700 mb-1" %>
+    <%= f.collection_select :evidence_source_ids, @evidence_sources, :id,
+      ->(source) { "#{l(source.occurred_on, format: :long)} · #{source.instrument_code.presence || source.source_type.humanize} · #{source.validation_status.humanize}" },
+      { include_hidden: false }, multiple: true,
+      class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-gray-900 ring-1 ring-inset ring-gray-300 text-sm" %>
+    <p class="mt-1 text-xs text-gray-400">Tautan ini hanya memberi konteks refleksi; tidak membuat atau menghitung ulang bukti.</p>
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

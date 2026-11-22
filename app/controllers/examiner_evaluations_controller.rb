@@ -46,7 +46,7 @@ class ExaminerEvaluationsController < ApplicationController
   private
 
   def require_instructor!
-    return if current_user.instructor? || current_user.has_role?("kaprodi")
+    return if current_user.has_role?("dosen") || current_user.has_role?("preseptor") || current_user.has_role?("kaprodi")
 
     redirect_to dashboard_path, alert: "Halaman ini untuk dosen/preseptor."
   end
@@ -61,7 +61,9 @@ class ExaminerEvaluationsController < ApplicationController
   def unassigned_instances
     scope = AssessmentInstance.where(examiner_id: nil, status: "submitted").where.not(student_id: current_user.id)
                               .where.not(assessment_event_id: AssessmentEvent.importable.select(:id))
-    return scope unless current_user.study_program_bound?
+    program_limited = current_user.has_role?("kaprodi") &&
+      !(current_user.has_role?("dosen") || current_user.has_role?("preseptor"))
+    return scope unless program_limited
     return scope.none if current_user.study_program_id.nil?
 
     scope.where(student_id: User.where(study_program_id: current_user.study_program_id).select(:id))
@@ -73,7 +75,10 @@ class ExaminerEvaluationsController < ApplicationController
   # percobaannya sendiri (akun multi-peran).
   def can_score?(instance)
     return false if instance.student_id == current_user.id
-    return true if instance.examiner_id == current_user.id || current_user.has_role?("admin")
+    return true if instance.examiner_id == current_user.id
+    return true if current_user.has_role?("kaprodi") && !current_user.has_role?("admin") &&
+      instance.student.study_program_id == current_user.study_program_id
+    return false unless current_user.has_role?("dosen") || current_user.has_role?("preseptor")
 
     instance.examiner_id.nil? && instance.status == "submitted" && !instance.assessment_event.importable?
   end

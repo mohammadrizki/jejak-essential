@@ -6,8 +6,13 @@ class ArtifactMapsController < ApplicationController
   before_action :authenticate_user!
 
   def index
-    authorize AssessmentBlueprint
-    @study_programs = StudyProgram.ordered
+    authorize AssessmentBlueprint, :artifact_map?
+    @read_only = (current_user.active_role&.code || current_user.roles.first&.code) == "mahasiswa"
+    @study_programs = if current_user.has_role?("admin")
+      StudyProgram.ordered
+    else
+      StudyProgram.where(id: current_user.study_program_id)
+    end
     @study_program = @study_programs.find_by(id: params[:study_program_id]) || @study_programs.first
     @framework = @study_program&.peta_kompetensi
     @blueprint = @study_program&.assessment_blueprint

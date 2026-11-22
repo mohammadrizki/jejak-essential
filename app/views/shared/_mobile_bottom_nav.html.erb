@@ -1,60 +1,72 @@
-<%# Bilah navigasi bawah untuk layar kecil: Beranda, Log Kegiatan, Log Kasus, lalu
-    Verifikasi (pengajar) atau Asesmen (mahasiswa). %>
 <%
   active_code = (current_user.active_role || current_user.roles.first)&.code
-  # Pintasan Verifikasi hanya bagi yang boleh memverifikasi (sama dengan
-  # sidebar); kaprodi tanpa peran pengajar mendapat Asesmen.
-  verifier    = %w[dosen preseptor kaprodi admin].include?(active_code) && current_user.can_verify_clinical_cases?
-  item_class  = ->(active) { "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-150 #{active ? 'nav-item-active' : 'nav-item-inactive'}" }
+  is_student = active_code == "mahasiswa"
+  is_dosen = active_code == "dosen"
+  is_preceptor = active_code == "preseptor"
+  is_kaprodi = active_code == "kaprodi"
+  is_admin = active_code == "admin"
+  is_tendik = active_code == "tenaga_kependidikan"
+  is_instructor = is_dosen || is_preceptor || is_admin
+  program = current_user.study_program
+  modules = ModuleConfiguration.for(program)
+  logbook_enabled = program.present? && modules.enabled?("clinical_logbook")
+  wpba_enabled = program.present? && modules.enabled?("wpba")
+  epa_enabled = program.present? && modules.enabled?("epa")
+  logbook_assigned = UserAssignment.active.exists?(user: current_user, assignment_role: "logbook_verifier")
+  panel_assigned = UserAssignment.active.exists?(user: current_user, assignment_role: "epa_panel_member")
+  external_data_assigned = UserAssignment.active.exists?(user: current_user, assignment_role: "external_data_manager", scope_type: "StudyProgram")
+  evidence_reviewer_assigned = UserAssignment.active.exists?(user: current_user, assignment_role: "evidence_reviewer")
+  preceptor_for_student = current_user.precepted_rotations.ongoing.exists?
+  assigned_program_ids = current_user.precepted_rotations.joins(:user).distinct.pluck("users.study_program_id")
+  assigned_epa_program_ids = assigned_program_ids + UserAssignment.active.where(user: current_user, assignment_role: "epa_panel_member")
+    .where.not(study_program_id: nil).pluck(:study_program_id)
+  assigned_programs = StudyProgram.where(id: assigned_program_ids.compact)
+  epa_programs = StudyProgram.where(id: assigned_epa_program_ids.compact.uniq)
+  wpba_enabled_for_assigned = assigned_programs.any? { |assigned_program| ModuleConfiguration.for(assigned_program).enabled?("wpba") }
+  epa_enabled_for_assigned = epa_programs.any? { |assigned_program| ModuleConfiguration.for(assigned_program).enabled?("epa") }
+  logbook_available = logbook_enabled || current_user.activity_logs.exists? || (is_student && current_user.clinical_cases.exists?) ||
+    logbook_assigned || (is_admin && ActivityLog.exists?)
+  wpba_available = wpba_enabled || current_user.dops_evaluations_as_student.exists? || current_user.mini_cex_evaluations_as_student.exists? ||
+    current_user.wpba_observations_as_student.exists? || current_user.wpba_observations_as_observer.exists? ||
+    current_user.dops_evaluations_as_evaluator.exists? || current_user.mini_cex_evaluations_as_evaluator.exists? || wpba_enabled_for_assigned
+  epa_available = epa_enabled || epa_enabled_for_assigned || current_user.epa_observations.exists? || current_user.entrustment_decisions.exists?
+  verifier = is_instructor && current_user.can_verify_clinical_cases?
+  items = [["Dashboard", dashboard_path, request.path.in?(%w[/ /dashboard])]]
+  if is_student
+    items << ["Logbook", activity_logs_path, request.path.start_with?("/activity_logs", "/kalender")] if logbook_available
+    items << ["Portofolio", portfolio_path, request.path.start_with?("/portfolio")]
+    items << ["WPBA", assessments_path, request.path.start_with?("/asesmen", "/dops_evaluations", "/mini_cex_evaluations", "/wpba_observations")] if wpba_available
+    items << ["Capaian", academic_assessments_path, request.path.start_with?("/capaian-belajar")]
+    items << ["EPA", entrustment_decisions_path, request.path.start_with?("/dashboard/entrustment")] if epa_available
+  elsif is_kaprodi
+    items << ["Peta", competency_frameworks_path, request.path.start_with?("/competency_frameworks")]
+    items << ["Capaian", analytics_path, request.path.start_with?("/analitik")]
+    items << ["Penugasan", user_assignments_path, request.path.start_with?("/user_assignments")]
+  elsif is_admin
+    items << ["Peta", competency_frameworks_path, request.path.start_with?("/competency_frameworks")]
+    items << ["WPBA", admin_wpba_instruments_path, request.path.start_with?("/admin/wpba_instruments")]
+    items << ["Pengaturan", edit_module_configuration_path(study_program_id: StudyProgram.ordered.first&.id), request.path.start_with?("/module_configuration")]
+    items << ["Logbook", activity_logs_path(scope: "to_verify"), request.path.start_with?("/activity_logs") && params[:scope] == "to_verify"] if logbook_assigned
+  elsif is_tendik
+    items << ["Impor Bukti", external_evidence_imports_path, request.path.start_with?("/external_evidence_imports")] if external_data_assigned
+    items << ["Pemetaan ID", external_identity_mappings_path, request.path.start_with?("/external_identity_mappings")] if external_data_assigned
+  else
+    items << ["Verifikasi", clinical_cases_path(scope: "to_verify"), request.path.start_with?("/clinical_cases") && params[:scope].in?(%w[to_verify reviewed])] if verifier
+    items << ["Logbook", activity_logs_path(scope: "to_verify"), request.path.start_with?("/activity_logs") && params[:scope] == "to_verify"] if logbook_assigned
+    items << ["WPBA", assessments_path, request.path.start_with?("/asesmen", "/dops_evaluations", "/mini_cex_evaluations", "/wpba_observations")] if wpba_available
+    items << ["EPA", epa_promotions_path, request.path.start_with?("/epa_promotions")] if epa_available && (is_preceptor || panel_assigned || preceptor_for_student)
+    items << ["Portofolio", portfolio_path, request.path.start_with?("/portfolio")] if current_user.activity_logs.exists?
+  end
+  items << ["Validasi Bukti", evidence_sources_path, request.path.start_with?("/evidence_sources")] if evidence_reviewer_assigned
+  items << ["Profil", profile_path, request.path.start_with?("/profile")]
+  nav_class = ->(active) { "flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 rounded-xl transition-colors #{active ? 'nav-item-active' : 'nav-item-inactive'}" }
 %>
-<div class="mobile-bottom-nav lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-slate-200/70 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] flex justify-around items-center px-1 pt-2">
-  <%= link_to dashboard_path, class: item_class.call(request.path == "/dashboard" || request.path == "/") do %>
-    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-    </svg>
-    <span class="text-[10px] font-semibold"><%= term("nav.mobile.home") %></span>
-  <% end %>
 
-  <%= link_to activity_logs_path, class: item_class.call(request.path.start_with?("/activity_logs", "/kalender")) do %>
-    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-    </svg>
-    <span class="text-[10px] font-semibold"><%= term("nav.mobile.activity") %></span>
-  <% end %>
-
-  <%= link_to clinical_cases_path, class: item_class.call(request.path.start_with?("/clinical_cases") && !params[:scope].in?(%w[to_verify reviewed])) do %>
-    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
-    </svg>
-    <span class="text-[10px] font-semibold"><%= term("nav.mobile.cases") %></span>
-  <% end %>
-
-  <% if verifier %>
-    <% pending = ClinicalCase.awaiting_verification_by(current_user).count %>
-    <%= link_to clinical_cases_path(scope: "to_verify"), class: item_class.call(request.path.start_with?("/clinical_cases") && params[:scope].in?(%w[to_verify reviewed])) do %>
-      <div class="relative">
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-        </svg>
-        <% if pending > 0 %>
-          <span class="absolute -top-1 -right-1.5 min-w-[16px] h-4 rounded-full bg-rose-500 border border-white flex items-center justify-center text-[9px] font-black text-white leading-none px-0.5"><%= pending > 9 ? "9+" : pending %></span>
-        <% end %>
-      </div>
-      <span class="text-[10px] font-semibold"><%= term("nav.mobile.verification") %></span>
-    <% end %>
-  <% else %>
-    <%= link_to assessments_path, class: item_class.call(request.path.start_with?("/asesmen", "/dops_evaluations", "/mini_cex_evaluations")) do %>
-      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-      </svg>
-      <span class="text-[10px] font-semibold"><%= term("nav.mobile.assessment") %></span>
+<nav aria-label="Navigasi cepat" class="mobile-bottom-nav lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-slate-200/70 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] flex justify-around items-center px-1 pt-2">
+  <% items.each do |label, path, active| %>
+    <%= link_to path, class: nav_class.call(active), aria: { current: (active ? "page" : nil), label: label } do %>
+      <span aria-hidden="true" class="flex h-5 w-5 items-center justify-center rounded-md bg-current/10 text-sm font-bold"><%= {"Dashboard" => "⌂", "Logbook" => "▤", "Portofolio" => "▣", "WPBA" => "✓", "Capaian" => "◫", "EPA" => "◎", "Peta" => "⌘", "Penugasan" => "⇄", "Pengaturan" => "⚙", "Verifikasi" => "✓", "Impor Bukti" => "⇧", "Pemetaan ID" => "↔", "Profil" => "○"}.fetch(label, "•") %></span>
+      <span class="truncate text-[10px] font-semibold"><%= label %></span>
     <% end %>
   <% end %>
-
-  <%= link_to profile_path, class: item_class.call(request.path.start_with?("/profile")) do %>
-    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-    </svg>
-    <span class="text-[10px] font-semibold"><%= term("nav.mobile.profile") %></span>
-  <% end %>
-</div>
+</nav>

@@ -41,9 +41,10 @@ class StudyProgramsController < ApplicationController
 
   def set_study_program
     @study_program = StudyProgram.find(params[:id])
+    @competency_frameworks = @study_program.framework_versions.order(created_at: :desc, id: :desc)
   end
 
   def study_program_params
-    params.require(:study_program).permit(:name, :code, :level, :competency_framework_id)
+    params.require(:study_program).permit(:name, :code, :level, :competency_framework_id, :epa_panel_quorum)
   end
 end

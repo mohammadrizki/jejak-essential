@@ -16,6 +16,18 @@ class ClinicalRotationTest < ActiveSupport::TestCase
     assert_includes rotasi.errors[:end_date], "harus setelah atau sama dengan tanggal mulai"
   end
 
+  test "akun admin teknis tanpa peran akademik tidak dapat ditetapkan sebagai preseptor" do
+    admin = User.create!(full_name: "Admin Rotasi", email: "admin-rotasi@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current)
+    admin.roles << roles(:admin)
+    rotation = ClinicalRotation.new(user: users(:siti), preceptor: admin,
+      academic_period: academic_periods(:current_period), station_name: "Rotasi Uji",
+      start_date: Date.current, end_date: 2.days.from_now.to_date)
+
+    assert_not rotation.valid?
+    assert_includes rotation.errors[:preceptor], "harus memiliki peran dosen atau preseptor"
+  end
+
   test "scope ongoing/upcoming menyaring dengan benar" do
     assert_includes ClinicalRotation.ongoing, clinical_rotations(:ongoing_rotation_siti)
     assert_not_includes ClinicalRotation.ongoing, clinical_rotations(:upcoming_rotation_siti)

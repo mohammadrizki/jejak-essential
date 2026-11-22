@@ -11,29 +11,32 @@
   is_preceptor = active_code == "preseptor"
   is_kaprodi   = active_code == "kaprodi"
   is_admin     = active_code == "admin"
-  # Menu konfigurasi mengikuti policy-nya: AcademicPeriodPolicy, ExamImportPolicy,
-  # AssessmentBlueprintPolicy, dan CompetencyFrameworkPolicy semua memeriksa
-  # has_role?("admin") — bukan peran aktif — jadi di sini pun begitu.
-  is_config_manager = current_user.has_role?("admin")
-  is_instructor = is_dosen || is_preceptor || is_kaprodi || is_admin
+  is_tendik    = active_code == "tenaga_kependidikan"
+  # Navigasi mengikuti peran aktif. Role lain pada akun tidak membuat menu
+  # administrasi muncul saat pengguna sedang bekerja sebagai mahasiswa/dosen.
+  is_config_manager = is_admin
+  is_instructor = is_dosen || is_preceptor || is_admin
   # Validasi Kasus/Kegiatan mengikuti ClinicalCasePolicy/ActivityLogPolicy
   # (can_verify_clinical_cases?): kaprodi tanpa peran pengajar tidak
   # memverifikasi, jadi menu dan lencananya tidak ditawarkan — sama dengan beranda.
   is_verifier = is_instructor && current_user.can_verify_clinical_cases?
   pending_verifications = is_verifier ? ClinicalCase.awaiting_verification_by(current_user).count : 0
-  pending_activity_verifications = is_verifier ? ActivityLog.awaiting_verification_by(current_user).count : 0
+  pending_activity_verifications = if is_verifier
+    ActivityLogPolicy::Scope.new(current_user, ActivityLog).resolve.awaiting_verification_by(current_user).count
+  else
+    0
+  end
   brand_title    = "JEJAK"
   brand_subtitle = current_user.study_program&.name || t("chrome.brand_subtitle_default")
   # Relabel Prodi, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data
   # juga terbuka untuk kaprodi (terikat prodinya).
-  is_prodi_manager = is_kaprodi && !is_config_manager
-  # Form Builder mengikuti AssessmentFormTemplatePolicy (peran yang
-  # disandang, bukan peran aktif): hanya kaprodi & admin.
-  is_form_manager = current_user.can_manage_assessment_forms?
+  is_prodi_manager = is_kaprodi
+  is_form_manager = is_kaprodi || is_admin
   # Monitoring SRQ mengikuti peran aktif kaprodi; admin biasa tidak melihatnya.
   is_srq_monitor = is_kaprodi && current_user.can_monitor_srq?
   # SRQ-20 baru tampil setelah kaprodi mengaktifkannya untuk prodi mahasiswa ini.
   is_srq_student = is_student && current_user.srq_accessible?
+  current_program = current_user.study_program
   student_framework = current_user.study_program&.peta_kompetensi if is_student
   has_evidence_requirements = if student_framework
     EvidenceRequirement.where(status: "active")
@@ -42,10 +45,42 @@
   else
     false
   end
+  active_assignments = UserAssignment.active.where(user: current_user)
+  assigned_external_data_manager = active_assignments.where(assignment_role: "external_data_manager", scope_type: "StudyProgram").exists?
+  assigned_logbook_verifier = active_assignments.where(assignment_role: "logbook_verifier").exists?
+  assigned_artifact_reviewer = active_assignments.where(assignment_role: "artifact_reviewer").exists?
+  assigned_evidence_reviewer = active_assignments.where(assignment_role: "evidence_reviewer").exists?
+  assigned_epa_panel = active_assignments.where(assignment_role: "epa_panel_member").exists?
+  assigned_program_ids = current_user.precepted_rotations.joins(:user).distinct.pluck("users.study_program_id")
+  assigned_program_ids += current_user.dops_evaluations_as_evaluator.joins(:student).distinct.pluck("users.study_program_id")
+  assigned_program_ids += current_user.mini_cex_evaluations_as_evaluator.joins(:student).distinct.pluck("users.study_program_id")
+  assigned_program_ids = assigned_program_ids.compact.uniq
+  assigned_program_modules = assigned_program_ids.index_with { |id| ModuleConfiguration.for(StudyProgram.find(id)) }
+  logbook_visible = (current_program.present? && ModuleConfiguration.for(current_program).enabled?("clinical_logbook")) ||
+    current_user.activity_logs.exists? || (is_student && current_user.clinical_cases.exists?) ||
+    (is_admin && ActivityLog.exists?) || assigned_logbook_verifier
+  wpba_visible = (current_program.present? && ModuleConfiguration.for(current_program).enabled?("wpba")) ||
+    current_user.dops_evaluations_as_student.exists? || current_user.mini_cex_evaluations_as_student.exists? ||
+    current_user.wpba_observations_as_student.exists? || current_user.wpba_observations_as_observer.exists? ||
+    current_user.dops_evaluations_as_evaluator.exists? || current_user.mini_cex_evaluations_as_evaluator.exists? ||
+    assigned_program_modules.values.any? { |config| config.enabled?("wpba") }
+  epa_programs = ([ current_program ].compact + assigned_program_ids.filter_map { |id| StudyProgram.find_by(id: id) }).uniq
+  epa_enabled_in_scope = epa_programs.any? { |program| ModuleConfiguration.for(program).enabled?("epa") }
+  epa_relevant = is_student && current_program.present? &&
+    (ModuleConfiguration.for(current_program).enabled?("epa") || current_user.epa_observations.exists? || current_user.entrustment_decisions.exists?)
+  epa_staff_visible = (is_preceptor || is_kaprodi || assigned_epa_panel) &&
+    (epa_enabled_in_scope || current_user.epa_observations.exists? || assigned_epa_panel)
   nav_locals = { is_student: is_student, is_instructor: is_instructor, is_verifier: is_verifier,
+                 is_dosen: is_dosen, is_preceptor: is_preceptor, is_kaprodi: is_kaprodi, is_admin: is_admin,
                  is_config_manager: is_config_manager, is_prodi_manager: is_prodi_manager,
+                 is_tendik: is_tendik, assigned_external_data_manager: assigned_external_data_manager,
                  is_form_manager: is_form_manager, is_srq_monitor: is_srq_monitor, is_srq_student: is_srq_student,
                  has_evidence_requirements: has_evidence_requirements,
+                 logbook_visible: logbook_visible, wpba_visible: wpba_visible,
+                 assigned_logbook_verifier: assigned_logbook_verifier,
+                 assigned_evidence_reviewer: assigned_evidence_reviewer,
+                 can_review_artifacts: is_kaprodi || assigned_artifact_reviewer,
+                 epa_relevant: epa_relevant, epa_staff_visible: epa_staff_visible,
                  pending_verifications: pending_verifications,
                  pending_activity_verifications: pending_activity_verifications }
 %>

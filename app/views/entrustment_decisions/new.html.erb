@@ -1,0 +1,51 @@
+<div class="mx-auto max-w-2xl space-y-5">
+  <div>
+    <h1 class="text-xl font-bold text-gray-900">Keputusan Entrustment Ad Hoc</h1>
+    <p class="mt-1 text-sm text-gray-500">Keputusan supervisi untuk aktivitas pendidikan tertentu. Ini berbeda dari observasi formatif dan keputusan sumatif panel.</p>
+  </div>
+
+  <% if @decision_error.present? %>
+    <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><%= @decision_error %></div>
+  <% end %>
+
+  <%= form_with url: entrustment_decisions_path, scope: :entrustment_decision, class: "space-y-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200" do |f| %>
+    <%= hidden_field_tag :student_id, @student.id %>
+    <div>
+      <%= f.label :epa_id, "EPA katalog (opsional)", class: "mb-1 block text-sm font-semibold text-gray-700" %>
+      <%= f.collection_select :epa_id, @epas, :id, ->(epa) { "#{epa.code} · #{epa.title}" }, { include_blank: "Aktivitas kontekstual di luar katalog" }, class: "w-full rounded-xl border-gray-300 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :activity_description, "Aktivitas profesional", class: "mb-1 block text-sm font-semibold text-gray-700" %>
+      <%= f.text_area :activity_description, rows: 2, placeholder: "Wajib jika tidak memilih EPA katalog", class: "w-full rounded-xl border-gray-300 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :supervision_scale_version_id, "Skala supervisi", class: "mb-1 block text-sm font-semibold text-gray-700" %>
+      <%= f.collection_select :supervision_scale_version_id, @scale_versions, :id, ->(version) { "#{version.name} · versi #{version.version_label}" }, { prompt: "Pilih skala berversi" }, class: "w-full rounded-xl border-gray-300 text-sm" %>
+    </div>
+    <div>
+      <%= f.label :supervision_level_id, "Tingkat supervisi", class: "mb-1 block text-sm font-semibold text-gray-700" %>
+      <%= f.select :supervision_level_id, @scale_versions.flat_map { |version| version.supervision_levels.map { |level| ["#{version.name} v#{version.version_label} · #{level.ordinal}. #{level.label}", level.id] } }, { prompt: "Pilih tingkat yang diotorisasi" }, class: "w-full rounded-xl border-gray-300 text-sm" %>
+      <p class="mt-1 text-xs text-gray-500">Level harus berasal dari skala supervisi prospektif. Definisi skala dan versinya tersimpan pada keputusan.</p>
+    </div>
+    <% if @rotations.any? %>
+      <div>
+        <%= f.label :clinical_rotation_id, "Rotasi klinis (opsional)", class: "mb-1 block text-sm font-semibold text-gray-700" %>
+        <%= f.collection_select :clinical_rotation_id, @rotations, :id, :station_name, { include_blank: "Tidak ditautkan" }, class: "w-full rounded-xl border-gray-300 text-sm" %>
+      </div>
+    <% end %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div><%= f.label :setting, "Konteks", class: "mb-1 block text-sm font-semibold text-gray-700" %><%= f.text_field :setting, class: "w-full rounded-xl border-gray-300 text-sm" %></div>
+      <div><%= f.label :case_complexity, "Kompleksitas kasus", class: "mb-1 block text-sm font-semibold text-gray-700" %><%= f.text_field :case_complexity, class: "w-full rounded-xl border-gray-300 text-sm" %></div>
+    </div>
+    <div><%= f.label :scope_limitations, "Batasan aktivitas", class: "mb-1 block text-sm font-semibold text-gray-700" %><%= f.text_area :scope_limitations, rows: 2, class: "w-full rounded-xl border-gray-300 text-sm" %></div>
+    <div><%= f.label :justification, "Alasan keputusan", class: "mb-1 block text-sm font-semibold text-gray-700" %><%= f.text_area :justification, required: true, minlength: EntrustmentDecision::MIN_JUSTIFICATION, rows: 3, class: "w-full rounded-xl border-gray-300 text-sm" %></div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div><%= f.label :valid_from, "Mulai berlaku", class: "mb-1 block text-sm font-semibold text-gray-700" %><%= f.datetime_local_field :valid_from, value: Time.current.strftime("%Y-%m-%dT%H:%M"), class: "w-full rounded-xl border-gray-300 text-sm" %></div>
+      <div><%= f.label :valid_until, "Berakhir (opsional)", class: "mb-1 block text-sm font-semibold text-gray-700" %><%= f.datetime_local_field :valid_until, class: "w-full rounded-xl border-gray-300 text-sm" %></div>
+    </div>
+    <div class="flex gap-3">
+      <%= f.submit "Terbitkan keputusan", class: "rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700" %>
+      <%= link_to "Batal", entrustment_decisions_path(student_id: @student.id), class: "rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100" %>
+    </div>
+  <% end %>
+</div>

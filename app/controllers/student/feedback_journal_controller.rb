@@ -4,6 +4,7 @@
 # Case, DOPS, Mini-CEX) dalam satu linimasa kronologis.
 class Student::FeedbackJournalController < ApplicationController
   before_action :authenticate_user!
+  before_action :require_academic_record_viewer!, if: :viewing_other_student?
 
   def index
     entries = []

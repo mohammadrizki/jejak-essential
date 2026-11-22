@@ -63,7 +63,7 @@ class ClinicalCaseSupervisorTest < ActionDispatch::IntegrationTest
     sign_in users(:budi)
 
     get clinical_case_path(@kasus)
-    assert_response :success
+    assert_response :success # penilai rotasi boleh membaca konteks, tetapi bukan memutus kasus yang menunjuk pembimbing lain
     assert_match "Menunggu verifikasi dari", response.body
     assert_no_match "Setujui / Verifikasi", response.body
 

@@ -554,6 +554,12 @@ class DataExport
   # terbuka bagi admin.
   def form_answers_scope
     answers = AssessmentFormAnswer.joins(:assessment_form_submission, :assessment_form_field)
+    if @viewer.study_program_bound?
+      program_user_ids = User.where(study_program_id: @viewer.study_program_id).select(:id)
+      related_submissions = AssessmentFormSubmission.where(respondent_id: program_user_ids)
+        .or(AssessmentFormSubmission.where(subject_user_id: program_user_ids)).select(:id)
+      answers = answers.where(assessment_form_submissions: { id: related_submissions })
+    end
     answers = answers.where(assessment_form_submissions: { assessment_form_template_id: form_template.id }) if form_template
     within_dates(answers, "assessment_form_submissions.submitted_at", time: true)
       .preload(:assessment_form_field, assessment_form_submission: %i[assessment_form_template respondent subject_user])

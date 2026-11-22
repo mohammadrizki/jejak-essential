@@ -1,0 +1,14 @@
+<div class="mx-auto max-w-5xl space-y-5 px-4 py-6">
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div><h1 class="text-2xl font-bold">Katalog Instrumen WPBA</h1><p class="mt-1 text-sm text-gray-600">Instrumen dan definisinya memiliki versi. Versi terbit tidak dapat diubah; hasil baru menyimpan versi yang digunakan.</p></div>
+    <%= link_to "Tambah instrumen", new_admin_wpba_instrument_path, class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+  </header>
+  <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <% @instruments.each do |instrument| %>
+      <%= link_to admin_wpba_instrument_path(instrument), class: "flex items-center justify-between gap-3 border-b p-4 last:border-0 hover:bg-slate-50" do %>
+        <span><strong><%= instrument.name %></strong><span class="ml-2 text-xs text-gray-500"><%= instrument.code %> · <%= instrument.instrument_type.humanize %></span></span>
+        <span class="text-xs text-gray-500"><%= instrument.current_version&.version_label || "Belum ada versi" %> →</span>
+      <% end %>
+    <% end %>
+  </div>
+</div>

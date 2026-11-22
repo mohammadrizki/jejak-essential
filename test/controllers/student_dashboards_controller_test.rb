@@ -6,9 +6,11 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   STUDENT_PAGES = %i[exam_scores_path assessments_path student_assessments_path student_feedback_journal_path
-                     academic_assessments_path entrustment_decisions_path].freeze
+                     academic_assessments_path].freeze
 
   test "dosen membuka dasbor mahasiswa: profil, statistik, dan 6 kartu berparameter student_id" do
+    EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
+      source_type: "logbook", required_count: 1)
     sign_in users(:budi)
     siti = users(:siti)
     get student_dashboard_path(siti)
@@ -19,6 +21,23 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
     hub = Nokogiri::HTML5(response.body).at_css('[data-testid="assessment-hub"]')
     expected = STUDENT_PAGES.map { |h| send(h, student_id: siti.id) }
     assert_equal expected, hub.css("a").map { |a| a["href"] }
+    assert_select '[data-testid="evidence-cycle-summary"]'
+  end
+
+  test "EPA Sarjana tersembunyi saat modul tidak aktif dan route langsung ditolak" do
+    sign_in users(:siti)
+    get student_dashboard_path(users(:siti))
+    assert_response :redirect # mahasiswa tidak dapat membuka dasbor administratif
+
+    sign_in users(:budi)
+    get student_dashboard_path(users(:siti))
+    assert_response :success
+    assert_select "a[href=?]", entrustment_decisions_path(student_id: users(:siti).id), 0
+
+    sign_in users(:siti)
+    get entrustment_decisions_path
+    assert_redirected_to dashboard_path
+    assert_match "Modul EPA tidak aktif", flash[:alert]
   end
 
   test "kaprodi bisa membuka; mahasiswa lain dan pengguna non-mahasiswa ditolak" do
@@ -40,6 +59,23 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:budi)
     get student_dashboard_path(users(:siti))
     assert_match "Sunting akun", response.body
+  end
+
+  test "admin teknis tanpa peran akademik tidak dapat membuka ringkasan nilai dan asesmen mahasiswa" do
+    admin = User.create!(full_name: "Admin Teknis Dashboard", email: "admin-teknis-dashboard@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current)
+    admin.roles << roles(:admin)
+    sign_in admin
+    student_id = users(:siti).id
+
+    [student_dashboard_path(student_id), exam_scores_path(student_id: student_id), academic_assessments_path(student_id: student_id),
+     student_assessments_path(student_id: student_id), student_feedback_journal_path(student_id: student_id)].each do |path|
+      get path
+      assert_response :redirect, "#{path} harus menolak admin teknis tanpa peran akademik"
+    end
+
+    get student_assessment_path(assessment_instances(:siti_cbt_1), student_id: student_id)
+    assert_response :redirect
   end
 
   test "setiap halaman asesmen menampilkan data mahasiswa yang dipilih beserta banner hanya-baca" do

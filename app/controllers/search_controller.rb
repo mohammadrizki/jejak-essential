@@ -24,7 +24,7 @@ class SearchController < ApplicationController
   private
 
   def require_viewer!
-    return if current_user.can_view_students?
+    return if current_user.can_view_students? || current_user.has_role?("admin")
 
     redirect_to dashboard_path, alert: "Pencarian pengguna khusus pengajar, kaprodi, dan admin."
   end

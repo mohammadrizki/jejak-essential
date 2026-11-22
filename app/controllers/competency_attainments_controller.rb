@@ -5,8 +5,8 @@ class CompetencyAttainmentsController < ApplicationController
 
   def create
     student = User.find(params[:student_id])
-    unless can_decide_for?(student)
-      return redirect_to student_dashboard_path(student), alert: "Anda tidak memiliki relasi pembimbingan untuk mencatat pencapaian kompetensi."
+    unless AssignmentAuthorization.assigned?(user: current_user, role: "competency_attainment_proposer", student: student)
+      return redirect_to student_dashboard_path(student), alert: "Anda tidak memiliki penugasan untuk mengusulkan capaian kompetensi."
     end
 
     framework = student.study_program&.peta_kompetensi
@@ -14,23 +14,31 @@ class CompetencyAttainmentsController < ApplicationController
     attainment = CompetencyAttainment.create!(
       student: student, competency_item: item, decision_by: current_user,
       attainment_level: params[:attainment_level].to_i,
-      decision_date: Time.current, status: current_user.has_role?("admin") ? "approved" : "proposed",
+      decision_date: Time.current, status: "proposed",
+      framework_version: framework.version,
+      evidence_snapshot: CompetencyAttainmentSnapshot.capture(student: student, competency_item: item),
       rationale: params[:rationale].to_s.strip
     )
-    redirect_to student_dashboard_path(student), notice: "Keputusan pencapaian #{item.title} disimpan sebagai #{attainment.status}."
+    redirect_to student_dashboard_path(student), notice: "Usulan capaian #{item.title} dicatat menunggu Otoritas Akademik."
   rescue ActiveRecord::RecordInvalid => e
     redirect_to student_dashboard_path(student), alert: e.record.errors.full_messages.to_sentence
   rescue ActiveRecord::RecordNotFound
     redirect_to student_dashboard_path(student), alert: "Kompetensi tidak ditemukan pada framework mahasiswa."
   end
 
+  def review
+    student = User.find(params[:student_id])
+    attainment = student.competency_attainments.find(params[:id])
+    unless AssignmentAuthorization.assigned?(user: current_user, role: "competency_attainment_decider", student: student)
+      return redirect_to student_dashboard_path(student), alert: "Anda tidak memiliki penugasan untuk memutuskan capaian kompetensi."
+    end
+
+    attainment.review!(by: current_user, decision: params[:decision], notes: params[:review_notes])
+    redirect_to student_dashboard_path(student), notice: "Keputusan capaian kompetensi tersimpan."
+  rescue ArgumentError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound => error
+    redirect_to student_dashboard_path(params[:student_id]), alert: error.message
+  end
+
   private
 
-  def can_decide_for?(student)
-    return false if student == current_user
-    return true if current_user.has_role?("admin")
-    return false unless current_user.instructor?
-
-    student.supervised_by?(current_user)
-  end
 end

@@ -7,6 +7,17 @@ Rails.application.routes.draw do
   get "dashboard", to: "dashboard#show"
   resource :profile, only: %i[show edit update]
   resource :module_configuration, only: %i[edit update]
+  resources :user_assignments, only: %i[index create destroy]
+  resources :external_identity_mappings, only: %i[index create update]
+  resources :external_evidence_imports, only: %i[index new create show] do
+    collection { get :template }
+  end
+  resources :evidence_sources, only: :index do
+    member do
+      patch :validate
+      patch :reject
+    end
+  end
   resources :roles, only: [] do
     collection do
       patch :switch
@@ -17,6 +28,7 @@ Rails.application.routes.draw do
   # dari hasil pencarian; kartunya membawa ?student_id= ke halaman asesmen.
   get "mahasiswa/:id", to: "student_dashboards#show", as: :student_dashboard
   post "mahasiswa/:student_id/competency-attainments", to: "competency_attainments#create", as: :student_competency_attainments
+  patch "mahasiswa/:student_id/competency-attainments/:id/review", to: "competency_attainments#review", as: :review_student_competency_attainment
   get "panduan", to: "panduan#index", as: :panduan
   get "brand", to: "brand#index", as: :brand
   # Unduhan lampiran (bukti kasus/kegiatan, dokumen asesmen, foto profil) —
@@ -52,6 +64,11 @@ Rails.application.routes.draw do
 
   resource :portfolio, only: %i[show]
   get "portfolio/export", to: "portfolios#export", as: :export_portfolio
+  resources :artifact_submissions, only: %i[index create update destroy] do
+    member { patch :resubmit }
+  end
+  resources :portfolio_selections, only: %i[create destroy]
+  get "portofolio-terpilih/:student_id", to: "portfolio_selections#show", as: :selected_portfolio
 
   resources :clinical_cases do
     member do
@@ -133,6 +150,11 @@ Rails.application.routes.draw do
         collection { patch :bulk_map }
       end
     end
+    resources :wpba_instruments, only: %i[index show new create] do
+      resources :versions, controller: "wpba_instrument_versions", only: %i[create] do
+        member { patch :publish }
+      end
+    end
     # Unggah CSV hasil CBT & OSCE berformat ekspor Glide (berkas .csv, bukan
     # API Glide). Indeks glide_syncs = riwayat unggahan + rollback.
     resources :glide_syncs, only: %i[index show], constraints: { id: /\d+/ } do
@@ -182,10 +204,25 @@ Rails.application.routes.draw do
   patch "monitoring-srq/:id", to: "srq_monitoring#update", as: :srq_monitoring_follow_up
 
   resources :dops_evaluations, except: %i[index] do
-    member { patch :submit }
+    member do
+      patch :submit
+      get :correction
+      post :create_correction
+    end
   end
   resources :mini_cex_evaluations, except: %i[index] do
-    member { patch :submit }
+    member do
+      patch :submit
+      get :correction
+      post :create_correction
+    end
+  end
+  resources :wpba_observations, except: %i[index] do
+    member do
+      patch :submit
+      get :correction
+      post :create_correction
+    end
   end
   get "asesmen", to: "assessments#index", as: :assessments
 
@@ -223,6 +260,7 @@ Rails.application.routes.draw do
   resources :examiner_evaluations, only: %i[index show update]
   # Peta EPA & Tingkat Entrustment
   get  "dashboard/entrustment", to: "entrustment_decisions#index",  as: :entrustment_decisions
+  get  "dashboard/entrustment/new", to: "entrustment_decisions#new", as: :new_entrustment_decision
   post "dashboard/entrustment", to: "entrustment_decisions#create"
   get "epa_observations/new", to: "epa_observations#new", as: :new_epa_observation
   resources :epa_observations, only: %i[index create] do
@@ -232,8 +270,12 @@ Rails.application.routes.draw do
     member do
       patch :promote
       patch :review
+      patch :finalize
+      patch :appeal
     end
   end
+  post "dashboard/entrustment/:decision_id/renewal", to: "epa_promotions#request_renewal",
+    as: :request_epa_renewal
 
   resources :assessment_blueprints do
     member { post :new_version; patch :publish_version }

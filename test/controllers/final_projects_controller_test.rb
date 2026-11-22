@@ -22,6 +22,24 @@ class FinalProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_match final_projects(:skripsi_siti).title, response.body
   end
 
+  test "admin teknis tanpa peran akademik tidak melihat atau menilai proyek mahasiswa" do
+    admin = User.create!(full_name: "Admin Teknis Proyek", email: "admin-proyek@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current)
+    admin.roles << roles(:admin)
+    project = final_projects(:skripsi_siti)
+
+    sign_in admin
+    get final_projects_path
+    assert_response :success
+    assert_no_match project.title, response.body
+
+    assert_no_difference "ExaminerScore.count" do
+      post final_project_examiner_scores_path(project), params: {
+        examiner_score: { session_date: Date.current, score: 90, feedback: "Akun teknis tidak boleh menilai." }
+      }
+    end
+  end
+
   test "mahasiswa mendaftarkan tugas akhir" do
     sign_in users(:siti)
     other = users(:siti)

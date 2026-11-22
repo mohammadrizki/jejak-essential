@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_22_200002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -140,6 +140,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.index ["updated_by_id"], name: "index_app_settings_on_updated_by_id"
   end
 
+  create_table "artifact_submission_reviews", force: :cascade do |t|
+    t.bigint "artifact_submission_id", null: false
+    t.bigint "reviewer_id", null: false
+    t.string "decision", null: false
+    t.text "notes", null: false
+    t.datetime "reviewed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["artifact_submission_id", "reviewer_id", "reviewed_at"], name: "idx_artifact_submission_review_history"
+    t.index ["artifact_submission_id"], name: "index_artifact_submission_reviews_on_artifact_submission_id"
+    t.index ["reviewer_id"], name: "index_artifact_submission_reviews_on_reviewer_id"
+    t.check_constraint "decision::text = ANY (ARRAY['approved'::character varying, 'rejected'::character varying]::text[])", name: "chk_artifact_submission_review_decision"
+  end
+
+  create_table "artifact_submissions", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "reviewer_id"
+    t.string "source_type", null: false
+    t.bigint "source_id", null: false
+    t.text "selection_reason", null: false
+    t.text "reflection"
+    t.string "status", default: "submitted", null: false
+    t.datetime "submitted_at", null: false
+    t.datetime "reviewed_at"
+    t.text "review_notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "source_provenance", default: {}, null: false
+    t.index ["reviewer_id"], name: "index_artifact_submissions_on_reviewer_id"
+    t.index ["status", "submitted_at"], name: "index_artifact_submissions_on_status_and_submitted_at"
+    t.index ["student_id", "source_type", "source_id"], name: "idx_artifact_submission_source_once", unique: true
+    t.index ["student_id"], name: "index_artifact_submissions_on_student_id"
+    t.check_constraint "source_type::text = ANY (ARRAY['ActivityLog'::character varying, 'ReflectionEntry'::character varying, 'EvidenceRecord'::character varying]::text[])", name: "chk_artifact_submission_source_type"
+    t.check_constraint "status::text = ANY (ARRAY['submitted'::character varying, 'approved'::character varying, 'rejected'::character varying, 'withdrawn'::character varying]::text[])", name: "chk_artifact_submission_status"
+  end
+
   create_table "assessment_blueprint_mappings", force: :cascade do |t|
     t.bigint "assessment_blueprint_id", null: false
     t.bigint "competency_item_id", null: false
@@ -207,6 +243,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.datetime "submission_close_at"
     t.datetime "updated_at", null: false
     t.bigint "blueprint_item_id"
+    t.bigint "wpba_instrument_version_id"
     t.index ["academic_period_id", "assessment_type"], name: "idx_on_academic_period_id_assessment_type_60ee6849bc"
     t.index ["academic_period_id"], name: "index_assessment_events_on_academic_period_id"
     t.index ["assessment_form_template_id"], name: "index_assessment_events_on_assessment_form_template_id"
@@ -214,6 +251,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.index ["created_by_id"], name: "index_assessment_events_on_created_by_id"
     t.index ["external_code"], name: "index_assessment_events_on_external_code", unique: true, where: "(external_code IS NOT NULL)"
     t.index ["study_program_id"], name: "index_assessment_events_on_study_program_id"
+    t.index ["wpba_instrument_version_id"], name: "index_assessment_events_on_wpba_instrument_version_id"
   end
 
   create_table "assessment_form_answers", force: :cascade do |t|
@@ -265,7 +303,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.string "name", null: false
     t.boolean "requires_subject_user", default: false, null: false
     t.datetime "updated_at", null: false
+    t.bigint "study_program_id"
     t.index ["created_by_id"], name: "index_assessment_form_templates_on_created_by_id"
+    t.index ["study_program_id"], name: "index_assessment_form_templates_on_study_program_id"
   end
 
   create_table "assessment_instances", force: :cascade do |t|
@@ -467,6 +507,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.index ["user_id"], name: "index_clinical_rotations_on_user_id"
   end
 
+  create_table "competency_attainment_reviews", force: :cascade do |t|
+    t.bigint "competency_attainment_id", null: false
+    t.bigint "reviewer_id", null: false
+    t.string "decision", null: false
+    t.text "notes", null: false
+    t.datetime "reviewed_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["competency_attainment_id"], name: "idx_on_competency_attainment_id_6813ec2ada"
+    t.index ["reviewer_id"], name: "index_competency_attainment_reviews_on_reviewer_id"
+    t.check_constraint "decision::text = ANY (ARRAY['approved'::character varying, 'rejected'::character varying]::text[])", name: "chk_competency_attainment_review_decision"
+  end
+
   create_table "competency_attainments", force: :cascade do |t|
     t.bigint "student_id", null: false
     t.bigint "competency_item_id", null: false
@@ -477,8 +529,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.string "status", default: "proposed", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "framework_version"
+    t.jsonb "evidence_snapshot", default: {}, null: false
+    t.datetime "reviewed_at"
+    t.text "review_notes"
+    t.bigint "reviewed_by_id"
     t.index ["competency_item_id"], name: "index_competency_attainments_on_competency_item_id"
     t.index ["decision_by_id"], name: "index_competency_attainments_on_decision_by_id"
+    t.index ["reviewed_by_id"], name: "index_competency_attainments_on_reviewed_by_id"
     t.index ["student_id", "competency_item_id", "decision_date"], name: "idx_competency_attainments_history"
     t.index ["student_id"], name: "index_competency_attainments_on_student_id"
     t.check_constraint "attainment_level IS NULL OR attainment_level >= 1 AND attainment_level <= 5", name: "chk_competency_attainment_level"
@@ -506,7 +564,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
 
   create_table "competency_indicators", force: :cascade do |t|
     t.bigint "competency_item_id", null: false
-    t.string "code"
+    t.string "code", null: false
     t.text "description", null: false
     t.string "performance_level"
     t.integer "position", default: 0, null: false
@@ -527,7 +585,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.datetime "updated_at", null: false
     t.text "expected_evidence_text"
     t.jsonb "expected_evidence_types", default: [], null: false
-    t.string "code"
+    t.string "code", null: false
     t.string "level_type", default: "competency", null: false
     t.index ["competency_framework_id", "code"], name: "idx_competency_items_framework_code", unique: true, where: "(code IS NOT NULL)"
     t.index ["competency_framework_id"], name: "index_competency_items_on_competency_framework_id"
@@ -614,11 +672,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.bigint "student_id", null: false
     t.datetime "updated_at", null: false
     t.string "video_recording_url"
+    t.bigint "wpba_instrument_version_id"
+    t.text "correction_reason"
+    t.bigint "corrects_id"
     t.index ["clinical_case_id"], name: "index_dops_evaluations_on_clinical_case_id"
     t.index ["clinical_rotation_id"], name: "index_dops_evaluations_on_clinical_rotation_id"
+    t.index ["corrects_id"], name: "index_dops_evaluations_on_corrects_id", unique: true
     t.index ["evaluator_id"], name: "index_dops_evaluations_on_evaluator_id"
     t.index ["student_id", "evaluated_at"], name: "index_dops_evaluations_on_student_id_and_evaluated_at"
     t.index ["student_id"], name: "index_dops_evaluations_on_student_id"
+    t.index ["wpba_instrument_version_id"], name: "index_dops_evaluations_on_wpba_instrument_version_id"
+  end
+
+  create_table "entrustment_decision_events", force: :cascade do |t|
+    t.bigint "entrustment_decision_id", null: false
+    t.bigint "actor_id"
+    t.string "event_type", null: false
+    t.text "reason"
+    t.jsonb "before_state", default: {}, null: false
+    t.jsonb "after_state", default: {}, null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_entrustment_decision_events_on_actor_id"
+    t.index ["entrustment_decision_id", "occurred_at"], name: "idx_entrustment_decision_events_history"
+    t.index ["entrustment_decision_id"], name: "index_entrustment_decision_events_on_entrustment_decision_id"
+    t.check_constraint "event_type::text = ANY (ARRAY['issued'::character varying, 'restricted'::character varying, 'renewed'::character varying, 'revoked'::character varying, 'expired'::character varying, 'corrected'::character varying, 'superseded'::character varying]::text[])", name: "chk_entrustment_decision_event_type"
   end
 
   create_table "entrustment_decisions", force: :cascade do |t|
@@ -635,16 +714,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.bigint "epa_id"
     t.bigint "supervision_level_id"
     t.bigint "epa_promotion_id"
+    t.datetime "review_due_at"
+    t.datetime "review_due_notified_at"
+    t.string "decision_kind", default: "legacy", null: false
+    t.string "decision_status", default: "active", null: false
+    t.text "activity_description"
+    t.text "scope_limitations"
+    t.jsonb "context", default: {}, null: false
+    t.datetime "valid_from", null: false
+    t.datetime "valid_until"
+    t.datetime "revoked_at"
+    t.bigint "revoked_by_id"
+    t.text "revocation_reason"
+    t.bigint "revocation_epa_promotion_id"
     t.index ["clinical_case_id"], name: "index_entrustment_decisions_on_clinical_case_id"
     t.index ["competency_item_id"], name: "index_entrustment_decisions_on_competency_item_id"
     t.index ["decided_by_id"], name: "index_entrustment_decisions_on_decided_by_id"
     t.index ["epa_id"], name: "index_entrustment_decisions_on_epa_id"
     t.index ["epa_promotion_id"], name: "index_entrustment_decisions_on_epa_promotion_id"
+    t.index ["revocation_epa_promotion_id"], name: "index_entrustment_decisions_on_revocation_epa_promotion_id"
+    t.index ["revoked_by_id"], name: "index_entrustment_decisions_on_revoked_by_id"
     t.index ["student_id", "competency_item_id", "superseded_at"], name: "idx_entrustment_current_lookup"
+    t.index ["student_id", "epa_id", "decision_status"], name: "idx_entrustment_decision_lifecycle"
     t.index ["student_id", "epa_id", "superseded_at"], name: "idx_entrustment_epa_history"
     t.index ["student_id"], name: "index_entrustment_decisions_on_student_id"
     t.index ["superseded_by_id"], name: "index_entrustment_decisions_on_superseded_by_id"
     t.index ["supervision_level_id"], name: "index_entrustment_decisions_on_supervision_level_id"
+    t.check_constraint "decision_kind::text = ANY (ARRAY['legacy'::character varying, 'ad_hoc'::character varying, 'summative'::character varying]::text[])", name: "chk_entrustment_decision_kind"
+    t.check_constraint "decision_status::text = 'revoked'::text AND revoked_at IS NOT NULL AND revoked_by_id IS NOT NULL AND length(btrim(COALESCE(revocation_reason, ''::text))) >= 10 OR decision_status::text <> 'revoked'::text OR decision_kind::text = 'legacy'::text", name: "chk_entrustment_revocation_audit"
+    t.check_constraint "decision_status::text = ANY (ARRAY['active'::character varying, 'restricted'::character varying, 'expired'::character varying, 'revoked'::character varying, 'superseded'::character varying]::text[])", name: "chk_entrustment_decision_status"
+    t.check_constraint "valid_until IS NULL OR valid_until > valid_from", name: "chk_entrustment_validity_window"
   end
 
   create_table "epa_competencies", force: :cascade do |t|
@@ -718,6 +817,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying, 'recorded'::character varying, 'returned'::character varying, 'voided'::character varying]::text[])", name: "chk_epa_observation_status"
   end
 
+  create_table "epa_promotion_appeals", force: :cascade do |t|
+    t.bigint "epa_promotion_id", null: false
+    t.bigint "appealed_by_id", null: false
+    t.bigint "resolved_by_id"
+    t.integer "round_number", null: false
+    t.text "reason", null: false
+    t.string "resolution"
+    t.text "resolution_notes"
+    t.datetime "resolved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["appealed_by_id"], name: "index_epa_promotion_appeals_on_appealed_by_id"
+    t.index ["epa_promotion_id", "round_number"], name: "idx_epa_promotion_appeals_round", unique: true
+    t.index ["epa_promotion_id"], name: "index_epa_promotion_appeals_on_epa_promotion_id"
+    t.index ["resolved_by_id"], name: "index_epa_promotion_appeals_on_resolved_by_id"
+    t.check_constraint "resolution IS NULL OR (resolution::text = ANY (ARRAY['approved'::character varying, 'restricted'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'deferred'::character varying, 'revoked'::character varying]::text[]))", name: "chk_epa_promotion_appeal_resolution"
+  end
+
+  create_table "epa_promotion_review_events", force: :cascade do |t|
+    t.bigint "epa_promotion_review_id", null: false
+    t.string "recommendation"
+    t.bigint "supervision_level_id"
+    t.text "notes", null: false
+    t.datetime "recorded_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "event_kind", default: "recommendation", null: false
+    t.boolean "conflict_disclosed", default: false, null: false
+    t.index ["epa_promotion_review_id"], name: "index_epa_promotion_review_events_on_epa_promotion_review_id"
+    t.index ["supervision_level_id"], name: "index_epa_promotion_review_events_on_supervision_level_id"
+    t.check_constraint "event_kind::text = ANY (ARRAY['recommendation'::character varying, 'recusal'::character varying]::text[])", name: "chk_epa_panel_event_kind"
+    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying, 'restricted'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'deferred'::character varying, 'revoked'::character varying]::text[])", name: "chk_epa_panel_event_recommendation"
+  end
+
   create_table "epa_promotion_reviews", force: :cascade do |t|
     t.bigint "epa_promotion_id", null: false
     t.bigint "reviewer_id", null: false
@@ -726,11 +859,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.text "notes", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["epa_promotion_id", "reviewer_id"], name: "idx_epa_promotion_review_member_once", unique: true
+    t.boolean "conflict_disclosed", default: false, null: false
+    t.datetime "recused_at"
+    t.text "recusal_reason"
+    t.integer "round_number", default: 1, null: false
+    t.index ["epa_promotion_id", "reviewer_id", "round_number"], name: "idx_epa_promotion_review_round_member", unique: true
     t.index ["epa_promotion_id"], name: "index_epa_promotion_reviews_on_epa_promotion_id"
     t.index ["reviewer_id"], name: "index_epa_promotion_reviews_on_reviewer_id"
     t.index ["supervision_level_id"], name: "index_epa_promotion_reviews_on_supervision_level_id"
-    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying]::text[])", name: "chk_epa_promotion_review_recommendation"
+    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying, 'restricted'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'deferred'::character varying, 'revoked'::character varying]::text[])", name: "chk_epa_promotion_review_recommendation"
   end
 
   create_table "epa_promotions", force: :cascade do |t|
@@ -745,13 +882,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "quorum_reached_at"
+    t.jsonb "dossier_snapshot", default: {}, null: false
+    t.bigint "finalized_by_id"
+    t.datetime "finalized_at"
+    t.datetime "appealed_at"
+    t.text "appeal_reason"
+    t.datetime "review_due_at"
+    t.integer "review_round", default: 1, null: false
+    t.bigint "renewal_of_decision_id"
     t.index ["epa_id"], name: "index_epa_promotions_on_epa_id"
     t.index ["promoted_by_id"], name: "index_epa_promotions_on_promoted_by_id"
+    t.index ["renewal_of_decision_id"], name: "idx_epa_promotions_renewal_decision"
     t.index ["reviewed_by_id"], name: "index_epa_promotions_on_reviewed_by_id"
     t.index ["status", "eligible_at"], name: "index_epa_promotions_on_status_and_eligible_at"
-    t.index ["student_id", "epa_id"], name: "idx_epa_promotions_open_student_epa", unique: true, where: "((status)::text = ANY ((ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying])::text[]))"
+    t.index ["student_id", "epa_id"], name: "idx_epa_promotions_open_student_epa", unique: true, where: "((status)::text = ANY ((ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying, 'appeal_pending'::character varying])::text[]))"
     t.index ["student_id"], name: "index_epa_promotions_on_student_id"
-    t.check_constraint "status::text = ANY (ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'approved'::character varying]::text[])", name: "chk_epa_promotion_status"
+    t.check_constraint "status::text = ANY (ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'approved'::character varying, 'restricted'::character varying, 'deferred'::character varying, 'revoked'::character varying, 'appeal_pending'::character varying]::text[])", name: "chk_epa_promotion_status"
   end
 
   create_table "epas", force: :cascade do |t|
@@ -804,6 +951,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.bigint "mini_cex_evaluation_id"
     t.bigint "dops_evaluation_id"
     t.bigint "evidence_source_id"
+    t.bigint "evidence_requirement_version_id", null: false
+    t.bigint "wpba_observation_id"
     t.index ["activity_log_id"], name: "index_evidence_records_on_activity_log_id"
     t.index ["assessment_instance_id"], name: "index_evidence_records_on_assessment_instance_id"
     t.index ["dops_evaluation_id"], name: "index_evidence_records_on_dops_evaluation_id"
@@ -815,12 +964,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.index ["evidence_requirement_id", "evidence_source_id"], name: "idx_evidence_record_source_once", unique: true, where: "(evidence_source_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "mini_cex_evaluation_id"], name: "idx_evidence_record_mini_cex_once", unique: true, where: "(mini_cex_evaluation_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "reflection_entry_id"], name: "idx_evidence_record_reflection_once", unique: true, where: "(reflection_entry_id IS NOT NULL)"
+    t.index ["evidence_requirement_id", "wpba_observation_id"], name: "idx_evidence_records_requirement_wpba_observation", unique: true, where: "(wpba_observation_id IS NOT NULL)"
     t.index ["evidence_requirement_id"], name: "index_evidence_records_on_evidence_requirement_id"
+    t.index ["evidence_requirement_version_id"], name: "index_evidence_records_on_evidence_requirement_version_id"
     t.index ["evidence_source_id"], name: "index_evidence_records_on_evidence_source_id"
     t.index ["mini_cex_evaluation_id"], name: "index_evidence_records_on_mini_cex_evaluation_id"
     t.index ["reflection_entry_id"], name: "index_evidence_records_on_reflection_entry_id"
     t.check_constraint "num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id) = 1 OR num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id) = 0 AND evidence_source_id IS NOT NULL", name: "chk_evidence_record_single_source"
     t.check_constraint "result::text = ANY (ARRAY['pass'::character varying, 'fail'::character varying, 'borderline'::character varying, 'not_assessed'::character varying, 'other'::character varying]::text[])", name: "chk_evidence_record_result"
+  end
+
+  create_table "evidence_requirement_versions", force: :cascade do |t|
+    t.bigint "evidence_requirement_id", null: false
+    t.integer "version", null: false
+    t.jsonb "configuration", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["evidence_requirement_id", "version"], name: "idx_evidence_requirement_versions_unique_version", unique: true
+    t.index ["evidence_requirement_id"], name: "index_evidence_requirement_versions_on_evidence_requirement_id"
   end
 
   create_table "evidence_requirements", force: :cascade do |t|
@@ -916,6 +1077,56 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.datetime "updated_at", null: false
     t.index ["examiner_id"], name: "index_examiner_scores_on_examiner_id"
     t.index ["final_project_id"], name: "index_examiner_scores_on_final_project_id"
+  end
+
+  create_table "external_identity_mappings", force: :cascade do |t|
+    t.string "source_system", null: false
+    t.string "entity_type", null: false
+    t.string "external_id", null: false
+    t.string "internal_record_type", null: false
+    t.bigint "internal_record_id", null: false
+    t.string "authority", default: "manual", null: false
+    t.string "source_revision"
+    t.datetime "last_synced_at"
+    t.bigint "created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_external_identity_mappings_on_created_by_id"
+    t.index ["internal_record_type", "internal_record_id"], name: "idx_external_identity_internal_target"
+    t.index ["source_system", "entity_type", "external_id"], name: "idx_external_identity_source_once", unique: true
+    t.check_constraint "authority::text = ANY (ARRAY['manual'::character varying, 'import'::character varying, 'integration'::character varying]::text[])", name: "chk_external_identity_authority"
+  end
+
+  create_table "external_import_batches", force: :cascade do |t|
+    t.bigint "study_program_id", null: false
+    t.bigint "uploaded_by_id", null: false
+    t.string "source_system", null: false
+    t.string "filename", null: false
+    t.string "file_sha256", null: false
+    t.string "status", default: "previewed", null: false
+    t.integer "row_count", default: 0, null: false
+    t.integer "imported_count", default: 0, null: false
+    t.jsonb "row_results", default: [], null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["study_program_id", "created_at"], name: "idx_external_import_batches_program_created"
+    t.index ["study_program_id"], name: "index_external_import_batches_on_study_program_id"
+    t.index ["uploaded_by_id"], name: "index_external_import_batches_on_uploaded_by_id"
+  end
+
+  create_table "external_mapping_events", force: :cascade do |t|
+    t.bigint "external_identity_mapping_id", null: false
+    t.bigint "changed_by_id", null: false
+    t.bigint "previous_internal_record_id", null: false
+    t.bigint "new_internal_record_id", null: false
+    t.text "reason", null: false
+    t.datetime "changed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["changed_by_id"], name: "index_external_mapping_events_on_changed_by_id"
+    t.index ["external_identity_mapping_id", "changed_at"], name: "idx_external_mapping_change_history"
+    t.index ["external_identity_mapping_id"], name: "index_external_mapping_events_on_external_identity_mapping_id"
   end
 
   create_table "final_project_milestones", force: :cascade do |t|
@@ -1024,11 +1235,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.bigint "student_id", null: false
     t.datetime "updated_at", null: false
     t.string "video_recording_url"
+    t.bigint "wpba_instrument_version_id"
+    t.text "correction_reason"
+    t.bigint "corrects_id"
     t.index ["clinical_case_id"], name: "index_mini_cex_evaluations_on_clinical_case_id"
     t.index ["clinical_rotation_id"], name: "index_mini_cex_evaluations_on_clinical_rotation_id"
+    t.index ["corrects_id"], name: "index_mini_cex_evaluations_on_corrects_id", unique: true
     t.index ["evaluator_id"], name: "index_mini_cex_evaluations_on_evaluator_id"
     t.index ["student_id", "evaluated_at"], name: "index_mini_cex_evaluations_on_student_id_and_evaluated_at"
     t.index ["student_id"], name: "index_mini_cex_evaluations_on_student_id"
+    t.index ["wpba_instrument_version_id"], name: "index_mini_cex_evaluations_on_wpba_instrument_version_id"
   end
 
   create_table "module_configuration_changes", force: :cascade do |t|
@@ -1100,6 +1316,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.index ["token"], name: "index_patient_consents_on_token", unique: true
   end
 
+  create_table "portfolio_selections", force: :cascade do |t|
+    t.bigint "artifact_submission_id", null: false
+    t.bigint "student_id", null: false
+    t.string "visibility", default: "private", null: false
+    t.datetime "selected_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["artifact_submission_id"], name: "index_portfolio_selections_on_artifact_submission_id", unique: true
+    t.index ["student_id"], name: "index_portfolio_selections_on_student_id"
+    t.check_constraint "visibility::text = ANY (ARRAY['private'::character varying, 'assigned_reviewers'::character varying]::text[])", name: "chk_portfolio_selection_visibility"
+  end
+
   create_table "prescription_items", force: :cascade do |t|
     t.bigint "clinical_case_id", null: false
     t.datetime "created_at", null: false
@@ -1124,10 +1352,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.string "title"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.text "what_happened"
+    t.text "what_learned"
+    t.text "what_to_improve"
+    t.text "next_action"
     t.index ["activity_log_id"], name: "index_reflection_entries_on_activity_log_id"
     t.index ["clinical_case_id"], name: "index_reflection_entries_on_clinical_case_id"
     t.index ["user_id", "entry_date"], name: "index_reflection_entries_on_user_id_and_entry_date"
     t.index ["user_id"], name: "index_reflection_entries_on_user_id"
+  end
+
+  create_table "reflection_entry_competency_tags", force: :cascade do |t|
+    t.bigint "reflection_entry_id", null: false
+    t.bigint "competency_item_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["competency_item_id"], name: "index_reflection_entry_competency_tags_on_competency_item_id"
+    t.index ["reflection_entry_id", "competency_item_id"], name: "idx_reflection_competency_tags_unique", unique: true
+    t.index ["reflection_entry_id"], name: "index_reflection_entry_competency_tags_on_reflection_entry_id"
+  end
+
+  create_table "reflection_entry_evidence_sources", force: :cascade do |t|
+    t.bigint "reflection_entry_id", null: false
+    t.bigint "evidence_source_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["evidence_source_id"], name: "index_reflection_entry_evidence_sources_on_evidence_source_id"
+    t.index ["reflection_entry_id", "evidence_source_id"], name: "idx_reflection_evidence_sources_unique", unique: true
+    t.index ["reflection_entry_id"], name: "index_reflection_entry_evidence_sources_on_reflection_entry_id"
   end
 
   create_table "roles", force: :cascade do |t|
@@ -1171,10 +1423,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.datetime "srq_enabled_at"
     t.bigint "srq_enabled_by_id"
     t.datetime "updated_at", null: false
+    t.integer "epa_panel_quorum", default: 1, null: false
     t.index ["code"], name: "index_study_programs_on_code", unique: true
     t.index ["competency_framework_id"], name: "index_study_programs_on_competency_framework_id"
     t.index ["name"], name: "index_study_programs_on_name", unique: true
     t.index ["srq_enabled_by_id"], name: "index_study_programs_on_srq_enabled_by_id"
+    t.check_constraint "epa_panel_quorum >= 1 AND epa_panel_quorum <= 10", name: "chk_study_program_epa_panel_quorum"
   end
 
   create_table "supervision_levels", force: :cascade do |t|
@@ -1228,6 +1482,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.index ["tutor_id"], name: "index_tutorial_enrollments_on_tutor_id"
     t.index ["user_id", "academic_period_id", "block_name"], name: "idx_tutorial_enrollments_unique_block", unique: true
     t.index ["user_id"], name: "index_tutorial_enrollments_on_user_id"
+  end
+
+  create_table "user_assignments", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "assigned_by_id", null: false
+    t.bigint "study_program_id"
+    t.string "assignment_role", null: false
+    t.string "scope_type"
+    t.bigint "scope_id"
+    t.date "starts_on"
+    t.date "ends_on"
+    t.datetime "revoked_at"
+    t.text "reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "revoked_by_id"
+    t.index ["assigned_by_id"], name: "index_user_assignments_on_assigned_by_id"
+    t.index ["study_program_id"], name: "index_user_assignments_on_study_program_id"
+    t.index ["user_id", "assignment_role"], name: "idx_user_assignments_scope"
+    t.index ["user_id"], name: "index_user_assignments_on_user_id"
+    t.check_constraint "ends_on IS NULL OR starts_on IS NULL OR ends_on >= starts_on", name: "chk_user_assignment_dates"
   end
 
   create_table "user_roles", force: :cascade do |t|
@@ -1293,6 +1568,58 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
   end
 
+  create_table "wpba_instrument_versions", force: :cascade do |t|
+    t.bigint "wpba_instrument_id", null: false
+    t.string "version_label", null: false
+    t.jsonb "definition", default: {}, null: false
+    t.datetime "published_at"
+    t.bigint "published_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["published_by_id"], name: "index_wpba_instrument_versions_on_published_by_id"
+    t.index ["wpba_instrument_id", "version_label"], name: "idx_wpba_instrument_versions_unique", unique: true
+    t.index ["wpba_instrument_id"], name: "index_wpba_instrument_versions_on_wpba_instrument_id"
+  end
+
+  create_table "wpba_instruments", force: :cascade do |t|
+    t.string "code", null: false
+    t.string "name", null: false
+    t.string "instrument_type", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_wpba_instruments_on_code", unique: true
+  end
+
+  create_table "wpba_observations", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "observer_id", null: false
+    t.bigint "clinical_rotation_id", null: false
+    t.bigint "clinical_case_id"
+    t.bigint "wpba_instrument_version_id", null: false
+    t.bigint "corrects_id"
+    t.datetime "observed_at", null: false
+    t.string "status", default: "draft", null: false
+    t.text "activity_summary"
+    t.jsonb "clinical_context", default: {}, null: false
+    t.jsonb "responses", default: {}, null: false
+    t.text "overall_feedback"
+    t.text "action_plan"
+    t.text "correction_reason"
+    t.datetime "submitted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["clinical_case_id"], name: "index_wpba_observations_on_clinical_case_id"
+    t.index ["clinical_rotation_id"], name: "index_wpba_observations_on_clinical_rotation_id"
+    t.index ["corrects_id"], name: "index_wpba_observations_on_corrects_id", unique: true
+    t.index ["observer_id", "observed_at"], name: "index_wpba_observations_on_observer_id_and_observed_at"
+    t.index ["observer_id"], name: "index_wpba_observations_on_observer_id"
+    t.index ["student_id", "observed_at"], name: "index_wpba_observations_on_student_id_and_observed_at"
+    t.index ["student_id"], name: "index_wpba_observations_on_student_id"
+    t.index ["wpba_instrument_version_id"], name: "index_wpba_observations_on_wpba_instrument_version_id"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying]::text[])", name: "chk_wpba_observations_status"
+  end
+
   add_foreign_key "academic_activity_subdomains", "academic_activity_domains"
   add_foreign_key "academic_activity_templates", "academic_activity_subdomains"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -1307,6 +1634,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "activity_logs", "users"
   add_foreign_key "activity_logs", "users", column: "verified_by_id", validate: false
   add_foreign_key "app_settings", "users", column: "updated_by_id"
+  add_foreign_key "artifact_submission_reviews", "artifact_submissions"
+  add_foreign_key "artifact_submission_reviews", "users", column: "reviewer_id"
+  add_foreign_key "artifact_submissions", "users", column: "reviewer_id"
+  add_foreign_key "artifact_submissions", "users", column: "student_id"
   add_foreign_key "assessment_blueprint_mappings", "assessment_blueprints"
   add_foreign_key "assessment_blueprint_mappings", "competency_items"
   add_foreign_key "assessment_blueprints", "study_programs"
@@ -1319,6 +1650,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "assessment_events", "blueprint_items"
   add_foreign_key "assessment_events", "study_programs"
   add_foreign_key "assessment_events", "users", column: "created_by_id"
+  add_foreign_key "assessment_events", "wpba_instrument_versions"
   add_foreign_key "assessment_form_answers", "assessment_form_fields"
   add_foreign_key "assessment_form_answers", "assessment_form_submissions"
   add_foreign_key "assessment_form_fields", "assessment_form_templates"
@@ -1326,6 +1658,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "assessment_form_submissions", "assessment_form_templates"
   add_foreign_key "assessment_form_submissions", "users", column: "respondent_id"
   add_foreign_key "assessment_form_submissions", "users", column: "subject_user_id"
+  add_foreign_key "assessment_form_templates", "study_programs"
   add_foreign_key "assessment_form_templates", "users", column: "created_by_id"
   add_foreign_key "assessment_instances", "assessment_events"
   add_foreign_key "assessment_instances", "assessment_form_submissions"
@@ -1354,8 +1687,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "clinical_rotations", "academic_periods"
   add_foreign_key "clinical_rotations", "users"
   add_foreign_key "clinical_rotations", "users", column: "preceptor_id"
+  add_foreign_key "competency_attainment_reviews", "competency_attainments"
+  add_foreign_key "competency_attainment_reviews", "users", column: "reviewer_id"
   add_foreign_key "competency_attainments", "competency_items"
   add_foreign_key "competency_attainments", "users", column: "decision_by_id"
+  add_foreign_key "competency_attainments", "users", column: "reviewed_by_id"
   add_foreign_key "competency_attainments", "users", column: "student_id"
   add_foreign_key "competency_frameworks", "study_programs"
   add_foreign_key "competency_indicators", "competency_items"
@@ -1369,15 +1705,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "device_push_tokens", "users"
   add_foreign_key "dops_evaluations", "clinical_cases", validate: false
   add_foreign_key "dops_evaluations", "clinical_rotations"
+  add_foreign_key "dops_evaluations", "dops_evaluations", column: "corrects_id", name: "fk_dops_correction_parent", on_delete: :restrict
   add_foreign_key "dops_evaluations", "users", column: "evaluator_id"
   add_foreign_key "dops_evaluations", "users", column: "student_id"
+  add_foreign_key "dops_evaluations", "wpba_instrument_versions"
+  add_foreign_key "entrustment_decision_events", "entrustment_decisions"
+  add_foreign_key "entrustment_decision_events", "users", column: "actor_id"
   add_foreign_key "entrustment_decisions", "clinical_cases"
   add_foreign_key "entrustment_decisions", "competency_items"
   add_foreign_key "entrustment_decisions", "entrustment_decisions", column: "superseded_by_id"
   add_foreign_key "entrustment_decisions", "epa_promotions"
+  add_foreign_key "entrustment_decisions", "epa_promotions", column: "revocation_epa_promotion_id"
   add_foreign_key "entrustment_decisions", "epas"
   add_foreign_key "entrustment_decisions", "supervision_levels"
   add_foreign_key "entrustment_decisions", "users", column: "decided_by_id"
+  add_foreign_key "entrustment_decisions", "users", column: "revoked_by_id"
   add_foreign_key "entrustment_decisions", "users", column: "student_id"
   add_foreign_key "epa_competencies", "competency_indicators"
   add_foreign_key "epa_competencies", "competency_items"
@@ -1391,10 +1733,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "epa_observations", "users", column: "observer_id"
   add_foreign_key "epa_observations", "users", column: "safety_resolved_by_id"
   add_foreign_key "epa_observations", "users", column: "student_id"
+  add_foreign_key "epa_promotion_appeals", "epa_promotions"
+  add_foreign_key "epa_promotion_appeals", "users", column: "appealed_by_id"
+  add_foreign_key "epa_promotion_appeals", "users", column: "resolved_by_id"
+  add_foreign_key "epa_promotion_review_events", "epa_promotion_reviews"
+  add_foreign_key "epa_promotion_review_events", "supervision_levels"
   add_foreign_key "epa_promotion_reviews", "epa_promotions"
   add_foreign_key "epa_promotion_reviews", "supervision_levels"
   add_foreign_key "epa_promotion_reviews", "users", column: "reviewer_id"
+  add_foreign_key "epa_promotions", "entrustment_decisions", column: "renewal_of_decision_id"
   add_foreign_key "epa_promotions", "epas"
+  add_foreign_key "epa_promotions", "users", column: "finalized_by_id"
   add_foreign_key "epa_promotions", "users", column: "promoted_by_id"
   add_foreign_key "epa_promotions", "users", column: "reviewed_by_id"
   add_foreign_key "epa_promotions", "users", column: "student_id"
@@ -1406,10 +1755,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "evidence_records", "assessment_instances"
   add_foreign_key "evidence_records", "dops_evaluations"
   add_foreign_key "evidence_records", "epa_observations"
+  add_foreign_key "evidence_records", "evidence_requirement_versions"
   add_foreign_key "evidence_records", "evidence_requirements"
   add_foreign_key "evidence_records", "evidence_sources"
   add_foreign_key "evidence_records", "mini_cex_evaluations"
   add_foreign_key "evidence_records", "reflection_entries"
+  add_foreign_key "evidence_records", "wpba_observations"
+  add_foreign_key "evidence_requirement_versions", "evidence_requirements"
   add_foreign_key "evidence_requirements", "assessment_methods"
   add_foreign_key "evidence_requirements", "blueprint_items"
   add_foreign_key "evidence_requirements", "competency_indicators"
@@ -1423,6 +1775,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "exam_scores", "users", column: "student_id"
   add_foreign_key "examiner_scores", "final_projects"
   add_foreign_key "examiner_scores", "users", column: "examiner_id"
+  add_foreign_key "external_identity_mappings", "users", column: "created_by_id"
+  add_foreign_key "external_import_batches", "study_programs"
+  add_foreign_key "external_import_batches", "users", column: "uploaded_by_id"
+  add_foreign_key "external_mapping_events", "external_identity_mappings"
+  add_foreign_key "external_mapping_events", "users", column: "changed_by_id"
   add_foreign_key "final_project_milestones", "final_projects"
   add_foreign_key "final_projects", "users", column: "student_id"
   add_foreign_key "final_projects", "users", column: "supervisor_id"
@@ -1435,8 +1792,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "logbook_case_targets", "study_programs"
   add_foreign_key "mini_cex_evaluations", "clinical_cases", validate: false
   add_foreign_key "mini_cex_evaluations", "clinical_rotations"
+  add_foreign_key "mini_cex_evaluations", "mini_cex_evaluations", column: "corrects_id", name: "fk_minicex_correction_parent", on_delete: :restrict
   add_foreign_key "mini_cex_evaluations", "users", column: "evaluator_id"
   add_foreign_key "mini_cex_evaluations", "users", column: "student_id"
+  add_foreign_key "mini_cex_evaluations", "wpba_instrument_versions"
   add_foreign_key "module_configuration_changes", "study_programs"
   add_foreign_key "module_configuration_changes", "users", column: "actor_id"
   add_foreign_key "notifications", "users", column: "recipient_id"
@@ -1445,10 +1804,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "osce_station_scores", "glide_imports"
   add_foreign_key "osce_station_scores", "users", column: "examiner_id"
   add_foreign_key "patient_consents", "clinical_cases"
+  add_foreign_key "portfolio_selections", "artifact_submissions"
+  add_foreign_key "portfolio_selections", "users", column: "student_id"
   add_foreign_key "prescription_items", "clinical_cases"
   add_foreign_key "reflection_entries", "activity_logs"
   add_foreign_key "reflection_entries", "clinical_cases"
   add_foreign_key "reflection_entries", "users"
+  add_foreign_key "reflection_entry_competency_tags", "competency_items"
+  add_foreign_key "reflection_entry_competency_tags", "reflection_entries"
+  add_foreign_key "reflection_entry_evidence_sources", "evidence_sources"
+  add_foreign_key "reflection_entry_evidence_sources", "reflection_entries"
   add_foreign_key "srq_screenings", "users"
   add_foreign_key "srq_screenings", "users", column: "followed_up_by_id"
   add_foreign_key "study_programs", "competency_frameworks"
@@ -1458,8 +1823,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_040001) do
   add_foreign_key "tutorial_enrollments", "academic_periods"
   add_foreign_key "tutorial_enrollments", "users"
   add_foreign_key "tutorial_enrollments", "users", column: "tutor_id"
+  add_foreign_key "user_assignments", "study_programs"
+  add_foreign_key "user_assignments", "users"
+  add_foreign_key "user_assignments", "users", column: "assigned_by_id"
+  add_foreign_key "user_assignments", "users", column: "revoked_by_id"
   add_foreign_key "user_roles", "roles"
   add_foreign_key "user_roles", "users"
   add_foreign_key "users", "roles", column: "active_role_id"
   add_foreign_key "users", "study_programs"
+  add_foreign_key "wpba_instrument_versions", "users", column: "published_by_id"
+  add_foreign_key "wpba_instrument_versions", "wpba_instruments"
+  add_foreign_key "wpba_observations", "clinical_cases"
+  add_foreign_key "wpba_observations", "clinical_rotations"
+  add_foreign_key "wpba_observations", "users", column: "observer_id"
+  add_foreign_key "wpba_observations", "users", column: "student_id"
+  add_foreign_key "wpba_observations", "wpba_instrument_versions"
+  add_foreign_key "wpba_observations", "wpba_observations", column: "corrects_id", name: "fk_wpba_observations_correction_parent", on_delete: :restrict
 end

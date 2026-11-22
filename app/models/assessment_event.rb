@@ -4,6 +4,7 @@
 # prodi dan blok/stase. Nilainya masuk lewat impor CSV (CBT/OSCE/Progress
 # Test), lembar penguji (rubrik), atau inisiasi dari kasus (CBD/Long Case).
 class AssessmentEvent < ApplicationRecord
+  belongs_to :wpba_instrument_version, optional: true
   # tipe => [label, keluarga, prodi lazim]
   TYPES = {
     "cbt"                => [ "Ujian Tulis / CBT",            :written,  %w[pssk pspd] ],
@@ -51,6 +52,7 @@ class AssessmentEvent < ApplicationRecord
   validate :blueprint_item_matches_program
   validate :active_blueprint_item_for_new_event
   validate :blueprint_item_unchanged_after_attempts
+  before_validation :assign_cbd_instrument_version
 
   scope :published, -> { where(status: "published") }
   scope :ordered, -> { order(exam_date: :desc, created_at: :desc) }
@@ -116,6 +118,10 @@ class AssessmentEvent < ApplicationRecord
   end
 
   private
+
+  def assign_cbd_instrument_version
+    self.wpba_instrument_version ||= WpbaInstrumentCatalog.version_for("cbd") if assessment_type == "cbd"
+  end
 
   def blueprint_item_matches_program
     return if blueprint_item.blank?

@@ -51,6 +51,50 @@ class AssessmentFormSubmissionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "kaprodi tidak dapat memilih atau mengirim formulir untuk subjek di luar prodinya" do
+    sign_in users(:dedi)
+    template = assessment_form_templates(:tutor_evaluation)
+    outside_student = User.create!(full_name: "Mahasiswa Prodi Lain", email: "form-outside@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:profesi_dokter))
+    outside_student.roles << roles(:mahasiswa)
+
+    get new_assessment_form_template_assessment_form_submission_path(template, subject_user_id: outside_student.id)
+    assert_response :success
+    assert_select "select[name=?] option[value=?]", "assessment_form_submission[subject_user_id]", outside_student.id.to_s, count: 0
+
+    assert_no_difference "AssessmentFormSubmission.count" do
+      post assessment_form_template_assessment_form_submissions_path(template), params: {
+        assessment_form_submission: { subject_user_id: outside_student.id },
+        answers: { assessment_form_fields(:kejelasan_materi).id.to_s => "4" }
+      }
+    end
+    assert_redirected_to assessment_form_template_path(template)
+  end
+
+  test "Kaprodi hanya melihat jawaban yang terkait dengan prodinya, admin tetap dapat mengaudit semua" do
+    template = assessment_form_templates(:tutor_evaluation)
+    outside_user = User.create!(full_name: "Pengguna Prodi Lain", email: "form-audit-outside@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:profesi_dokter))
+    outside_user.roles << roles(:mahasiswa)
+    submission = template.assessment_form_submissions.build(respondent: outside_user,
+      subject_user: outside_user, submitted_at: Time.current)
+    submission.save!(validate: false)
+
+    sign_in users(:dedi)
+    get assessment_form_submissions_path
+    assert_response :success
+    assert_no_match outside_user.email, response.body
+    get assessment_form_submission_path(submission)
+    assert_response :redirect
+
+    admin = User.create!(full_name: "Admin Form Audit", email: "form-audit-admin@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current)
+    admin.roles << roles(:admin)
+    sign_in admin
+    get assessment_form_submission_path(submission)
+    assert_response :success
+  end
+
   test "pertanyaan wajib yang tidak dipilih tidak lagi lolos diam-diam" do
     sign_in users(:dedi)
     template = assessment_form_templates(:tutor_evaluation)
