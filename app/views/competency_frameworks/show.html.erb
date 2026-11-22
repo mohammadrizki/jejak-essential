@@ -26,7 +26,7 @@
     <% end %>
   </div>
 
-  <% if @competency_framework.education_stage != "undergraduate" %>
+  <% if @competency_framework.education_stage.in?(%w[undergraduate professional specialist subspecialist]) %>
     <section class="mt-4 rounded-2xl bg-white p-4 ring-1 ring-gray-200">
       <h2 class="text-sm font-semibold text-gray-800">EPA pada versi ini</h2>
       <ul class="mt-2 space-y-2">
@@ -51,7 +51,7 @@
           <% if policy(@competency_framework).update? && @competency_framework.status == "draft" %>
             <li class="ml-3">
               <%= form_with url: competency_framework_epa_epa_milestones_path(@competency_framework, epa), scope: :epa_milestone, class: "mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2" do |f| %>
-                <%= f.select :stage, [["Profesi", "professional"], ["Spesialis", "specialist"], ["Subspesialis", "subspecialist"]], { prompt: "Jenjang target" }, required: true, class: "rounded-lg border-gray-300 text-xs" %>
+                <%= f.select :stage, [["Sarjana", "undergraduate"], ["Profesi", "professional"], ["Spesialis", "specialist"], ["Subspesialis", "subspecialist"]], { prompt: "Jenjang target" }, required: true, class: "rounded-lg border-gray-300 text-xs" %>
                 <%= f.collection_select :supervision_level_id,
                     SupervisionLevel.joins(:supervision_scale_version).includes(:supervision_scale_version)
                       .where(supervision_scale_versions: { active: true, use_case: "prospective_entrustment" }),

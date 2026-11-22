@@ -3,15 +3,15 @@ require "test_helper"
 class NavigationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  test "mahasiswa melihat menu sasaran milik sendiri dan menu EPA tidak tampil pada Sarjana" do
+  test "mahasiswa melihat kelompok menu sasaran dan menu EPA tidak tampil saat modul nonaktif" do
     sign_in users(:siti)
     get dashboard_path
 
     assert_response :success
-    assert_match "1. PERUMUSAN CAPAIAN", response.body
-    assert_match "2. PENGEMBANGAN KOMPETENSI", response.body
-    assert_match "3. ASESMEN CAPAIAN", response.body
-    assert_match "4. EVALUASI &amp; PENINGKATAN MUTU", response.body
+    assert_match "Target Kompetensi", response.body
+    assert_match "Portofolio Saya", response.body
+    assert_match "Capaian Saya", response.body
+    assert_no_match "1. PERUMUSAN CAPAIAN", response.body
     assert_select "a[href=?]", competency_frameworks_path
     assert_select "a[href=?]", artifact_map_path
     assert_select "a[href=?]", portfolio_path

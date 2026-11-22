@@ -1,56 +1,70 @@
-# Shared breadcrumb taxonomy for the four OBE stages and administration.
+# Shared breadcrumbs follow the active role's navigation groups.
 module NavigationHelper
-  OBE_BREADCRUMBS = [
-    [ %r{\A/competency_framework_templates}, "Perumusan Capaian", "Pustaka Kerangka Kompetensi" ],
-    [ %r{\A/(competency_frameworks|competency_items)}, "Perumusan Capaian", "Peta Kompetensi" ],
-    [ %r{\A/assessment_blueprints}, "Perumusan Capaian", "Blueprint Asesmen" ],
-    [ %r{\A/evidence_requirements}, "Perumusan Capaian", "Syarat Bukti" ],
-    [ %r{\A/peta-artefak}, "Perumusan Capaian", "Peta Artefak" ],
-    [ %r{\A/(clinical_cases|activity_logs|kalender)}, "Pengembangan Kompetensi", "Logbook Klinis" ],
-    [ %r{\A/admin/learning_units}, "Pengembangan Kompetensi", "Rencana Pembelajaran" ],
-    [ %r{\A/(clinical_rotations|tutorial_enrollments)}, "Administrasi", "Program Studi & Kurikulum" ],
-    [ %r{\A/final_projects}, "Portofolio", "Proyek Akhir" ],
-    [ %r{\A/portfolio}, "Pengembangan Kompetensi", "Portofolio Saya" ],
-    [ %r{\A/portofolio-terpilih}, "Pengembangan Kompetensi", "Portofolio Terpilih" ],
-    [ %r{\A/reflection_entries}, "Pengembangan Kompetensi", "Refleksi Pengalaman Belajar" ],
-    [ %r{\A/student/feedback_journal}, "Pengembangan Kompetensi", "Umpan Balik" ],
-    [ %r{\A/(asesmen|dops_evaluations|mini_cex_evaluations)}, "Pengembangan Kompetensi", "Workplace-Based Assessment (WPBA)" ],
-    [ %r{\A/(nilai-ujian|student/assessments|examiner_evaluations)}, "Asesmen Capaian", "Penilaian & Validasi Bukti" ],
-    [ %r{\A/artifact_submissions}, "Asesmen Capaian", "Penilaian & Validasi Bukti" ],
-    [ %r{\A/evidence_sources}, "Asesmen Capaian", "Penilaian & Validasi Bukti" ],
-    [ %r{\A/(assessment_form_templates|assessment_form_submissions)}, "Administrasi", "Master Data" ],
-    [ %r{\A/capaian-belajar}, "Asesmen Capaian", "Capaian Kompetensi" ],
-    [ %r{\A/(dashboard/entrustment|epa_observations|epa_promotions)}, "Asesmen Capaian", "Keputusan EPA" ],
-    [ %r{\A/analitik}, "Evaluasi & Peningkatan Mutu", "Dashboard Capaian" ],
-    [ %r{\A/monitoring-srq}, "Layanan Mahasiswa", "Tindak Lanjut SRQ" ],
-    [ %r{\A/kesehatan-mental}, "Layanan Mahasiswa", "Skrining Kesehatan (SRQ-20)" ],
-    [ %r{\A/study_programs}, "Administrasi", "Program Studi & Kurikulum" ],
-    [ %r{\A/academic_periods}, "Administrasi", "Program Studi & Kurikulum" ],
-    [ %r{\A/admin/(evaluation_schedules|student_relabel|learning_units)}, "Administrasi", "Program Studi & Kurikulum" ],
-    [ %r{\A/(admin/users|cari)}, "Administrasi", "Pengguna & Hak Akses" ],
-    [ %r{\A/admin/(assessment_events|wpba_instruments|cbt_exams|glide_syncs|logbook_case_targets|academic_activity_domains|academic_activity_subdomains|academic_activity_templates|diagnosis_definitions|skill_definitions|medication_definitions|exports)}, "Administrasi", "Master Data" ],
-    [ %r{\A/admin/(terminology|data_governance)}, "Administrasi", "Pengaturan Sistem" ],
-    [ %r{\A/module_configuration}, "Administrasi", "Pengaturan Sistem" ],
-    [ %r{\A/(user_assignments|external_identity_mappings|external_evidence_imports)}, "Administrasi", "Pengguna & Hak Akses" ]
+  NAVIGATION_BREADCRUMBS = [
+    [ %r{\A/competency_framework_templates}, "Pustaka Kerangka Kompetensi" ],
+    [ %r{\A/(competency_frameworks|competency_items)}, "Peta Kompetensi" ],
+    [ %r{\A/assessment_blueprints}, "Blueprint Asesmen" ],
+    [ %r{\A/evidence_requirements}, "Syarat Bukti" ],
+    [ %r{\A/peta-artefak}, "Peta Artefak" ],
+    [ %r{\A/(clinical_cases|activity_logs|kalender)}, "Logbook Klinis" ],
+    [ %r{\A/final_projects}, "Proyek Akhir" ],
+    [ %r{\A/portfolio}, "Portofolio Saya" ],
+    [ %r{\A/portofolio-terpilih}, "Portofolio Terpilih" ],
+    [ %r{\A/reflection_entries}, "Refleksi Pengalaman Belajar" ],
+    [ %r{\A/student/feedback_journal}, "Umpan Balik" ],
+    [ %r{\A/(asesmen|dops_evaluations|mini_cex_evaluations|wpba_observations)}, "Workplace-Based Assessment" ],
+    [ %r{\A/(nilai-ujian|student/assessments|examiner_evaluations)}, "Penilaian & Validasi Bukti" ],
+    [ %r{\A/(artifact_submissions|evidence_sources)}, "Penilaian & Validasi Bukti" ],
+    [ %r{\A/(assessment_form_templates|assessment_form_submissions|admin/assessment_events|admin/wpba_instruments)}, "Master Data" ],
+    [ %r{\A/capaian-belajar}, "Capaian Kompetensi" ],
+    [ %r{\A/(dashboard/entrustment|epa_observations|epa_promotions)}, "EPA" ],
+    [ %r{\A/analitik}, "Dashboard Capaian" ],
+    [ %r{\A/(study_programs|academic_periods|clinical_rotations|tutorial_enrollments)}, "Program Studi & Kurikulum" ],
+    [ %r{\A/(admin/users|cari)}, "Pengguna & Hak Akses" ],
+    [ %r{\A/(user_assignments|external_identity_mappings|external_evidence_imports)}, "Pengguna & Hak Akses" ],
+    [ %r{\A/admin/}, "Master Data" ],
+    [ %r{\A/module_configuration}, "Pengaturan Sistem" ],
+    [ %r{\A/(monitoring-srq|kesehatan-mental)}, "Layanan Mahasiswa" ]
   ].freeze
 
   def navigation_breadcrumbs
     return [ [ "Dashboard", nil ] ] if request.path.in?(%w[/ /dashboard])
 
-    mapping = OBE_BREADCRUMBS.find do |pattern, _group, _item|
+    mapping = NAVIGATION_BREADCRUMBS.find do |pattern, _item|
       pattern.match?(request.path) && !(request.path.start_with?("/clinical_cases", "/activity_logs") && params[:scope].in?(%w[to_verify reviewed]))
     end
     if request.path.start_with?("/clinical_cases", "/activity_logs") && params[:scope].in?(%w[to_verify reviewed])
-      group, item = "Asesmen Capaian", "Penilaian & Validasi Bukti"
+      item = "Penilaian & Validasi Bukti"
     elsif mapping
-      _pattern, group, item = mapping
+      _pattern, item = mapping
     else
       return [ [ "Dashboard", dashboard_path ], [ content_for(:title).presence || "Halaman", nil ] ]
     end
 
+    group = navigation_group_for(item)
     crumbs = [ [ "Dashboard", dashboard_path ], [ group, nil ], [ item, nil ] ]
     page_label = content_for(:page_title).presence || content_for(:title).presence
     crumbs << [ page_label, nil ] if page_label.present? && page_label != item && page_label != group
     crumbs
+  end
+
+  private
+
+  def navigation_group_for(item)
+    role = (current_user&.active_role || current_user&.roles&.first)&.code
+    return "Target Kompetensi" if role == "mahasiswa" && item.in?(%w[ Peta Kompetensi Pustaka Kerangka Kompetensi Blueprint Asesmen Syarat Bukti Peta Artefak ])
+    return "Portofolio Saya" if role == "mahasiswa" && item.in?(%w[ Portofolio Saya Portofolio Terpilih Refleksi Pengalaman Belajar Umpan Balik ])
+    return "Logbook Klinis" if role == "mahasiswa" && item == "Logbook Klinis"
+    return "Workplace-Based Assessment" if role == "mahasiswa" && item == "Workplace-Based Assessment"
+    return "EPA" if role == "mahasiswa" && item == "EPA"
+    return "Capaian Saya" if role == "mahasiswa" && item == "Capaian Kompetensi"
+    return "ADMINISTRASI" if role == "admin" || role == "tenaga_kependidikan"
+    return "Pengelolaan Program Studi" if role == "kaprodi" && item.in?(%w[ Pustaka Kerangka Kompetensi Peta Kompetensi Blueprint Asesmen Syarat Bukti Peta Artefak ])
+    return "Monitoring Program Studi" if role == "kaprodi"
+    return "Mahasiswa Supervisi" if role == "preseptor" && item == "Pengguna & Hak Akses"
+    return "Workplace-Based Assessment" if %w[dosen preseptor].include?(role) && item.include?("Asesmen")
+    return "Penilaian & Validasi Bukti" if %w[dosen preseptor].include?(role) && item == "Penilaian & Validasi Bukti"
+
+    item
   end
 end

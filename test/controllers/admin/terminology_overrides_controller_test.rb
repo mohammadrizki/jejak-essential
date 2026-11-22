@@ -42,8 +42,8 @@ class Admin::TerminologyOverridesControllerTest < ActionDispatch::IntegrationTes
 
     get dashboard_path
     assert_select "aside#sidebar a[href=?]", clinical_rotations_path, text: "Stase Klinik"
-    assert_select "aside#sidebar p", text: "Pengaturan Sistem"
-    assert_select "aside#sidebar p", text: "Konfigurasi", count: 0
+    assert_select "aside#sidebar button", text: /Pengaturan Sistem/
+    assert_select "aside#sidebar p", text: "ADMINISTRASI"
 
     patch admin_terminology_path, params: { terms: { "nav.clinical_rotations" => "", "nav.groups.configuration" => "Administrasi" } }
     assert_not TerminologyOverride.exists?, "isian kosong / sama dengan bawaan menghapus penggantian"

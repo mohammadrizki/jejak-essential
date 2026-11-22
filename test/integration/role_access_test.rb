@@ -20,15 +20,15 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
 
   # ── Menu ────────────────────────────────────────────────────────────────
 
-  test "kaprodi melihat rencana pembelajaran tanpa antrean validasi atau menu jadwal" do
+  test "kaprodi melihat pengelolaan program studi tanpa antrean validasi atau menu jadwal" do
     sign_in users(:dedi)
     get dashboard_path
 
     assert_select "aside#sidebar" do
-      assert_select "span", text: "2. PENGEMBANGAN KOMPETENSI"
+      assert_select "span", text: "Pengelolaan Program Studi"
       assert_select "a[href=?]", clinical_cases_path(scope: "to_verify"), 0
       assert_select "a[href=?]", activity_logs_path(scope: "to_verify"), 0
-      assert_select "a[href=?]", admin_learning_units_path
+      assert_select "a[href=?]", competency_frameworks_path
       assert_select "a[href=?]", admin_evaluation_schedules_path, 0
     end
     assert_select ".mobile-bottom-nav a[href=?]", clinical_cases_path(scope: "to_verify"), 0

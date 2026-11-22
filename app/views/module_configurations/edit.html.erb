@@ -27,10 +27,10 @@
     <% [
       ["clinical_logbook", "Logbook Klinis", "Catatan aktivitas profesional dan validasi aktivitas."],
       ["wpba", "Workplace-Based Assessment", "Mini-CEX, DOPS dan instrumen observasi tempat kerja yang tersedia."],
-      ["epa", "EPA", "Observasi formatif EPA bawaan dan workflow panel. Dapat berjalan terpisah dari modul WPBA umum; tidak berlaku untuk jenjang Sarjana."]
+      ["epa", "EPA", "Katalog EPA, observasi formatif, dan workflow panel. Dapat diaktifkan pada semua jenjang pendidikan dan berjalan terpisah dari modul WPBA umum."]
     ].each do |key, label, description| %>
       <label class="flex gap-3 rounded-xl border border-slate-200 p-4">
-        <%= f.check_box key, checked: @configuration.enabled?(key), disabled: (key == "epa" && @study_program.level == "sarjana"),
+        <%= f.check_box key, checked: @configuration.enabled?(key),
             class: "mt-1 rounded border-slate-300 text-indigo-600" %>
         <span>
           <span class="block font-semibold text-slate-900"><%= label %></span>

@@ -24,7 +24,7 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_select '[data-testid="evidence-cycle-summary"]'
   end
 
-  test "EPA Sarjana tersembunyi saat modul tidak aktif dan route langsung ditolak" do
+  test "EPA Sarjana tampil pada dasbor setelah modul diaktifkan dan tersembunyi saat nonaktif" do
     sign_in users(:siti)
     get student_dashboard_path(users(:siti))
     assert_response :redirect # mahasiswa tidak dapat membuka dasbor administratif
@@ -34,10 +34,14 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href=?]", entrustment_decisions_path(student_id: users(:siti).id), 0
 
+    ModuleConfiguration.for(users(:siti).study_program).update!({ epa: "1" }, actor: users(:dedi))
+    get student_dashboard_path(users(:siti))
+    assert_response :success
+    assert_select "a[href=?]", entrustment_decisions_path(student_id: users(:siti).id)
+
     sign_in users(:siti)
     get entrustment_decisions_path
-    assert_redirected_to dashboard_path
-    assert_match "Modul EPA tidak aktif", flash[:alert]
+    assert_response :success
   end
 
   test "kaprodi bisa membuka; mahasiswa lain dan pengguna non-mahasiswa ditolak" do

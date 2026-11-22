@@ -31,41 +31,42 @@
     current_user.dops_evaluations_as_evaluator.exists? || current_user.mini_cex_evaluations_as_evaluator.exists? || wpba_enabled_for_assigned
   epa_available = epa_enabled || epa_enabled_for_assigned || current_user.epa_observations.exists? || current_user.entrustment_decisions.exists?
   verifier = is_instructor && current_user.can_verify_clinical_cases?
-  items = [["Dashboard", dashboard_path, request.path.in?(%w[/ /dashboard])]]
+  has_assessment_events = is_student && AssessmentEvent.published.any? { |event| event.visible_to?(current_user) }
+  items = [[(is_student ? "Dashboard Saya" : is_admin ? "Dashboard Sistem" : is_kaprodi ? "Dashboard Program" : is_preceptor ? "Dashboard Supervisi" : is_dosen ? "Dashboard Penugasan" : "Dashboard Operasional"), dashboard_path, request.path.in?(%w[/ /dashboard])]]
   if is_student
-    items << ["Logbook", activity_logs_path, request.path.start_with?("/activity_logs", "/kalender")] if logbook_available
-    items << ["Portofolio", portfolio_path, request.path.start_with?("/portfolio")]
-    items << ["WPBA", assessments_path, request.path.start_with?("/asesmen", "/dops_evaluations", "/mini_cex_evaluations", "/wpba_observations")] if wpba_available
-    items << ["Capaian", academic_assessments_path, request.path.start_with?("/capaian-belajar")]
-    items << ["EPA", entrustment_decisions_path, request.path.start_with?("/dashboard/entrustment")] if epa_available
+    items << ["Peta Artefak Saya", artifact_map_path, request.path.start_with?("/peta-artefak")]
+    items << ["Koleksi Bukti", portfolio_path, request.path.start_with?("/portfolio")]
+    items << ["Logbook Klinis", activity_logs_path, request.path.start_with?("/activity_logs", "/kalender")] if logbook_available
+    items << ["WPBA", (has_assessment_events ? student_assessments_path : assessments_path), request.path.start_with?("/asesmen", "/student/assessments", "/dops_evaluations", "/mini_cex_evaluations", "/wpba_observations")] if wpba_available
+    items << ["Capaian Saya", academic_assessments_path, request.path.start_with?("/capaian-belajar")]
   elsif is_kaprodi
-    items << ["Peta", competency_frameworks_path, request.path.start_with?("/competency_frameworks")]
+    items << ["Peta Kompetensi", competency_frameworks_path, request.path.start_with?("/competency_frameworks")]
     items << ["Capaian", analytics_path, request.path.start_with?("/analitik")]
     items << ["Penugasan", user_assignments_path, request.path.start_with?("/user_assignments")]
+    items << ["Pengaturan", edit_module_configuration_path(study_program_id: current_user.study_program_id), request.path.start_with?("/module_configuration")]
   elsif is_admin
-    items << ["Peta", competency_frameworks_path, request.path.start_with?("/competency_frameworks")]
-    items << ["WPBA", admin_wpba_instruments_path, request.path.start_with?("/admin/wpba_instruments")]
+    items << ["Program Studi", study_programs_path, request.path.start_with?("/study_programs")]
+    items << ["Pengguna", admin_users_path, request.path.start_with?("/admin/users")]
+    items << ["Master Data", admin_wpba_instruments_path, request.path.start_with?("/admin/wpba_instruments")]
     items << ["Pengaturan", edit_module_configuration_path(study_program_id: StudyProgram.ordered.first&.id), request.path.start_with?("/module_configuration")]
-    items << ["Logbook", activity_logs_path(scope: "to_verify"), request.path.start_with?("/activity_logs") && params[:scope] == "to_verify"] if logbook_assigned
   elsif is_tendik
     items << ["Impor Bukti", external_evidence_imports_path, request.path.start_with?("/external_evidence_imports")] if external_data_assigned
     items << ["Pemetaan ID", external_identity_mappings_path, request.path.start_with?("/external_identity_mappings")] if external_data_assigned
   else
-    items << ["Verifikasi", clinical_cases_path(scope: "to_verify"), request.path.start_with?("/clinical_cases") && params[:scope].in?(%w[to_verify reviewed])] if verifier
-    items << ["Logbook", activity_logs_path(scope: "to_verify"), request.path.start_with?("/activity_logs") && params[:scope] == "to_verify"] if logbook_assigned
-    items << ["WPBA", assessments_path, request.path.start_with?("/asesmen", "/dops_evaluations", "/mini_cex_evaluations", "/wpba_observations")] if wpba_available
-    items << ["EPA", epa_promotions_path, request.path.start_with?("/epa_promotions")] if epa_available && (is_preceptor || panel_assigned || preceptor_for_student)
-    items << ["Portofolio", portfolio_path, request.path.start_with?("/portfolio")] if current_user.activity_logs.exists?
+    items << ["Mahasiswa Supervisi", search_path, request.path.start_with?("/cari")] if is_preceptor || is_dosen
+    items << ["Validasi Kasus", clinical_cases_path(scope: "to_verify"), request.path.start_with?("/clinical_cases") && params[:scope].in?(%w[to_verify reviewed])] if verifier
+    items << ["Validasi Logbook", activity_logs_path(scope: "to_verify"), request.path.start_with?("/activity_logs") && params[:scope] == "to_verify"] if logbook_assigned
+    items << ["WPBA", examiner_evaluations_path, request.path.start_with?("/examiner_evaluations")] if wpba_available
+    items << ["Tinjauan EPA", epa_promotions_path, request.path.start_with?("/epa_promotions")] if epa_available && (is_preceptor || panel_assigned || preceptor_for_student)
   end
   items << ["Validasi Bukti", evidence_sources_path, request.path.start_with?("/evidence_sources")] if evidence_reviewer_assigned
-  items << ["Profil", profile_path, request.path.start_with?("/profile")]
   nav_class = ->(active) { "flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 rounded-xl transition-colors #{active ? 'nav-item-active' : 'nav-item-inactive'}" }
 %>
 
 <nav aria-label="Navigasi cepat" class="mobile-bottom-nav lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-slate-200/70 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] flex justify-around items-center px-1 pt-2">
   <% items.each do |label, path, active| %>
     <%= link_to path, class: nav_class.call(active), aria: { current: (active ? "page" : nil), label: label } do %>
-      <span aria-hidden="true" class="flex h-5 w-5 items-center justify-center rounded-md bg-current/10 text-sm font-bold"><%= {"Dashboard" => "⌂", "Logbook" => "▤", "Portofolio" => "▣", "WPBA" => "✓", "Capaian" => "◫", "EPA" => "◎", "Peta" => "⌘", "Penugasan" => "⇄", "Pengaturan" => "⚙", "Verifikasi" => "✓", "Impor Bukti" => "⇧", "Pemetaan ID" => "↔", "Profil" => "○"}.fetch(label, "•") %></span>
+      <span aria-hidden="true" class="flex h-5 w-5 items-center justify-center rounded-md bg-current/10 text-sm font-bold"><%= {"Dashboard Saya" => "⌂", "Dashboard Sistem" => "⌂", "Dashboard Program" => "⌂", "Dashboard Supervisi" => "⌂", "Dashboard Penugasan" => "⌂", "Dashboard Operasional" => "⌂", "Peta Artefak Saya" => "▦", "Koleksi Bukti" => "▣", "Logbook Klinis" => "▤", "Capaian Saya" => "◫", "Peta Kompetensi" => "⌘", "Capaian" => "◫", "Penugasan" => "⇄", "Pengaturan" => "⚙", "Impor Bukti" => "⇧", "Pemetaan ID" => "↔", "Program Studi" => "⌘", "Pengguna" => "○", "Master Data" => "▧", "Mahasiswa Supervisi" => "◉", "Validasi Logbook" => "✓", "WPBA" => "✓", "Tinjauan EPA" => "◎", "Validasi Bukti" => "✓"}.fetch(label, "•") %></span>
       <span class="truncate text-[10px] font-semibold"><%= label %></span>
     <% end %>
   <% end %>

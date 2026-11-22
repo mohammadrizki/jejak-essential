@@ -3,24 +3,24 @@ require "test_helper"
 class NavigationTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  test "mahasiswa melihat tahap OBE yang sesuai dan tidak melihat menu EPA Sarjana" do
+  test "mahasiswa melihat navigasi kompetensi dan portofolio tanpa menu EPA yang nonaktif" do
     sign_in users(:siti)
 
     get dashboard_path
 
     assert_response :success
     assert_select "nav[aria-label='Breadcrumb']"
-    assert_select "button", text: /1\. PERUMUSAN CAPAIAN/
-    assert_select "button", text: /2\. PENGEMBANGAN KOMPETENSI/
-    assert_select "button", text: /3\. ASESMEN CAPAIAN/
-    assert_select "button", text: /4\. EVALUASI & PENINGKATAN MUTU/
-    assert_select "a[href='#{competency_framework_templates_path}']", text: "Pustaka Kerangka Kompetensi"
+    assert_select "button", text: "Target Kompetensi"
+    assert_select "button", text: "Portofolio Saya"
+    assert_select "button", text: "Capaian Saya"
+    assert_no_match "PERUMUSAN CAPAIAN", response.body
+    assert_select "a[href='#{competency_framework_templates_path}']", count: 0
     assert_select "a[href='#{entrustment_decisions_path}']", count: 0
     assert_select "a[href='#{assessment_blueprints_path}']", count: 0
     assert_select "a[href='#{artifact_map_path}']", text: "Peta Artefak Saya"
   end
 
-  test "admin melihat tautan konfigurasi turunan dan breadcrumb tahap" do
+  test "admin melihat administrasi yang tersedia tanpa kewenangan akademik otomatis" do
     admin = users(:budi)
     admin.roles << roles(:admin)
     admin.update!(active_role: roles(:admin))
@@ -29,12 +29,13 @@ class NavigationTest < ActionDispatch::IntegrationTest
     get competency_framework_templates_path
 
     assert_response :success
-    assert_select "nav[aria-label='Breadcrumb']", text: /Perumusan Capaian/
+    assert_select "nav[aria-label='Breadcrumb']", text: /ADMINISTRASI/
     get dashboard_path
     assert_response :success
-    assert_select "a[href='#{assessment_blueprints_path}']", text: "Blueprint Asesmen"
-    assert_select "a[href='#{evidence_requirements_path}']", text: "Syarat Bukti"
-    assert_select "a[href='#{artifact_map_path}']", text: "Peta Artefak"
+    assert_select "a[href='#{admin_wpba_instruments_path}']", text: "Katalog Instrumen WPBA"
+    assert_select "a[href='#{assessment_blueprints_path}']", count: 0
+    assert_select "a[href='#{evidence_requirements_path}']", count: 0
+    assert_select "a[href='#{artifact_map_path}']", count: 0
     assert_select "a[href='#{external_evidence_imports_path}']", text: "Impor Bukti Eksternal"
   end
 
@@ -97,7 +98,7 @@ class NavigationTest < ActionDispatch::IntegrationTest
       reason: "Ditugaskan meninjau provenance bukti eksternal program studi.")
     get dashboard_path
     assert_response :success
-    assert_select "a[href=?]", evidence_sources_path, text: "Validasi Bukti Eksternal"
+    assert_select "a[href=?]", evidence_sources_path, text: "Penilaian & Validasi Bukti"
     assert_select ".mobile-bottom-nav a[href=?]", evidence_sources_path
     get evidence_sources_path
     assert_response :success
@@ -121,6 +122,6 @@ class NavigationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href=?]", assessments_path
-    assert_select ".mobile-bottom-nav a[href=?]", assessments_path
+    assert_select ".mobile-bottom-nav a[href=?]", student_assessments_path
   end
 end

@@ -11,7 +11,7 @@ class EpaPromotionReadiness
   end
 
   def call(allow_current_decision: false)
-    return Result.new(false, [], ["EPA tidak berlaku untuk jenjang Sarjana"]) unless applicable?
+    return Result.new(false, [], ["EPA tidak aktif atau tidak berlaku pada program studi ini"]) unless applicable?
 
     requirements = @epa.evidence_requirements.where(status: "active").to_a
     if !allow_current_decision && EntrustmentDecision.current.exists?(student: @student, epa: @epa)

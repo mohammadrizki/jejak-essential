@@ -34,7 +34,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_equal student_dashboard_path(users(:siti)), card["href"]
   end
 
-  test "kartu mahasiswa mengarah ke Dasbor Mahasiswa dan EPA Sarjana tidak dapat dibuka" do
+  test "EPA untuk Sarjana mengikuti konfigurasi modul, bukan pembatasan jenjang" do
     UserAssignment.create!(user: users(:dedi), assigned_by: users(:dedi),
       assignment_role: "epa_panel_member", study_program: users(:siti).study_program,
       scope_type: "User", scope_id: users(:siti).id, reason: "Penugasan panel untuk telaah dossier EPA.")
@@ -42,9 +42,10 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     get search_path, params: { q: "siti" }
     assert_equal student_dashboard_path(users(:siti)), card_for(users(:siti))["href"]
 
+    ModuleConfiguration.for(users(:siti).study_program).update!({ epa: "1" }, actor: users(:dedi))
     get entrustment_decisions_path(student_id: users(:siti).id)
-    assert_redirected_to dashboard_path
-    assert_match "Modul EPA tidak aktif", flash[:alert]
+    assert_response :success
+    assert_no_match "Modul EPA tidak aktif", response.body
   end
 
   test "kartu pengguna non-mahasiswa mengarah ke sunting pengguna bagi admin" do

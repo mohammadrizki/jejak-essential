@@ -14,6 +14,18 @@ class CompetencyFrameworksControllerTest < ActionDispatch::IntegrationTest
     assert_match competency_items(:domain_klinis).title, response.body
   end
 
+  test "editor melihat konfigurasi EPA pada framework Sarjana" do
+    sign_in users(:dedi)
+    framework = competency_frameworks(:skdi_ringkas)
+    framework.epas.create!(code: "EPA-SARJANA-TEST", title: "Aktivitas klinis sarjana", status: "draft")
+
+    get competency_framework_path(framework)
+
+    assert_response :success
+    assert_select "h2", text: "EPA pada versi ini"
+    assert_select "option[value='undergraduate']", text: "Sarjana"
+  end
+
   test "mahasiswa tidak boleh membuat peta kompetensi baru" do
     sign_in users(:siti)
     get new_competency_framework_path

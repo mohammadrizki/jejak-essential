@@ -5,34 +5,34 @@ require "test_helper"
 class AppShellTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  test "mahasiswa melihat empat tahap OBE dan menu milik sendiri tanpa administrasi" do
+  test "mahasiswa melihat navigasi target dan portofolio tanpa administrasi" do
     sign_in users(:siti)
     get dashboard_path
 
     assert_response :success
     assert_select "aside#sidebar" do
       assert_select "p", text: "DASHBOARD"
-      assert_select "span", text: "1. PERUMUSAN CAPAIAN"
-      assert_select "span", text: "2. PENGEMBANGAN KOMPETENSI"
-      assert_select "span", text: "3. ASESMEN CAPAIAN"
-      assert_select "span", text: "4. EVALUASI & PENINGKATAN MUTU"
-      assert_select "a[href=?]", portfolio_path, text: "Portofolio Saya"
+      assert_select "span", text: "Target Kompetensi"
+      assert_select "span", text: "Portofolio Saya"
+      assert_select "span", text: "Capaian Saya"
+      assert_no_match "PERUMUSAN CAPAIAN", response.body
+      assert_select "a[href=?]", portfolio_path, text: "Koleksi Bukti"
       assert_select "a[href=?]", artifact_map_path, text: "Peta Artefak Saya"
       assert_select "p", text: "ADMINISTRASI", count: 0
     end
     # Pencarian pengguna khusus pengajar/kaprodi/admin — ikonnya tidak tampil.
     assert_select "header a[href=?]", search_path, count: 0
-    assert_select ".mobile-bottom-nav a[href=?]", assessments_path
+    assert_select ".mobile-bottom-nav a[href=?]", student_assessments_path
   end
 
-  test "dosen melihat validasi, capaian, dan direktori tanpa kontrol prodi" do
+  test "dosen melihat mahasiswa bimbingan, validasi, dan monitoring tanpa administrasi" do
     sign_in users(:budi)
     get dashboard_path
     assert_select "header a[href=?]", search_path
 
     pending = ClinicalCase.awaiting_verification.count
     assert_select "aside#sidebar" do
-      assert_select "span", text: "3. ASESMEN CAPAIAN"
+      assert_select "span", text: "Mahasiswa Bimbingan"
       assert_select "a[href=?]", clinical_cases_path(scope: "to_verify"), text: /Validasi Kasus/
       assert_select "a[href=?]", analytics_path
       assert_select "a[href=?]", study_programs_path, count: 0
@@ -52,12 +52,11 @@ class AppShellTest < ActionDispatch::IntegrationTest
     get dashboard_path
 
     assert_select "aside#sidebar" do
-      assert_select "p", text: "Administrasi"
+    assert_select "p", text: "ADMINISTRASI"
       assert_select "span", text: "Program Studi & Kurikulum"
       assert_select "a[href=?]", academic_periods_path
       assert_select "a[href=?]", admin_assessment_events_path
-      assert_select "a[href=?]", competency_frameworks_path
-      assert_select "a[href=?]", assessment_blueprints_path
+      assert_select "a[href=?]", admin_wpba_instruments_path
     end
     # Pengalih peran tampil di topbar karena akun ini punya >1 peran.
     assert_select "header select#role_code option", minimum: 2
@@ -116,12 +115,12 @@ test "tombol EN di topbar mengganti bahasa cangkang dan tersimpan di akun" do
 
   get dashboard_path
   assert_select "html[lang=en]"
-  assert_select "aside#sidebar a[href=?]", portfolio_path, text: "Portofolio Saya"
+  assert_select "aside#sidebar a[href=?]", portfolio_path, text: "Koleksi Bukti"
   assert_select "header button", text: "ID"
 
   patch update_locale_settings_path, params: { locale: "id" }, headers: { "HTTP_REFERER" => dashboard_path }
   get dashboard_path
-  assert_select "aside#sidebar a[href=?]", portfolio_path, text: "Portofolio Saya"
+  assert_select "aside#sidebar a[href=?]", portfolio_path, text: "Koleksi Bukti"
 end
 
 test "bahasa yang tidak didukung ditolak" do

@@ -16,6 +16,16 @@ class ModuleConfigurationsControllerTest < ActionDispatch::IntegrationTest
     assert_not ModuleConfiguration.for(users(:dedi).study_program).enabled?("clinical_logbook")
   end
 
+  test "EPA dapat dipilih pada formulir aktivasi program Sarjana" do
+    sign_in users(:dedi)
+
+    get edit_module_configuration_path
+
+    assert_response :success
+    assert_select "input[type=checkbox][name='modules[epa]']:not([disabled])"
+    assert_no_match "tidak berlaku untuk jenjang Sarjana", response.body
+  end
+
   test "Kaprodi tidak dapat memilih program studi lain" do
     sign_in users(:dedi)
 

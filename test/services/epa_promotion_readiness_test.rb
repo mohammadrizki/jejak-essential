@@ -47,6 +47,23 @@ class EpaPromotionReadinessTest < ActiveSupport::TestCase
     assert EpaPromotion.exists?(student: @student, epa: @epa, status: "ready")
   end
 
+  test "kecukupan EPA dapat dinilai pada jenjang Sarjana" do
+    student = User.create!(full_name: "Mahasiswa Sarjana EPA", email: "sarjana-epa@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:sarjana_kedokteran))
+    student.roles << roles(:mahasiswa)
+    ModuleConfiguration.for(student.study_program).update!({ epa: "1" }, actor: users(:dedi))
+    framework = CompetencyFramework.create!(study_program: student.study_program,
+      name: "Framework EPA Sarjana", version: "1", education_stage: "undergraduate")
+    framework.competency_items.create!(title: "Kompetensi klinis sarjana", code: "S1-D1", level_type: "domain")
+    epa = framework.epas.create!(code: "EPA-S1", title: "Mengumpulkan informasi klinis", status: "draft")
+    framework.publish!
+
+    result = EpaPromotionReadiness.new(student: student, epa: epa.reload).call
+
+    assert_not_includes result.reasons, "EPA tidak berlaku untuk jenjang Sarjana"
+    assert_includes result.reasons, "belum ada Syarat Bukti EPA wajib atau kritis yang aktif"
+  end
+
   test "active entrustment prevents duplicate promotion readiness" do
     EntrustmentDecision.decide!(student: @student, epa: @epa, level: 2,
       justification: "Keputusan entrustment sudah ditetapkan oleh akademik.", decided_by: users(:dedi))

@@ -1,4 +1,4 @@
-Betul. **Navigasi berbasis role harus menjadi bagian dari rancangan arsitektur JEJAK**, bukan sekadar penataan sidebar setelah seluruh modul selesai.
+**Navigasi berbasis role harus menjadi bagian dari rancangan arsitektur JEJAK**, bukan sekadar penataan sidebar setelah seluruh modul selesai.
 
 Saya menyarankan enam role menggunakan **modul yang sama, tetapi dengan menu, tindakan, dan cakupan data yang berbeda**. Dengan demikian, kita tidak membuat enam aplikasi terpisah.
 
