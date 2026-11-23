@@ -1,5 +1,5 @@
 <div class="max-w-xl">
-  <h1 class="text-xl font-bold text-gray-900 mb-2">Sunting syarat bukti</h1>
+  <h1 class="text-xl font-bold text-gray-900 mb-2">Sunting Bukti yang Diharapkan</h1>
   <p class="text-sm text-gray-500 mb-6"><%= @requirement.competency_indicator&.description || @requirement.competency_item&.title || @requirement.epa&.title || @blueprint_item&.title %></p>
 
   <%= form_with model: @requirement, url: @blueprint_item ? blueprint_item_evidence_requirement_path(@blueprint_item, @requirement) : competency_framework_evidence_requirement_path(@framework, @requirement), method: :patch, class: "space-y-4" do |f| %>

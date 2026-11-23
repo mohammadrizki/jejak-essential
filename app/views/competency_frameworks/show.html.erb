@@ -17,7 +17,7 @@
         <% if @framework_lifecycle.deletable? %>
           <%= button_to "Hapus", competency_framework_path(@competency_framework), method: :delete,
                 class: "text-sm text-rose-600 hover:underline",
-                form: { data: { turbo_confirm: "Hapus framework draf ini beserta Syarat Bukti konfigurasi yang belum memiliki evidence? Tindakan ini tidak dapat dibatalkan." } } %>
+                form: { data: { turbo_confirm: "Hapus framework draf ini beserta Bukti yang Diharapkan konfigurasi yang belum memiliki bukti aktual? Tindakan ini tidak dapat dibatalkan." } } %>
         <% else %>
           <span class="text-xs text-gray-400" title="Framework masih memiliki data akademik yang dirujuk">Hapus dibatasi</span>
         <% end %>
@@ -28,7 +28,7 @@
         <% if @framework_lifecycle.unpublishable? %>
           <%= button_to "Unpublish", unpublish_competency_framework_path(@competency_framework), method: :patch,
                 class: "rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50",
-                form: { data: { turbo_confirm: "Tarik framework ini dari status published? Definisi akan diarsipkan sebagai riwayat; Syarat Bukti tetap tersimpan. Sunting akan membuat versi draf baru." } } %>
+                form: { data: { turbo_confirm: "Tarik framework ini dari status published? Definisi akan diarsipkan sebagai riwayat; Bukti yang Diharapkan tetap tersimpan. Sunting akan membuat versi draf baru." } } %>
         <% else %>
           <span class="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-400" title="Framework memiliki referensi akademik historis">Unpublish dibatasi</span>
         <% end %>
@@ -55,7 +55,7 @@
       <% if @framework_lifecycle.unpublish_blockers.any? %>
         <p class="mt-1">Unpublish ditahan karena ada dependensi atau proses aktif berikut: <%= @framework_lifecycle.unpublish_blockers.to_sentence %>. Gunakan <strong>Sunting (Buat Versi Draf)</strong> untuk memperbaiki tanpa mengubah riwayat.</p>
       <% else %>
-        <p class="mt-1">Tidak ditemukan referensi akademik hilir. Unpublish mengarsipkan definisi published ini dan melepasnya dari peta aktif program studi. <%= @framework_lifecycle.retained_configuration_count %> Syarat Bukti konfigurasi tetap melekat pada versi arsip; Sunting akan membuat salinan draf baru.</p>
+        <p class="mt-1">Tidak ditemukan referensi akademik hilir. Unpublish mengarsipkan definisi published ini dan melepasnya dari peta aktif program studi. <%= @framework_lifecycle.retained_configuration_count %> aturan Bukti yang Diharapkan tetap melekat pada versi arsip; Sunting akan membuat salinan draf baru.</p>
       <% end %>
     </section>
   <% elsif policy(@competency_framework).update? && @competency_framework.status.in?(%w[draft archived]) && @framework_lifecycle.deletion_blockers.any? %>
@@ -74,7 +74,7 @@
       <% if @framework_lifecycle.deletable? %>
         <%= button_to "Hapus", competency_framework_path(@competency_framework), method: :delete,
               class: "rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700",
-              form: { data: { turbo_confirm: "Hapus framework arsip ini beserta Syarat Bukti konfigurasi yang belum memiliki evidence? Tindakan ini tidak dapat dibatalkan." } } %>
+                form: { data: { turbo_confirm: "Hapus framework arsip ini beserta Bukti yang Diharapkan konfigurasi yang belum memiliki bukti aktual? Tindakan ini tidak dapat dibatalkan." } } %>
       <% else %>
         <span class="text-xs text-gray-400">Hapus dibatasi oleh dependensi atau riwayat</span>
       <% end %>
@@ -165,7 +165,7 @@
               <%= f.select :source_type, EvidenceRequirement::SOURCE_TYPES.map { |value| [EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(value), value] }, {}, class: "rounded-lg border-gray-300 text-xs" %>
               <%= f.number_field :required_count, min: 1, value: 1, placeholder: "Bukti valid minimal", class: "w-28 rounded-lg border-gray-300 text-xs" %>
               <%= render "evidence_requirements/fulfillment_fields", indicator: false %>
-              <%= f.submit "Tambah syarat bukti", class: "text-xs text-indigo-600 font-semibold cursor-pointer" %>
+              <%= f.submit "Tambah bukti yang diharapkan", class: "text-xs text-indigo-600 font-semibold cursor-pointer" %>
             <% end %></div>
           <% end %>
         <% end %>
@@ -183,7 +183,7 @@
 
   <div class="mt-4 space-y-3">
     <section class="rounded-xl bg-sky-50 px-4 py-3 text-xs text-sky-900">
-      <strong>Syarat bukti</strong> menentukan jenis dan jumlah bukti yang diharapkan untuk kompetensi atau indikator. Mahasiswa menautkan bukti aktual dari asesmen, logbook, atau refleksi di Portfolio. Bukti yang belum dinilai belum dihitung; aturan tambahan juga dapat meminta jumlah kelulusan atau bukti dari kasus/penilai berbeda. Contoh: “asesmen × 2” berarti perlu dua bukti asesmen.
+      <strong>Bukti yang Diharapkan</strong> menentukan jenis dan jumlah bukti yang diperlukan untuk kompetensi atau indikator. Mahasiswa menautkan bukti aktual dari asesmen, logbook, atau refleksi di Portfolio. Bukti yang belum dinilai belum dihitung; aturan tambahan juga dapat meminta jumlah kelulusan atau bukti dari kasus/penilai berbeda. Contoh: “asesmen × 2” berarti perlu dua bukti asesmen.
     </section>
     <% @domains.each do |domain| %>
       <div class="bg-white rounded-2xl ring-1 ring-gray-200 p-4">
@@ -227,7 +227,7 @@
               <%= f.select :source_type, EvidenceRequirement::SOURCE_TYPES.map { |value| [EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(value), value] }, {}, class: "rounded-lg border-gray-300 text-xs" %>
               <%= f.number_field :required_count, min: 1, value: 1, placeholder: "Bukti valid minimal", class: "w-28 rounded-lg border-gray-300 text-xs" %>
               <%= render "evidence_requirements/fulfillment_fields", indicator: true %>
-              <%= f.submit "Tambah syarat bukti", class: "text-xs font-semibold text-indigo-600 cursor-pointer" %>
+              <%= f.submit "Tambah bukti yang diharapkan", class: "text-xs font-semibold text-indigo-600 cursor-pointer" %>
             <% end %>
           <% end %>
         <% end %>

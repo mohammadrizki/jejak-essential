@@ -330,6 +330,6 @@ empty_v1:
   source_name: "JEJAK Essential"
   source_version: "1"
   template_version: "1.0.0"
-  attribution: "Template kosong; tidak menyertakan isi kurikulum, Blueprint Asesmen, EPA, maupun Syarat Bukti."
+  attribution: "Template kosong; tidak menyertakan isi kurikulum, Blueprint Asesmen, EPA, maupun Bukti yang Diharapkan."
   education_stage: null
   domains: []

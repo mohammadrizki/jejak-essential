@@ -112,7 +112,7 @@
 
 <% if @evidence_requirements.any? %>
   <section id="evidence-requirements" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
-    <h2 class="text-sm font-semibold text-gray-800">Syarat bukti</h2>
+    <h2 class="text-sm font-semibold text-gray-800">Bukti yang Diharapkan</h2>
     <p class="mt-1 text-xs text-gray-500">Bukti dari observasi EPA dicatat otomatis; tautkan sumber asesmen, WPBA, logbook, atau refleksi yang relevan. Kecukupan bukti terpisah dari keputusan ketercapaian kompetensi.</p>
     <div class="mt-3 divide-y divide-gray-100">
       <% @evidence_requirements.each do |requirement| %>
@@ -129,7 +129,7 @@
             <p class="mt-1 text-[11px] text-gray-500">Lulus: <%= progress.pass_count %>/<%= rule["minimum_pass"].to_i %> · Kasus berbeda: <%= progress.case_count %>/<%= rule["minimum_distinct_cases"].to_i %> · Penilai berbeda: <%= progress.assessor_count %>/<%= rule["minimum_distinct_assessors"].to_i %> · Kesempatan berbeda: <%= progress.opportunity_count %>/<%= rule["minimum_distinct_opportunities"].to_i %> · Tanggal berbeda: <%= progress.distinct_date_count %>/<%= rule["minimum_distinct_dates"].to_i %> · Rentang: <%= progress.span_days %>/<%= rule["minimum_span_days"].to_i %> hari</p>
           <% end %>
           <% if rule["additional_criteria"].present? %><p class="mt-1 text-[11px] text-gray-500"><%= rule["additional_criteria"] %></p><% end %>
-          <% if version.present? %><p class="mt-1 text-[11px] text-gray-400">Versi Syarat Bukti: <%= version.version %></p><% end %>
+          <% if version.present? %><p class="mt-1 text-[11px] text-gray-400">Versi Bukti yang Diharapkan: <%= version.version %></p><% end %>
         <% if @evidence_sources.fetch(source_type, []).any? %>
             <%= form_with url: evidence_requirement_evidence_records_path(requirement), scope: :evidence_record, class: "mt-2 flex flex-wrap gap-2" do |f| %>
               <%= f.select :source_key, @evidence_sources.fetch(source_type, []), { prompt: "Pilih bukti aktual" }, class: "min-w-[16rem] rounded-lg border-gray-300 text-xs" %>

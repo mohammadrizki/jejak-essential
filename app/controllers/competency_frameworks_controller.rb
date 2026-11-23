@@ -209,7 +209,7 @@ class CompetencyFrameworksController < ApplicationController
     authorize @competency_framework, :update?
     lifecycle = CompetencyFrameworkLifecycle.new(@competency_framework)
     lifecycle.unpublish!
-    redirect_to @competency_framework, notice: "Framework di-unpublish dan diarsipkan sebagai riwayat. Syarat Bukti tetap tersimpan; pilih Sunting untuk membuat draf koreksi yang independen."
+    redirect_to @competency_framework, notice: "Framework di-unpublish dan diarsipkan sebagai riwayat. Bukti yang Diharapkan tetap tersimpan; pilih Sunting untuk membuat draf koreksi yang independen."
   rescue CompetencyFrameworkLifecycle::Blocked => e
     redirect_to @competency_framework, alert: "Framework tidak dapat di-unpublish karena masih digunakan oleh: #{e.reasons.to_sentence}. Gunakan Buat Versi Baru agar riwayat akademik tetap utuh."
   rescue ActiveRecord::RecordInvalid => e

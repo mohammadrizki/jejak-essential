@@ -30,7 +30,7 @@ class EvidenceRequirementsController < ApplicationController
     if params[:blueprint_item_id].present?
       @blueprint_item = BlueprintItem.find(params[:blueprint_item_id])
       authorize @blueprint_item.blueprint_version.assessment_blueprint, :update?
-      return redirect_to assessment_blueprint_path(@blueprint_item.blueprint_version.assessment_blueprint), alert: "Syarat bukti blueprint hanya dapat diubah pada versi draf." unless @blueprint_item.blueprint_version.status == "draft"
+      return redirect_to assessment_blueprint_path(@blueprint_item.blueprint_version.assessment_blueprint), alert: "Bukti yang Diharapkan dari Blueprint hanya dapat diubah pada versi draf." unless @blueprint_item.blueprint_version.status == "draft"
       origin = "blueprint"
       source_id = @blueprint_item.id
     else
@@ -56,7 +56,7 @@ class EvidenceRequirementsController < ApplicationController
     requirement = EvidenceRequirement.new(attributes.merge(origin: origin, blueprint_item_id: source_id))
     if requirement.save
       redirect_to(@blueprint_item ? assessment_blueprint_path(@blueprint_item.blueprint_version.assessment_blueprint) : competency_framework_path(@framework),
-        notice: "Syarat bukti ditambahkan.")
+        notice: "Bukti yang Diharapkan ditambahkan.")
     else
       redirect_to(@blueprint_item ? assessment_blueprint_path(@blueprint_item.blueprint_version.assessment_blueprint) : competency_framework_path(@framework),
         alert: requirement.errors.full_messages.to_sentence)
@@ -68,7 +68,7 @@ class EvidenceRequirementsController < ApplicationController
 
   def update
     if @requirement.update(requirement_update_params)
-      redirect_to requirement_parent_path, notice: "Syarat bukti diperbarui."
+      redirect_to requirement_parent_path, notice: "Bukti yang Diharapkan diperbarui."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -76,9 +76,9 @@ class EvidenceRequirementsController < ApplicationController
 
   def destroy
     if @requirement.destroy
-      redirect_to requirement_parent_path, notice: "Syarat bukti dihapus.", status: :see_other
+      redirect_to requirement_parent_path, notice: "Bukti yang Diharapkan dihapus.", status: :see_other
     else
-      redirect_to requirement_parent_path, alert: "Syarat bukti tidak dapat dihapus: #{@requirement.errors.full_messages.to_sentence}.", status: :see_other
+      redirect_to requirement_parent_path, alert: "Bukti yang Diharapkan tidak dapat dihapus: #{@requirement.errors.full_messages.to_sentence}.", status: :see_other
     end
   end
 
@@ -107,14 +107,14 @@ class EvidenceRequirementsController < ApplicationController
       @assessment_blueprint = @blueprint_item.blueprint_version.assessment_blueprint
       authorize @assessment_blueprint, :update?
       unless @blueprint_item.blueprint_version.status == "draft"
-        return redirect_to assessment_blueprint_path(@assessment_blueprint), alert: "Syarat bukti hanya dapat diubah pada versi draf."
+        return redirect_to assessment_blueprint_path(@assessment_blueprint), alert: "Bukti yang Diharapkan hanya dapat diubah pada versi draf."
       end
       @requirement = @blueprint_item.evidence_requirements.find(params[:id])
     else
       @framework = CompetencyFramework.find(params[:competency_framework_id])
       authorize @framework, :update?
       unless @framework.status == "draft"
-        return redirect_to competency_framework_path(@framework), alert: "Syarat bukti hanya dapat diubah pada framework draf."
+        return redirect_to competency_framework_path(@framework), alert: "Bukti yang Diharapkan hanya dapat diubah pada framework draf."
       end
       item_ids = @framework.competency_items.select(:id)
       epa_ids = @framework.epas.select(:id)

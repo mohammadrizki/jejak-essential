@@ -3,7 +3,7 @@ require "test_helper"
 class EvidenceRequirementsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
-  test "kaprodi hanya melihat syarat bukti milik program studinya" do
+  test "kaprodi hanya melihat bukti yang diharapkan milik program studinya" do
     own_requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
       source_type: "wpba", required_count: 1)
     other_framework = CompetencyFramework.create!(name: "Peta Profesi Terpisah", study_program: study_programs(:profesi_dokter),
@@ -21,7 +21,7 @@ class EvidenceRequirementsControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody td", { text: /#{Regexp.escape(other_requirement.competency_item.title)}/, count: 0 }
   end
 
-  test "administrator tetap dapat meninjau syarat bukti lintas program" do
+  test "administrator tetap dapat meninjau bukti yang diharapkan lintas program" do
     requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
       source_type: "wpba", required_count: 1)
     admin = users(:budi)

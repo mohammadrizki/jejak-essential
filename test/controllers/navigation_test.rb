@@ -39,7 +39,7 @@ class NavigationTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{external_evidence_imports_path}']", text: "Impor Bukti Eksternal"
   end
 
-  test "mahasiswa dapat melihat peta artefak turunannya tetapi tidak mengelola syarat bukti" do
+  test "mahasiswa dapat melihat peta artefak turunannya tetapi tidak mengelola Bukti yang Diharapkan" do
     sign_in users(:siti)
 
     get artifact_map_path
@@ -48,7 +48,7 @@ class NavigationTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "admin dapat membuka peta artefak dan daftar syarat bukti tanpa tabel master artefak" do
+  test "admin dapat membuka peta artefak dan daftar Bukti yang Diharapkan tanpa tabel master artefak" do
     admin = users(:budi)
     admin.roles << roles(:admin)
     sign_in admin
@@ -59,7 +59,7 @@ class NavigationTest < ActionDispatch::IntegrationTest
 
     get evidence_requirements_path
     assert_response :success
-    assert_match "Syarat Bukti", response.body
+    assert_match "Bukti yang Diharapkan", response.body
   end
 
   test "tenaga kependidikan melihat menu integrasi hanya saat ditugaskan" do

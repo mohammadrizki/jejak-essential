@@ -36,7 +36,7 @@ class CompetencyFrameworkLifecycle
     @deletion_blockers ||= begin
       blockers = unpublish_blockers.dup
       version_count = EvidenceRequirementVersion.where(evidence_requirement_id: requirements.select(:id)).count
-      blockers << "snapshot versi Syarat Bukti yang immutable (#{version_count})" if version_count.positive?
+      blockers << "snapshot versi Bukti yang Diharapkan yang tetap (#{version_count})" if version_count.positive?
       blockers
     end
   end
@@ -66,7 +66,7 @@ class CompetencyFrameworkLifecycle
       @framework.prepare_for_safe_deletion!
       requirements.each do |requirement|
         if requirement.versions.exists?
-          raise Blocked, ["snapshot versi Syarat Bukti yang immutable"]
+          raise Blocked, ["snapshot versi Bukti yang Diharapkan yang tetap"]
         end
         requirement.destroy!
       end

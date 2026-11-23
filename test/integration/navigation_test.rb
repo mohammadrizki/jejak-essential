@@ -58,7 +58,7 @@ class NavigationTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
-  test "Peta Artefak mahasiswa hanya menampilkan program studinya dan link Syarat Bukti milik sendiri" do
+  test "Peta Artefak mahasiswa hanya menampilkan program studinya dan link Bukti yang Diharapkan milik sendiri" do
     sign_in users(:siti)
 
     get artifact_map_path, params: { study_program_id: study_programs(:profesi_dokter).id }

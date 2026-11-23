@@ -65,7 +65,7 @@ Perumusan Capaian
 - Pustaka Kerangka Kompetensi
 - Peta Kompetensi
 - Blueprint Asesmen
-- Syarat Bukti
+- Bukti yang Diharapkan
 - Peta Artefak
 
 Pengelolaan Portofolio
@@ -138,7 +138,7 @@ Dashboard Saya
 Target Kompetensi
 - Peta Kompetensi Saya
 - Peta Artefak Saya
-- Syarat Bukti
+- Bukti yang Diharapkan
 
 Portofolio Saya
 - Koleksi Bukti
@@ -263,7 +263,7 @@ Administrator teknis tidak otomatis memiliki kewenangan melakukan penilaian atau
 - Pustaka Kerangka Kompetensi
 - Peta Kompetensi
 - Blueprint Asesmen
-- Syarat Bukti
+- Bukti yang Diharapkan
 - Peta Artefak
 - Monitoring Portofolio
 - Monitoring Logbook
@@ -305,7 +305,7 @@ Administrator teknis tidak otomatis memiliki kewenangan melakukan penilaian atau
 - Target Kompetensi
 - Peta Kompetensi Saya
 - Peta Artefak Saya
-- Syarat Bukti
+- Bukti yang Diharapkan
 - Koleksi Bukti
 - Refleksi Pengalaman Belajar
 - Pengajuan Artefak

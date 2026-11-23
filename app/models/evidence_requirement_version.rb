@@ -11,8 +11,8 @@ class EvidenceRequirementVersion < ApplicationRecord
   validates :configuration, presence: true
   validate :configuration_is_a_supported_snapshot
 
-  before_update { raise ActiveRecord::ReadOnlyRecord, "Versi Syarat Bukti bersifat tetap." }
-  before_destroy { raise ActiveRecord::ReadOnlyRecord, "Versi Syarat Bukti tidak dapat dihapus." }
+  before_update { raise ActiveRecord::ReadOnlyRecord, "Versi Bukti yang Diharapkan bersifat tetap." }
+  before_destroy { raise ActiveRecord::ReadOnlyRecord, "Versi Bukti yang Diharapkan tidak dapat dihapus." }
 
   def source_type = configuration.fetch("source_type")
   def fulfillment_rule = configuration.fetch("fulfillment_rule", {})

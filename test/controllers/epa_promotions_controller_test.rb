@@ -429,12 +429,12 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
     get epa_observations_path
 
     assert_response :success
-    assert_match "Seluruh Syarat Bukti EPA terpenuhi", response.body
+    assert_match "Seluruh Bukti yang Diharapkan untuk EPA terpenuhi", response.body
     assert_match "2/1", response.body
     assert_match "2 penilai berbeda", response.body
     assert_match "keputusan tetap melalui panel", response.body
     assert_match "EPA-P2 · Mengelola tindak lanjut klinis", response.body
-    assert_match "Belum ada Syarat Bukti EPA aktif", response.body
+    assert_match "Belum ada Bukti yang Diharapkan untuk EPA yang aktif", response.body
     assert_match "Ottawa test · versi 1", response.body
     assert_match "Skala Chen lokal · versi 2", response.body
     assert_match "Tren supervisi pada versi skala ini", response.body

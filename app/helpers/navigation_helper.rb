@@ -4,7 +4,7 @@ module NavigationHelper
     [ %r{\A/competency_framework_templates}, "Pustaka Kerangka Kompetensi" ],
     [ %r{\A/(competency_frameworks|competency_items)}, "Peta Kompetensi" ],
     [ %r{\A/assessment_blueprints}, "Blueprint Asesmen" ],
-    [ %r{\A/evidence_requirements}, "Syarat Bukti" ],
+    [ %r{\A/evidence_requirements}, "Bukti yang Diharapkan" ],
     [ %r{\A/peta-artefak}, "Peta Artefak" ],
     [ %r{\A/(clinical_cases|activity_logs|kalender)}, "Logbook Klinis" ],
     [ %r{\A/final_projects}, "Proyek Akhir" ],
@@ -52,14 +52,14 @@ module NavigationHelper
 
   def navigation_group_for(item)
     role = (current_user&.active_role || current_user&.roles&.first)&.code
-    return "Target Kompetensi" if role == "mahasiswa" && item.in?(%w[ Peta Kompetensi Pustaka Kerangka Kompetensi Blueprint Asesmen Syarat Bukti Peta Artefak ])
+    return "Target Kompetensi" if role == "mahasiswa" && item.in?([ "Peta Kompetensi", "Pustaka Kerangka Kompetensi", "Blueprint Asesmen", "Bukti yang Diharapkan", "Peta Artefak" ])
     return "Portofolio Saya" if role == "mahasiswa" && item.in?(%w[ Portofolio Saya Portofolio Terpilih Refleksi Pengalaman Belajar Umpan Balik ])
     return "Logbook Klinis" if role == "mahasiswa" && item == "Logbook Klinis"
     return "Workplace-Based Assessment" if role == "mahasiswa" && item == "Workplace-Based Assessment"
     return "EPA" if role == "mahasiswa" && item == "EPA"
     return "Capaian Saya" if role == "mahasiswa" && item == "Capaian Kompetensi"
     return "ADMINISTRASI" if role == "admin" || role == "tenaga_kependidikan"
-    return "Pengelolaan Program Studi" if role == "kaprodi" && item.in?(%w[ Pustaka Kerangka Kompetensi Peta Kompetensi Blueprint Asesmen Syarat Bukti Peta Artefak ])
+    return "Pengelolaan Program Studi" if role == "kaprodi" && item.in?([ "Pustaka Kerangka Kompetensi", "Peta Kompetensi", "Blueprint Asesmen", "Bukti yang Diharapkan", "Peta Artefak" ])
     return "Monitoring Program Studi" if role == "kaprodi"
     return "Mahasiswa Supervisi" if role == "preseptor" && item == "Pengguna & Hak Akses"
     return "Workplace-Based Assessment" if %w[dosen preseptor].include?(role) && item.include?("Asesmen")

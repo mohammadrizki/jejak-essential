@@ -14,7 +14,7 @@ class EvidenceSourcesController < ApplicationController
   def validate
     authorize @source
     @source.validate_source!(by: current_user)
-    redirect_to evidence_sources_path, notice: "Bukti eksternal telah divalidasi dan dapat dinilai sesuai Syarat Bukti."
+    redirect_to evidence_sources_path, notice: "Bukti eksternal telah divalidasi dan dapat dinilai sesuai Bukti yang Diharapkan."
   rescue ActiveRecord::RecordInvalid, ArgumentError => error
     redirect_to evidence_sources_path, alert: error.message
   end

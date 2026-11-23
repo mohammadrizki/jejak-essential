@@ -184,7 +184,7 @@ class CanmedsCurriculumShowcaseSeeder
         competency_framework: framework,
         version: (blueprint.blueprint_versions.maximum(:version) || 0) + 1,
         status: "draft",
-        change_notes: "Versi contoh untuk melengkapi Syarat Bukti dan Peta Artefak."
+        change_notes: "Versi contoh untuk melengkapi Bukti yang Diharapkan dan Peta Artefak."
       )
       copy_blueprint_items!(source_version, version) if source_version
     end

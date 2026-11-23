@@ -51,7 +51,7 @@
     <%= render "shared/nav_item", label: "Peta Artefak Saya", path: artifact_map_path,
         active: active_class.call("/peta-artefak") %>
     <% if has_evidence_requirements %>
-      <%= render "shared/nav_item", label: "Syarat Bukti", path: portfolio_path(section: "evidence-requirements", anchor: "evidence-requirements"),
+      <%= render "shared/nav_item", label: "Bukti yang Diharapkan", path: portfolio_path(section: "evidence-requirements", anchor: "evidence-requirements"),
           active: portfolio_active && params[:section] == "evidence-requirements" %>
     <% end %>
   <% end %>
@@ -158,7 +158,7 @@
     <%= render "shared/nav_item", label: "Pustaka Kerangka Kompetensi", path: competency_framework_templates_path, active: active_class.call("/competency_framework_templates") %>
     <%= render "shared/nav_item", label: "Peta Kompetensi", path: competency_frameworks_path, active: active_class.call(%w[/competency_frameworks /competency_items]) %>
     <%= render "shared/nav_item", label: "Blueprint Asesmen", path: assessment_blueprints_path, active: active_class.call("/assessment_blueprints") %>
-    <%= render "shared/nav_item", label: "Syarat Bukti", path: evidence_requirements_path, active: active_class.call("/evidence_requirements") %>
+    <%= render "shared/nav_item", label: "Bukti yang Diharapkan", path: evidence_requirements_path, active: active_class.call("/evidence_requirements") %>
     <%= render "shared/nav_item", label: "Peta Artefak", path: artifact_map_path, active: active_class.call("/peta-artefak") %>
     <% if is_form_manager %><%= render "shared/nav_item", label: "Instrumen Asesmen Internal", path: assessment_form_templates_path, active: active_class.call(%w[/assessment_form_templates /assessment_form_submissions]) %><% end %>
   <% end %>

@@ -6,7 +6,7 @@ class EvidenceRecordsController < ApplicationController
   def create
     requirement = EvidenceRequirement.find(params[:evidence_requirement_id])
     unless requirement_for_current_student?(requirement)
-      return redirect_to portfolio_path, alert: "Syarat bukti ini bukan milik program studi Anda."
+      return redirect_to portfolio_path, alert: "Bukti yang Diharapkan ini bukan milik program studi Anda."
     end
     source = owned_source
     source_record = owned_source_record

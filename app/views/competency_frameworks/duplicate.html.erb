@@ -48,7 +48,7 @@
       </div>
       <label class="flex items-start gap-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
         <%= check_box_tag :copy_manual_requirements, "1", params[:copy_manual_requirements] == "1", class: "mt-0.5 rounded border-gray-300 text-indigo-600" %>
-        <span>Salin Syarat Bukti manual yang valid sebagai konfigurasi. Bukti aktual, hasil asesmen, capaian kompetensi, keputusan entrustment, dan Syarat Bukti yang berasal dari Blueprint tidak disalin.</span>
+        <span>Salin Bukti yang Diharapkan manual yang valid sebagai konfigurasi. Bukti aktual, hasil asesmen, capaian kompetensi, keputusan entrustment, dan aturan yang berasal dari Blueprint tidak disalin.</span>
       </label>
       <%= f.submit "Buat salinan draf", class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 cursor-pointer" %>
     <% end %>

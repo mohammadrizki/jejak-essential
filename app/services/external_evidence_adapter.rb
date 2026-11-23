@@ -15,7 +15,7 @@ class ExternalEvidenceAdapter
   def ingest!(payload:, requirement:, batch: nil, actor: nil)
     ensure_enabled!
     if requirement.epa.present? && source_system != "clinical_wpba"
-      raise ArgumentError, "Syarat Bukti EPA eksternal hanya dapat diisi melalui adapter WPBA klinis eksternal."
+      raise ArgumentError, "Bukti yang Diharapkan untuk EPA eksternal hanya dapat diisi melalui adapter WPBA klinis eksternal."
     end
     normalized = payload.to_h.deep_stringify_keys
     normalized["student"] ||= ExternalIdentityResolver.resolve_student!(

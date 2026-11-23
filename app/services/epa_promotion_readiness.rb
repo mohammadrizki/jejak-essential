@@ -27,10 +27,10 @@ class EpaPromotionReadiness
         configuration.dig("fulfillment_rule", "critical")
     end
     reasons = []
-    reasons << "belum ada Syarat Bukti EPA wajib atau kritis yang aktif" if gating_requirements.empty?
+    reasons << "belum ada Bukti yang Diharapkan untuk EPA yang wajib atau kritis" if gating_requirements.empty?
     gating_requirements.each do |requirement|
       progress = progress_by_requirement.fetch(requirement)
-      reasons << "Syarat Bukti ##{requirement.id} belum terpenuhi" unless progress.status == :fulfilled
+      reasons << "Bukti yang Diharapkan ##{requirement.id} belum terpenuhi" unless progress.status == :fulfilled
     end
     flagged = @student.epa_observations.where(epa: @epa, safety_flag: true, status: %w[submitted recorded], safety_resolved_at: nil).exists?
     reasons << "ada penanda keselamatan yang belum ditindaklanjuti Otoritas Akademik" if flagged

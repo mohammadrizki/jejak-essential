@@ -54,7 +54,7 @@
           <%= f.label :study_program_id, "Program studi tujuan", class: "mb-1 block text-sm font-medium text-gray-700" %>
           <%= f.collection_select :study_program_id, @study_programs, :id, :name, { selected: params[:study_program_id], prompt: "Pilih program studi" }, { required: true, class: "block w-full rounded-lg border-gray-300 text-sm" } %>
         </div>
-        <p class="text-xs text-gray-500 sm:col-span-2">Salinan berstatus draf. Blueprint Asesmen, EPA, Syarat Bukti, hasil asesmen, dan capaian tidak termasuk dalam template.</p>
+        <p class="text-xs text-gray-500 sm:col-span-2">Salinan berstatus draf. Blueprint Asesmen, EPA, Bukti yang Diharapkan, hasil asesmen, dan capaian tidak termasuk dalam template.</p>
         <%= f.submit "Buat salinan draf", class: "justify-self-start rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 cursor-pointer" %>
       <% end %>
     </section>

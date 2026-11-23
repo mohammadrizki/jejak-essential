@@ -83,7 +83,7 @@ class CanonicalEvidenceIngestor
     %w[source_record_id source_revision activity_key occurred_on].each do |key|
       raise ArgumentError, "#{key} wajib diisi." if @payload[key].blank?
     end
-    raise ArgumentError, "Jenis syarat bukti harus external." unless @requirement.source_type == "external"
+    raise ArgumentError, "Jenis Bukti yang Diharapkan harus eksternal." unless @requirement.source_type == "external"
     student = @payload["student"]
     raise ArgumentError, "Mahasiswa wajib berupa akun JEJAK." unless student.is_a?(User)
     framework = @requirement.competency_item&.competency_framework ||

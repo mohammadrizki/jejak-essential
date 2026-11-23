@@ -118,6 +118,6 @@ class EvidenceRecord < ApplicationRecord
     return if evidence_requirement_version.blank? || evidence_requirement.blank?
     return if evidence_requirement_version.evidence_requirement_id == evidence_requirement_id
 
-    errors.add(:evidence_requirement_version, "harus berasal dari Syarat Bukti yang sama")
+    errors.add(:evidence_requirement_version, "harus berasal dari Bukti yang Diharapkan yang sama")
   end
 end

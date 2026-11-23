@@ -53,7 +53,7 @@ class BlueprintOutlineBuilder
       assessment_method: entry[:assessment_method],
       code: "#{target.code}-#{entry[:assessment_method].code}-#{position}",
       title: "#{target.respond_to?(:title) ? target.title : target.description} — #{entry[:assessment_method].name}",
-      assessment_context: "Kerangka awal dari Syarat Bukti aktif pada Peta Kompetensi #{ @framework.name }.",
+      assessment_context: "Kerangka awal dari Bukti yang Diharapkan aktif pada Peta Kompetensi #{ @framework.name }.",
       curricular_stage: requirement.due_stage,
       minimum_standard: target.try(:performance_level)
     )

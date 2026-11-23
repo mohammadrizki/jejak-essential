@@ -51,7 +51,7 @@
             </summary>
             <ul class="mt-2 space-y-1 pl-2 text-xs text-gray-600">
               <% cycle.requirements.each do |entry| %>
-                <li><%= entry[:requirement].epa&.code || entry[:requirement].competency_indicator&.code || entry[:requirement].competency_item&.code || "Syarat Bukti" %> · <%= entry[:progress].record_count %>/<%= entry[:progress].required_count %> bukti valid · <%= entry[:progress].status.to_s.humanize %><%= " · Wajib/kritis" if entry[:critical] %></li>
+                <li><%= entry[:requirement].epa&.code || entry[:requirement].competency_indicator&.code || entry[:requirement].competency_item&.code || "Bukti yang Diharapkan" %> · <%= entry[:progress].record_count %>/<%= entry[:progress].required_count %> bukti valid · <%= entry[:progress].status.to_s.humanize %><%= " · Wajib/kritis" if entry[:critical] %></li>
               <% end %>
             </ul>
           </details>

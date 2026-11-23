@@ -21,7 +21,7 @@
           <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Menunggu validasi</span>
         </div>
         <dl class="mt-4 grid gap-2 text-xs text-gray-600 sm:grid-cols-2">
-          <div class="sm:col-span-2"><dt class="font-semibold">Syarat Bukti yang dituju</dt><dd><%= source.evidence_records.filter_map { |record| requirement = record.evidence_requirement; requirement&.competency_indicator&.title || requirement&.competency_item&.title || requirement&.epa&.title }.uniq.join("; ").presence || "Target tidak tersedia" %></dd></div>
+          <div class="sm:col-span-2"><dt class="font-semibold">Bukti yang Diharapkan</dt><dd><%= source.evidence_records.filter_map { |record| requirement = record.evidence_requirement; requirement&.competency_indicator&.title || requirement&.competency_item&.title || requirement&.epa&.title }.uniq.join("; ").presence || "Target tidak tersedia" %></dd></div>
           <div><dt class="font-semibold">Versi instrumen</dt><dd><%= source.instrument_version.presence || "Tidak dicantumkan" %></dd></div>
           <div><dt class="font-semibold">Penilai sumber</dt><dd><%= source.assessor&.full_name || "Tidak dipetakan" %></dd></div>
           <div><dt class="font-semibold">Batch impor</dt><dd><%= provenance["jejak_import_batch_id"].presence || "Integrasi langsung" %></dd></div>

@@ -78,7 +78,7 @@ class WpbaObservationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "mahasiswa menautkan observasi WPBA terkirim ke syarat bukti" do
+  test "mahasiswa menautkan observasi WPBA terkirim ke bukti yang diharapkan" do
     observation = WpbaObservation.create!(student: users(:siti), observer: users(:budi),
       clinical_rotation: clinical_rotations(:ongoing_rotation_siti), wpba_instrument_version: @version,
       observed_at: Time.current, activity_summary: "Melakukan konseling pasien", status: "submitted",

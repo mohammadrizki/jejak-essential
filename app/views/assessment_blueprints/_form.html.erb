@@ -19,7 +19,7 @@
     <div>
       <%= f.label :initial_competency_framework_id, "Peta Kompetensi induk", class: "block text-sm font-semibold text-gray-700 mb-1" %>
       <%= f.select :initial_competency_framework_id, options_for_select([["Pilih Peta Kompetensi terbit", ""]] + @competency_framework_options, assessment_blueprint.initial_competency_framework_id), {}, required: true, class: "block w-full rounded-xl border-0 py-2.5 px-3.5 text-sm ring-1 ring-inset ring-gray-300" %>
-      <p class="mt-1 text-xs text-gray-500">Pilih peta terbit milik program studi yang sama. Komponen awal dibuat dari Syarat Bukti aktif yang secara eksplisit menetapkan metode asesmen; sistem tidak menebak metode.</p>
+      <p class="mt-1 text-xs text-gray-500">Pilih peta terbit milik program studi yang sama. Komponen awal dibuat dari Bukti yang Diharapkan aktif yang secara eksplisit menetapkan metode asesmen; sistem tidak menebak metode.</p>
     </div>
   <% else %>
     <p class="text-xs text-gray-500">Peta Kompetensi induk ditetapkan pada versi blueprint dan tidak dapat diganti pada formulir ini.</p>

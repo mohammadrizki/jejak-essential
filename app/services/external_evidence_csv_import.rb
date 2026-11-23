@@ -152,12 +152,12 @@ class ExternalEvidenceCsvImport
       requirement&.blueprint_item&.blueprint_version&.competency_framework
     if requirement && framework&.study_program_id == @study_program.id
       if requirement.epa.present? && @source_system != "clinical_wpba"
-        errors << "Syarat Bukti EPA eksternal hanya dapat diimpor dari sumber WPBA klinis."
+        errors << "Bukti yang Diharapkan untuk EPA eksternal hanya dapat diimpor dari sumber WPBA klinis."
       end
       return requirement
     end
 
-    errors << "Syarat Bukti eksternal aktif tidak ditemukan pada program studi ini"
+    errors << "Bukti yang Diharapkan eksternal yang aktif tidak ditemukan pada program studi ini"
     nil
   end
 

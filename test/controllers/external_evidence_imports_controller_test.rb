@@ -62,7 +62,7 @@ class ExternalEvidenceImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "unverified", EvidenceSource.find_by!(source_record_id: "activity-1").validation_status
   end
 
-  test "adapter WPBA klinis eksternal mengimpor Syarat Bukti EPA melalui pratinjau dan konfirmasi" do
+  test "adapter WPBA klinis eksternal mengimpor Bukti yang Diharapkan EPA melalui pratinjau dan konfirmasi" do
     admin = users(:budi)
     admin.roles << roles(:admin)
     program = study_programs(:profesi_dokter)

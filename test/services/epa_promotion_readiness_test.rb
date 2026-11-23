@@ -61,7 +61,7 @@ class EpaPromotionReadinessTest < ActiveSupport::TestCase
     result = EpaPromotionReadiness.new(student: student, epa: epa.reload).call
 
     assert_not_includes result.reasons, "EPA tidak berlaku untuk jenjang Sarjana"
-    assert_includes result.reasons, "belum ada Syarat Bukti EPA wajib atau kritis yang aktif"
+    assert_includes result.reasons, "belum ada Bukti yang Diharapkan untuk EPA yang wajib atau kritis"
   end
 
   test "active entrustment prevents duplicate promotion readiness" do

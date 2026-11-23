@@ -73,7 +73,7 @@ class MiniCexEvaluationsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Alasan: Skor komunikasi", response.body
   end
 
-  test "koreksi yang terkirim meneruskan tautan Syarat Bukti dan tetap satu kesempatan observasi" do
+  test "koreksi yang terkirim meneruskan tautan Bukti yang Diharapkan dan tetap satu kesempatan observasi" do
     original = mini_cex_evaluations(:minicex_siti_demam)
     requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
       source_type: "wpba", required_count: 1)
