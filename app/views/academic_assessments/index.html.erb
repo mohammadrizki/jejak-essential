@@ -102,32 +102,63 @@
     </div>
   <% end %>
 
-  <%# ── Capaian per ranah kompetensi, dari dimensi ujian yang dipetakan ── %>
-  <% if @competency_rows.any? %>
+  <%# ── Profil mahasiswa ditumpangtindihkan dengan tolok ukur Blueprint ── %>
+  <% if @competency_profile.present? || @competency_rows.any? %>
     <div class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 p-5">
       <div class="flex items-baseline justify-between flex-wrap gap-2 mb-3">
-        <p class="text-sm font-semibold text-gray-700">Capaian per Ranah Kompetensi</p>
-        <p class="text-[11px] text-gray-400">Dari nilai per mata uji/station yang dipetakan ke ranah kompetensi — bukan proksi rata-rata.</p>
+        <p class="text-sm font-semibold text-gray-700">Spiderweb Capaian Kompetensi</p>
+        <% if @competency_profile.present? %>
+          <p class="text-[11px] text-gray-400">Profil mahasiswa ditumpangtindihkan dengan tolok ukur <%= @competency_blueprint.name %>.</p>
+        <% else %>
+          <p class="text-[11px] text-gray-400">Dari nilai mata uji/station yang dipetakan ke ranah kompetensi.</p>
+        <% end %>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-        <div data-controller="radar-chart"
-             data-radar-chart-labels-value="<%= @competency_rows.map { |r| r.item.title }.to_json %>"
-             data-radar-chart-datasets-value="<%= [ { label: "Capaian (%)", data: @competency_rows.map(&:percentage), borderColor: "#7c3aed", backgroundColor: "rgba(124,58,237,0.15)" } ].to_json %>">
-          <canvas data-radar-chart-target="canvas" height="240"></canvas>
-        </div>
+        <% if @competency_profile.present? %>
+          <% benchmark = @competency_profile.map { |entry| entry[:benchmark] } %>
+          <% realized = @competency_profile.map { |entry| entry[:realized_weight] } %>
+          <div data-controller="radar-chart"
+               data-radar-chart-labels-value="<%= @competency_profile.map { |entry| entry[:item].title }.to_json %>"
+               data-radar-chart-max-value="<%= @competency_blueprint.competency_weight_chart_max %>"
+               data-radar-chart-datasets-value="<%= [
+                 { label: "Tolok ukur Blueprint (bobot penuh)", data: benchmark, borderColor: "#4f46e5", backgroundColor: "rgba(79,70,229,0.04)", borderDash: [6, 4], pointBackgroundColor: "#4f46e5", fill: false },
+                 { label: "Capaian mahasiswa (bobot terealisasi)", data: realized, borderColor: "#7c3aed", backgroundColor: "rgba(124,58,237,0.2)", pointBackgroundColor: "#7c3aed", fill: true }
+               ].to_json %>">
+            <canvas data-radar-chart-target="canvas" height="260"></canvas>
+          </div>
+        <% else %>
+          <div data-controller="radar-chart"
+               data-radar-chart-labels-value="<%= @competency_rows.map { |r| r.item.title }.to_json %>"
+               data-radar-chart-datasets-value="<%= [ { label: "Capaian (%)", data: @competency_rows.map(&:percentage), borderColor: "#7c3aed", backgroundColor: "rgba(124,58,237,0.15)" } ].to_json %>">
+            <canvas data-radar-chart-target="canvas" height="240"></canvas>
+          </div>
+        <% end %>
         <div class="space-y-3">
-          <% @competency_rows.each do |row| %>
-            <div>
-              <div class="flex items-baseline justify-between gap-2">
-                <p class="text-sm font-semibold text-gray-800"><%= row.item.title %></p>
-                <p class="text-sm font-bold text-violet-600"><%= row.percentage %>%
-                  <span class="text-[11px] font-normal text-gray-400"><%= pluralize(row.dimension_count, "dimensi") %></span></p>
+          <% if @competency_profile.present? %>
+            <p class="text-xs leading-5 text-gray-500">Garis Blueprint menunjukkan bobot penuh tiap ranah. Nilai mahasiswa adalah bobot dikalikan hasil asesmen pada periode ini; titik tanpa nilai tidak diplot sebagai nol. Ini profil hasil asesmen, bukan keputusan capaian kompetensi final.</p>
+            <% @competency_profile.each do |entry| %>
+              <div class="border-t border-gray-100 pt-2">
+                <div class="flex items-baseline justify-between gap-2">
+                  <p class="text-sm font-semibold text-gray-800"><%= entry[:item].title %></p>
+                  <p class="text-xs text-gray-500">Blueprint <strong><%= entry[:benchmark].round(1) %></strong> · Mahasiswa <strong><%= entry[:realized_weight] ? entry[:realized_weight] : "belum ada data" %></strong></p>
+                </div>
+                <p class="text-[10px] text-gray-400">Capaian ranah: <%= entry[:attainment_percentage] ? "#{entry[:attainment_percentage]}%" : "belum ada nilai pada periode ini" %></p>
               </div>
-              <div class="mt-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div class="h-full rounded-full bg-violet-500" style="width: <%= [ row.percentage, 100 ].min %>%"></div>
+            <% end %>
+          <% else %>
+            <% @competency_rows.each do |row| %>
+              <div>
+                <div class="flex items-baseline justify-between gap-2">
+                  <p class="text-sm font-semibold text-gray-800"><%= row.item.title %></p>
+                  <p class="text-sm font-bold text-violet-600"><%= row.percentage %>%
+                    <span class="text-[11px] font-normal text-gray-400"><%= pluralize(row.dimension_count, "dimensi") %></span></p>
+                </div>
+                <div class="mt-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div class="h-full rounded-full bg-violet-500" style="width: <%= [ row.percentage, 100 ].min %>%"></div>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-1"><%= row.sources.first(3).join(" · ") %><%= " · +#{row.sources.size - 3} lagi" if row.sources.size > 3 %></p>
               </div>
-              <p class="text-[10px] text-gray-400 mt-1"><%= row.sources.first(3).join(" · ") %><%= " · +#{row.sources.size - 3} lagi" if row.sources.size > 3 %></p>
-            </div>
+            <% end %>
           <% end %>
         </div>
       </div>

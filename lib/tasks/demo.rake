@@ -267,11 +267,14 @@ namespace :demo do
       student.srq_screenings.create!(screened_on: Date.current, answers: answers, consented_at: Time.current)
     end
 
+    CanmedsCurriculumShowcaseSeeder.call
+
     # Sandi kustom tidak dicetak supaya tidak tertinggal di log build Render.
     shown_password = ENV["DEMO_PASSWORD"].present? ? "sesuai DEMO_PASSWORD" : demo_password
     puts "Data demo siap. Akun (password: #{shown_password}):"
     [ admin, dosen, preseptor, kaprodi, multirole, mahasiswa1, mahasiswa2 ].each do |u|
       puts "  #{u.email.ljust(32)} #{u.roles.pluck(:code).join(', ')}"
     end
+    puts "Contoh kurikulum CanMEDS: Program Contoh — Adaptasi CanMEDS Sarjana (lihat Peta Kompetensi dan Blueprint Asesmen)."
   end
 end

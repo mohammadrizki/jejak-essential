@@ -278,7 +278,7 @@ Rails.application.routes.draw do
     as: :request_epa_renewal
 
   resources :assessment_blueprints do
-    member { post :new_version; patch :publish_version }
+    member { post :new_version; patch :publish_version; get :duplicate; post :duplicate }
     resources :assessment_blueprint_mappings, only: %i[create destroy]
     resources :blueprint_items, only: %i[create destroy]
   end

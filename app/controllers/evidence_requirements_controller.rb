@@ -7,6 +7,9 @@ class EvidenceRequirementsController < ApplicationController
     scope = EvidenceRequirement.all
     unless current_user.has_role?("superadmin")
       program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
+      # Curriculum managers can inspect the built-in demonstration alongside
+      # their own programs. It remains read-only through the record policies.
+      program_ids |= StudyProgram.showcases.pluck(:id)
       framework_ids = CompetencyFramework.where(study_program_id: program_ids).select(:id)
       item_ids = CompetencyItem.where(competency_framework_id: framework_ids).select(:id)
       epa_ids = Epa.where(competency_framework_id: framework_ids).select(:id)

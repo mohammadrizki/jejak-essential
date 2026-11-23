@@ -13,9 +13,11 @@ class ArtifactMapsController < ApplicationController
     elsif @read_only
       StudyProgram.where(id: current_user.study_program_id)
     else
-      StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }
+      program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
+      StudyProgram.where(id: program_ids).or(StudyProgram.showcases).ordered
     end
-    @study_program = @study_programs.find_by(id: params[:study_program_id]) || @study_programs.first
+    @study_program = @study_programs.find_by(id: params[:study_program_id]) ||
+      (@study_programs.find_by(code: StudyProgram::SHOWCASE_CODES.first) unless @read_only) || @study_programs.first
     @framework = @study_program&.peta_kompetensi
     @blueprint = @study_program&.assessment_blueprint
     @blueprint_version = @blueprint&.current_version

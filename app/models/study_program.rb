@@ -10,6 +10,9 @@ class StudyProgram < ApplicationRecord
     "spesialis" => "Spesialis",
     "subspesialis" => "Subspesialis"
   }.freeze
+  SHOWCASE_CODES = %w[demo-canmeds-sarjana].freeze
+
+  scope :showcases, -> { where(code: SHOWCASE_CODES) }
 
   has_many :users, dependent: :nullify
   has_many :framework_versions, class_name: "CompetencyFramework", dependent: :restrict_with_error
@@ -58,6 +61,10 @@ class StudyProgram < ApplicationRecord
 
   def subspesialis?
     level == "subspesialis"
+  end
+
+  def showcase?
+    code.in?(SHOWCASE_CODES)
   end
 
   # SRQ-20 menampilkan tanda "Perlu Perhatian Segera" yang hanya bisa dilihat

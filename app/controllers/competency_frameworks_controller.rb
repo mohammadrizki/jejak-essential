@@ -8,11 +8,15 @@ class CompetencyFrameworksController < ApplicationController
     authorize CompetencyFramework
     scope = CompetencyFramework.all
     unless current_user.has_role?("superadmin")
-      if current_user.has_role?("mahasiswa")
+      manages_curriculum = StudyProgram.ordered.any? do |program|
+        current_user.has_permission?("curriculum.manage", study_program: program)
+      end
+      if current_user.has_role?("mahasiswa") && !manages_curriculum
         scope = scope.where(study_program_id: current_user.study_program_id)
       else
-      program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
-      scope = scope.where(study_program_id: program_ids)
+        program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
+        scope = scope.where(study_program_id: program_ids)
+          .or(scope.where(study_program_id: StudyProgram.showcases.select(:id)))
       end
     end
     @competency_frameworks = scope.includes(:study_program, :epa_programs).order(:name)

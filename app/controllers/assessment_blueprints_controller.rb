@@ -2,7 +2,7 @@
 
 class AssessmentBlueprintsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_assessment_blueprint, only: %i[show edit update destroy new_version publish_version]
+  before_action :set_assessment_blueprint, only: %i[show edit update destroy new_version publish_version duplicate]
 
   def index
     authorize AssessmentBlueprint
@@ -12,6 +12,7 @@ class AssessmentBlueprintsController < ApplicationController
     else
       program_ids = StudyProgram.ordered.select { |program| current_user.has_permission?("curriculum.manage", study_program: program) }.map(&:id)
       @assessment_blueprints = scope.where(study_program_id: program_ids)
+        .or(scope.where(study_program_id: StudyProgram.showcases.select(:id)))
     end
   end
 
@@ -136,6 +137,37 @@ class AssessmentBlueprintsController < ApplicationController
     redirect_to @assessment_blueprint, alert: e.record.errors.full_messages.to_sentence
   end
 
+  def duplicate
+    authorize @assessment_blueprint, :duplicate?
+    load_study_programs
+    load_duplicate_destinations
+    @blueprint_version = @assessment_blueprint.current_version
+
+    if request.get?
+      @copy_name = "#{@assessment_blueprint.name} — Salinan"
+      return render :duplicate
+    end
+
+    @target_program = @duplicate_destinations.find { |program, _framework| program.id.to_s == params[:target_study_program_id].to_s }&.first
+    unless @target_program
+      @duplication_error = "Pilih Program Studi tujuan yang berada dalam cakupan hak akses dan belum memiliki Blueprint."
+      @copy_name = params[:name].presence || "#{@assessment_blueprint.name} — Salinan"
+      return render :duplicate, status: :unprocessable_entity
+    end
+
+    duplicate = AssessmentBlueprintDuplicator.new(
+      source_blueprint: @assessment_blueprint,
+      target_program: @target_program,
+      name: params[:name]
+    ).call
+    redirect_to duplicate, notice: "Blueprint disalin sebagai draf. Pemetaan menggunakan kode pada Peta Kompetensi tujuan; periksa kembali sebelum diterbitkan."
+  rescue AssessmentBlueprintDuplicator::IncompatibleFramework, ActiveRecord::RecordInvalid => error
+    load_duplicate_destinations
+    @copy_name = params[:name].presence || "#{@assessment_blueprint.name} — Salinan"
+    @duplication_error = error.message
+    render :duplicate, status: :unprocessable_entity
+  end
+
   private
 
   def set_assessment_blueprint
@@ -174,5 +206,14 @@ class AssessmentBlueprintsController < ApplicationController
       .includes(:study_program).order(:study_program_id, version: :desc).map do |framework|
         ["#{framework.study_program.name} — #{framework.name} (v#{framework.version}, Terbit)", framework.id]
       end
+  end
+
+  def load_duplicate_destinations
+    @duplicate_destinations = @study_programs.filter_map do |program|
+      next if program.id == @assessment_blueprint.study_program_id || AssessmentBlueprint.exists?(study_program_id: program.id)
+
+      framework = program.framework_versions.find_by(status: "published")
+      [ program, framework ] if framework
+    end
   end
 end

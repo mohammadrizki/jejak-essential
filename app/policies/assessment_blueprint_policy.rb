@@ -19,7 +19,8 @@ class AssessmentBlueprintPolicy < ApplicationPolicy
 
   def show?
     record.is_a?(AssessmentBlueprint) && (user.has_role?("superadmin") ||
-      user.has_permission?("curriculum.manage", study_program: record.study_program))
+      user.has_permission?("curriculum.manage", study_program: record.study_program) ||
+      (record.study_program&.showcase? && index?))
   end
 
   def update?
@@ -29,6 +30,10 @@ class AssessmentBlueprintPolicy < ApplicationPolicy
   alias edit? update?
   alias destroy? update?
 
+  def duplicate?
+    record.is_a?(AssessmentBlueprint) && (update? || (record.study_program&.showcase? && curriculum_manager?))
+  end
+
   private
 
   def active_role_code
@@ -37,5 +42,11 @@ class AssessmentBlueprintPolicy < ApplicationPolicy
 
   def record_accessible_to_student?
     user.has_role?("mahasiswa") && user.study_program_id.present?
+  end
+
+  def curriculum_manager?
+    user.has_role?("superadmin") || StudyProgram.ordered.any? do |program|
+      user.has_permission?("curriculum.manage", study_program: program)
+    end
   end
 end

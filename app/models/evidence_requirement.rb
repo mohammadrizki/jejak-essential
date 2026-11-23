@@ -113,6 +113,7 @@ class EvidenceRequirement < ApplicationRecord
     if blueprint_item.present?
       target_framework_ids << blueprint_item.blueprint_version.competency_framework_id
     end
+    target_framework_ids.uniq!
     return if target_framework_ids.size <= 1
 
     errors.add(:base, "kompetensi, EPA, dan blueprint harus menggunakan framework yang sama")

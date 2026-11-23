@@ -41,6 +41,16 @@ class CompetencyItem < ApplicationRecord
     parent_id.nil?
   end
 
+  def hierarchy_path
+    nodes = [ self ]
+    ancestor = parent
+    while ancestor
+      nodes.unshift(ancestor)
+      ancestor = ancestor.parent
+    end
+    nodes.map { |node| "#{node.code} · #{node.title}" }.join(" / ")
+  end
+
   # Id simpul ini beserta seluruh keturunannya.
   def subtree_ids
     ids = [ id ]
