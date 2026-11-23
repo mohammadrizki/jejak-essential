@@ -7,7 +7,7 @@ class CompetencyMappingTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @period = academic_periods(:current_period)
     @unit = LearningUnit.create!(name: "Blok Kardiovaskular", code: "BLK-KV",
                                  study_program: study_programs(:sarjana_kedokteran), academic_period: @period, credits: 6)
@@ -106,11 +106,13 @@ class CompetencyMappingTest < ActionDispatch::IntegrationTest
   end
 
   test "persentil dihitung per tipe asesmen dengan kohort gabungan PSSK+PSPD" do
+    event = assessment_events(:cbt_blok)
+    event.update!(study_program: nil) # Event lintas-prodi menerima cohort kedua program.
     peers = 4.times.map do |i|
       u = User.create!(full_name: "Peer #{i}", email: "peer#{i}@example.com", password: "rahasia-kuat-1", confirmed_at: Time.current,
                        study_program: i.even? ? study_programs(:sarjana_kedokteran) : study_programs(:profesi_dokter))
       u.roles << roles(:mahasiswa)
-      AssessmentInstance.create!(assessment_event: assessment_events(:cbt_blok), student: u, attempt_number: 1,
+      AssessmentInstance.create!(assessment_event: event, student: u, attempt_number: 1,
                                  status: "scored", score: [ 40, 50, 70, 90 ][i], max_score: 100, scored_at: Time.current)
       u
     end

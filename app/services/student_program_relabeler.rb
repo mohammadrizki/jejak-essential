@@ -2,9 +2,9 @@
 
 require "csv"
 
-# Relabel prodi mahasiswa secara massal dari CSV (Konfigurasi → Relabel Prodi
-# Mahasiswa), tanpa mode "Tandai Lulus" karena JEJAK Essential tidak punya
-# status/persona alumni.
+# Legacy CSV preview retained for compatibility. Applying a relabel is disabled;
+# cross-program transitions must use StudentProgramTransitionCsv and require
+# source graduation plus destination approval.
 #
 # Dua aksi, keduanya berujung sama (users.study_program_id diganti):
 #   pindah — pindahkan mahasiswa ke prodi tujuan. Untuk kaprodi, controller
@@ -74,16 +74,7 @@ class StudentProgramRelabeler
   end
 
   def apply!
-    ready = matches.select(&:eligible?)
-    User.transaction do
-      ready.each { |m| m.user.update!(pending_attributes(m)) }
-    end
-
-    Rails.logger.info(
-      "[student_relabel] actor_id=#{@actor&.id} mode=#{@mode} target_study_program_id=#{@target.id} " \
-      "updated=#{ready.size} skipped=#{matches.size - ready.size} user_ids=#{ready.map { |m| m.user.id }.join(',')}"
-    )
-    Result.new(updated: ready.size, skipped: matches.size - ready.size)
+    raise Error, "Relabel langsung dinonaktifkan. Gunakan alur Transfer Mahasiswa."
   end
 
   private

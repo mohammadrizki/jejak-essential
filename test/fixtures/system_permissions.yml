@@ -1,0 +1,74 @@
+users_manage:
+  key: users.manage
+  name: Kelola pengguna
+  description: Test permission
+
+roles_manage:
+  key: roles.manage
+  name: Kelola peran dan izin
+  description: Test permission
+
+roles_assign:
+  key: roles.assign
+  name: Berikan peran
+  description: Test permission
+
+assignments_manage:
+  key: assignments.manage
+  name: Kelola penugasan
+  description: Test permission
+
+curriculum_manage:
+  key: curriculum.manage
+  name: Kelola kurikulum
+  description: Test permission
+
+modules_manage:
+  key: modules.manage
+  name: Aktivasi modul
+  description: Test permission
+
+assessment_review:
+  key: assessment.review
+  name: Telaah asesmen
+  description: Test permission
+
+assessment_decide:
+  key: assessment.decide
+  name: Keputusan akademik
+  description: Test permission
+
+epa_decide:
+  key: epa.decide
+  name: Keputusan EPA
+  description: Test permission
+
+integration_manage:
+  key: integration.manage
+  name: Kelola integrasi
+  description: Test permission
+
+audit_read:
+  key: audit.read
+  name: Baca audit
+  description: Test permission
+
+templates_manage:
+  key: templates.manage
+  name: Kelola pustaka template
+  description: Test permission
+
+students_graduate:
+  key: students.graduate
+  name: Tetapkan kelulusan mahasiswa
+  description: Test permission
+
+students_transfer_request:
+  key: students.transfer.request
+  name: Ajukan transfer mahasiswa
+  description: Test permission
+
+students_transfer_accept:
+  key: students.transfer.accept
+  name: Terima transfer mahasiswa
+  description: Test permission

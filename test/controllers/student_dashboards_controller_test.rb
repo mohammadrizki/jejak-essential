@@ -59,7 +59,7 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin melihat tombol sunting akun" do
-    users(:budi).roles << roles(:admin)
+    grant_bootstrapped_system_admin!(users(:budi))
     sign_in users(:budi)
     get student_dashboard_path(users(:siti))
     assert_match "Sunting akun", response.body
@@ -68,7 +68,7 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis tanpa peran akademik tidak dapat membuka ringkasan nilai dan asesmen mahasiswa" do
     admin = User.create!(full_name: "Admin Teknis Dashboard", email: "admin-teknis-dashboard@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     student_id = users(:siti).id
 
@@ -115,14 +115,17 @@ class StudentDashboardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "kaprodi tidak bisa membuka mahasiswa di luar prodi binaannya, termasuk lewat student_id" do
-    users(:siti).update!(study_program: study_programs(:profesi_dokter))
+    outside_student = User.create!(full_name: "Mahasiswa Profesi Dashboard", email: "profesi-dashboard-scope@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:profesi_dokter),
+      active_role: roles(:mahasiswa))
+    outside_student.user_roles.create!(role: roles(:mahasiswa), scope_level: "system")
     sign_in users(:dedi)
 
-    get student_dashboard_path(users(:siti))
+    get student_dashboard_path(outside_student)
     assert_redirected_to search_path
 
     STUDENT_PAGES.each do |helper|
-      get send(helper, student_id: users(:siti).id)
+      get send(helper, student_id: outside_student.id)
       assert_response :redirect, "#{helper} harus menolak"
       assert_match "tidak memiliki akses", flash[:alert]
     end

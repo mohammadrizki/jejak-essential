@@ -15,9 +15,14 @@ class ExternalIdentityResolver
     raise ArgumentError, "Sistem sumber wajib dipilih." if source_system.to_s.blank?
     raise ArgumentError, "Identifier eksternal tidak boleh kosong." if external_id.to_s.blank?
     raise ArgumentError, "Target wajib merupakan akun mahasiswa." unless student&.has_role?("mahasiswa")
-    authorized = by.has_role?("superadmin") ||
-      by.has_permission?("integration.manage", study_program: student.study_program) ||
+    authorized = if by.has_role?("superadmin")
+      true
+    elsif by.has_role?("tenaga_kependidikan")
       assigned_data_manager?(by, student)
+    else
+      by.has_permission?("integration.manage", study_program: student.study_program) ||
+        assigned_data_manager?(by, student)
+    end
     raise ArgumentError, "Pemberi pemetaan harus admin, Kaprodi, atau petugas data yang ditugaskan pada program mahasiswa." unless authorized
 
     ExternalIdentityMapping.create_or_find_by!(source_system: source_system.to_s, entity_type: "student",

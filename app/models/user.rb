@@ -25,6 +25,10 @@ class User < ApplicationRecord
   has_many :tutorial_enrollments, dependent: :destroy # sebagai mahasiswa (PSSK)
   has_many :tutored_enrollments, class_name: "TutorialEnrollment", foreign_key: :tutor_id, inverse_of: :tutor, dependent: :nullify
   belongs_to :study_program, optional: true
+  has_many :student_program_enrollments, dependent: :restrict_with_error
+  has_many :student_program_transfers, foreign_key: :student_id, inverse_of: :student,
+    dependent: :restrict_with_error
+  attr_accessor :allow_student_program_transfer
   has_many :reflection_entries, dependent: :destroy
   has_many :evidence_sources, foreign_key: :student_id, inverse_of: :student, dependent: :restrict_with_error
   has_many :dops_evaluations_as_student, class_name: "DopsEvaluation", foreign_key: :student_id, inverse_of: :student, dependent: :destroy
@@ -107,7 +111,14 @@ class User < ApplicationRecord
   # Kaprodi (bukan admin) terikat ke prodi akunnya: prodi itu membatasi apa
   # yang boleh ia lihat & ubah, jadi hanya admin yang boleh menggantinya.
   def study_program_bound?
-    has_role?("kaprodi") && !has_role?("admin")
+    has_role_grant?("kaprodi") && !has_role?("admin")
+  end
+
+  # During rollout, users.study_program_id remains the compatibility pointer
+  # for the current program. Enrollment history is the durable longitudinal
+  # record used to understand a transfer without changing the student's JEJAK ID.
+  def current_student_program_enrollment
+    student_program_enrollments.find_by(status: "active")
   end
 
   # Boleh membuka data satu mahasiswa tertentu (Dasbor Mahasiswa dan halaman
@@ -207,6 +218,7 @@ class User < ApplicationRecord
   validates :cohort_year, numericality: { only_integer: true, greater_than: 1950, less_than_or_equal_to: ->(_u) { Date.current.year + 1 } }, allow_nil: true
   validates :phone, format: { with: /\A[0-9+().\- ]{6,25}\z/, message: "hanya boleh angka, spasi, dan tanda + ( ) - ." }, allow_blank: true
   validate :birth_date_not_in_future
+  validate :student_program_change_requires_transfer
 
   # Label nomor identitas mengikuti peran: mahasiswa memakai NPM/NIM,
   # selainnya NIP/NIDN — satu kolom, dua sebutan.
@@ -334,6 +346,10 @@ class User < ApplicationRecord
   # the complete program list.
   def programs_with_permission(*keys)
     return StudyProgram.ordered if has_role?("superadmin")
+    # Kaprodi is institutionally tied to the program on their account. A stale
+    # scoped grant must not keep exposing program data after that link is
+    # removed; admins and other explicitly scoped roles still use their grant.
+    return StudyProgram.none if study_program_bound? && study_program_id.nil?
 
     permissions = keys.flatten.map(&:to_s)
     StudyProgram.ordered.select do |program|
@@ -397,5 +413,13 @@ class User < ApplicationRecord
     return if birth_date.blank?
 
     errors.add(:birth_date, "tidak boleh di masa depan") if birth_date > Date.current
+  end
+
+  def student_program_change_requires_transfer
+    return unless persisted? && will_save_change_to_study_program_id?
+    return if allow_student_program_transfer
+    return unless has_role?("mahasiswa") || student_program_enrollments.exists?
+
+    errors.add(:study_program, "mahasiswa yang sudah memiliki riwayat harus dipindahkan melalui alur Transfer Mahasiswa")
   end
 end

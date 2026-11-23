@@ -22,17 +22,13 @@ class NavigationTest < ActionDispatch::IntegrationTest
 
   test "admin melihat administrasi yang tersedia tanpa kewenangan akademik otomatis" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
-    admin.update!(active_role: roles(:admin))
+    grant_scoped_admin!(admin, study_programs(:sarjana_kedokteran), "modules.manage", "integration.manage")
+    RolePermission.where(role: roles(:admin), system_permission: SystemPermission.find_by!(key: "curriculum.manage")).delete_all
     sign_in admin
 
-    get competency_framework_templates_path
-
-    assert_response :success
-    assert_select "nav[aria-label='Breadcrumb']", text: /ADMINISTRASI/
     get dashboard_path
     assert_response :success
-    assert_select "a[href='#{admin_wpba_instruments_path}']", text: "Katalog Instrumen WPBA"
+    assert_select "a[href='#{admin_wpba_instruments_path}']", count: 0
     assert_select "a[href='#{assessment_blueprints_path}']", count: 0
     assert_select "a[href='#{evidence_requirements_path}']", count: 0
     assert_select "a[href='#{artifact_map_path}']", count: 0
@@ -50,12 +46,12 @@ class NavigationTest < ActionDispatch::IntegrationTest
 
   test "admin dapat membuka peta artefak dan daftar Bukti yang Diharapkan tanpa tabel master artefak" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_scoped_admin!(admin, study_programs(:sarjana_kedokteran), "curriculum.manage")
     sign_in admin
 
     get artifact_map_path
     assert_response :success
-    assert_match "tampilan turunan", response.body
+    assert_match "diturunkan dari Blueprint Asesmen", response.body
 
     get evidence_requirements_path
     assert_response :success

@@ -15,6 +15,9 @@ class StudyProgram < ApplicationRecord
   scope :showcases, -> { where(code: SHOWCASE_CODES) }
 
   has_many :users, dependent: :nullify
+  has_many :student_program_enrollments, dependent: :restrict_with_error
+  has_many :incoming_student_program_transfers, class_name: "StudentProgramTransfer",
+    foreign_key: :destination_study_program_id, dependent: :restrict_with_error
   has_many :framework_versions, class_name: "CompetencyFramework", dependent: :restrict_with_error
   has_one :assessment_blueprint, dependent: :restrict_with_error
   has_many :assessment_form_templates, dependent: :restrict_with_error

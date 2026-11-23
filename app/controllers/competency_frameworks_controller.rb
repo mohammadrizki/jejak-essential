@@ -29,6 +29,7 @@ class CompetencyFrameworksController < ApplicationController
     @has_draft_for_program = @draft_framework.present?
     @framework_lifecycle = CompetencyFrameworkLifecycle.new(@competency_framework)
     @academic_periods = AcademicPeriod.ordered
+    @epa_module_enabled = ModuleConfiguration.for(@competency_framework.study_program).enabled?("epa")
   end
 
   def new

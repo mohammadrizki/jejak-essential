@@ -90,7 +90,7 @@ class EvidenceSource < ApplicationRecord
     when EpaObservation
       { "rotation_id" => record.clinical_rotation_id, "case_id" => record.clinical_case_id,
         "complexity" => record.complexity, "supervision_level_id" => record.supervision_level_id,
-        "safety_flag" => record.safety_flag? }
+        "safety_flag" => record.safety_flag?, "safety_resolved" => record.safety_resolved_at.present? }
     when MiniCexEvaluation, DopsEvaluation
       { "rotation_id" => record.clinical_rotation_id, "case_id" => record.clinical_case_id,
         "complexity" => record.case_complexity }

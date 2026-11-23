@@ -79,13 +79,13 @@ class EvidenceRecord < ApplicationRecord
     return if requirement.blank?
     source_type = evidence_requirement_version&.source_type || requirement.source_type
     return if source_type.in?(%w[portfolio other])
-    return if source_type == "assessment" && assessment_instance.present?
-    return if source_type == "logbook" && activity_log.present?
-    return if source_type == "reflection" && reflection_entry.present?
-    return if source_type == "epa_observation" && epa_observation.present?
+    return if source_type == "assessment" && (assessment_instance.present? || evidence_source&.source_type == "assessment")
+    return if source_type == "logbook" && (activity_log.present? || evidence_source&.source_type == "logbook")
+    return if source_type == "reflection" && (reflection_entry.present? || evidence_source&.source_type == "reflection")
+    return if source_type == "epa_observation" && (epa_observation.present? || evidence_source&.source_type == "epa_observation")
     return if source_type == "wpba" &&
       (mini_cex_evaluation.present? || dops_evaluation.present? ||
-        evidence_source&.instrument_code.in?(%w[CBD MINI-CEX DOPS EPA-OBS]) || wpba_observation.present?)
+        evidence_source&.source_type == "wpba" || evidence_source&.instrument_code.in?(%w[CBD MINI-CEX DOPS EPA-OBS]) || wpba_observation.present?)
     return if source_type == "external" && evidence_source&.source_type == "external"
 
     errors.add(:base, "sumber bukti tidak sesuai dengan jenis yang disyaratkan")

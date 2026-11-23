@@ -9,9 +9,7 @@ class EntrustmentDecisionsController < ApplicationController
   before_action :authorize_ad_hoc_decision!, only: %i[new create]
 
   def index
-    unless @student.study_program && ModuleConfiguration.for(@student.study_program).enabled?("epa")
-      return redirect_to dashboard_path, alert: "Modul EPA tidak aktif untuk program studi ini."
-    end
+    @epa_module_enabled = @student.study_program.present? && ModuleConfiguration.for(@student.study_program).enabled?("epa")
 
     @framework = CompetencyFramework.for_student(@student)
     @map = @framework ? EntrustmentDecision.map_for(@student, @framework) : []

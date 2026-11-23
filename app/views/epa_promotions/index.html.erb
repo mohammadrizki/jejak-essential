@@ -1,5 +1,7 @@
 <div class="max-w-6xl mx-auto px-4 py-6 space-y-5">
-  <div><h1 class="text-2xl font-bold">Promosi EPA ke Otoritas Akademik</h1><p class="text-sm text-gray-600">Penanda kesiapan menunjukkan kecukupan bukti; panel tetap mengambil keputusan entrustment secara terpisah.</p></div>
+  <div><h1 class="text-2xl font-bold">Promosi EPA ke Otoritas Akademik</h1><p class="text-sm text-gray-600">Penanda kesiapan menunjukkan kecukupan bukti; panel tetap mengambil keputusan entrustment secara terpisah.</p>
+    <% if @promotions.any? && @promotions.any? { |promotion| !ModuleConfiguration.for(promotion.student.study_program).enabled?("epa") } %><p class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">Sebagian program studi menonaktifkan EPA. Dossier dari program tersebut hanya ditampilkan sebagai riwayat baca-saja.</p><% end %>
+  </div>
   <% @promotions.each do |promotion| %>
     <% readiness = @readiness[promotion] %>
     <% current_decision = @current_decisions[[promotion.student_id, promotion.epa_id]] %>
@@ -18,10 +20,10 @@
           <% end %>
         </div>
       <% end %>
-      <% if promotion.status == "ready" && current_user.has_role?("preseptor") &&
+      <% if ModuleConfiguration.for(promotion.student.study_program).enabled?("epa") && promotion.status == "ready" && current_user.has_role?("preseptor") &&
           promotion.student.clinical_rotations.ongoing.exists?(preceptor: current_user) && readiness.eligible %>
         <%= button_to "Ajukan ke Otoritas Akademik", promote_epa_promotion_path(promotion), method: :patch, class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
-      <% elsif promotion.status.in?(%w[promoted under_review appeal_pending]) &&
+      <% elsif ModuleConfiguration.for(promotion.student.study_program).enabled?("epa") && promotion.status.in?(%w[promoted under_review appeal_pending]) &&
           AssignmentAuthorization.assigned?(user: current_user, role: "epa_panel_member", student: promotion.student, object: promotion) %>
         <%= form_with url: review_epa_promotion_path(promotion), method: :patch, class: "grid gap-3 sm:grid-cols-2" do |f| %>
           <%= f.select :recommendation, [["Setujui target supervisi", "approved"], ["Setujui dengan pembatasan", "restricted"], ["Tunda keputusan", "deferred"], ["Minta bukti tambahan", "needs_more_evidence"], ["Putuskan belum dientrust", "not_entrusted"], ["Cabut entrustment aktif", "revoked"]], {}, class: "rounded-lg border-gray-300" %>
@@ -33,7 +35,7 @@
           <%= f.submit "Kirim rekomendasi panel", class: "rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white sm:col-span-2" %>
         <% end %>
       <% end %>
-      <% if promotion.status.in?(%w[under_review appeal_pending]) && promotion.quorum_reached_at.present? &&
+      <% if ModuleConfiguration.for(promotion.student.study_program).enabled?("epa") && promotion.status.in?(%w[under_review appeal_pending]) && promotion.quorum_reached_at.present? &&
           AssignmentAuthorization.assigned?(user: current_user, role: "epa_panel_chair", student: promotion.student, object: promotion) %>
         <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
           <p class="text-sm font-semibold text-indigo-900">Quorum tercapai · pengesahan Ketua Panel</p>
@@ -45,7 +47,7 @@
             <%= f.submit "Sahkan keputusan panel", class: "rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white sm:col-span-2" %>
           <% end %>
         </div>
-      <% elsif promotion.status.in?(%w[approved restricted]) &&
+      <% elsif ModuleConfiguration.for(promotion.student.study_program).enabled?("epa") && promotion.status.in?(%w[approved restricted]) &&
           AssignmentAuthorization.assigned?(user: current_user, role: "epa_panel_member", student: promotion.student, object: promotion) &&
           EntrustmentDecision.current.exists?(student: promotion.student, epa: promotion.epa) %>
         <%= form_with url: review_epa_promotion_path(promotion), method: :patch, class: "grid gap-3" do |f| %>
@@ -54,7 +56,7 @@
           <%= f.submit "Ajukan pencabutan ke panel", class: "rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white" %>
         <% end %>
       <% end %>
-      <% if %w[approved restricted].include?(promotion.status) && current_decision&.review_due? &&
+      <% if ModuleConfiguration.for(promotion.student.study_program).enabled?("epa") && %w[approved restricted].include?(promotion.status) && current_decision&.review_due? &&
           current_user.has_role?("preseptor") && promotion.student.clinical_rotations.ongoing.exists?(preceptor: current_user) %>
         <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
           <p class="text-sm text-amber-900">Tanggal tinjauan ulang telah tercapai. Pengajuan ini membuka dossier panel baru dan tidak mengubah keputusan aktif.</p>

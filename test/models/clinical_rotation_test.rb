@@ -19,7 +19,7 @@ class ClinicalRotationTest < ActiveSupport::TestCase
   test "akun admin teknis tanpa peran akademik tidak dapat ditetapkan sebagai preseptor" do
     admin = User.create!(full_name: "Admin Rotasi", email: "admin-rotasi@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     rotation = ClinicalRotation.new(user: users(:siti), preceptor: admin,
       academic_period: academic_periods(:current_period), station_name: "Rotasi Uji",
       start_date: Date.current, end_date: 2.days.from_now.to_date)

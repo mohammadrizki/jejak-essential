@@ -47,13 +47,13 @@ class Admin::ExportsController < ApplicationController
   private
 
   def require_export_access!
+    if prodi_bound_viewer? && current_user.study_program_id.nil?
+      return redirect_to dashboard_path,
+        alert: "Akun kaprodi Anda belum terhubung ke Program Studi — minta admin mengisinya di Konfigurasi → Pengguna."
+    end
     unless DataExport.allowed?(current_user)
       return redirect_to dashboard_path, alert: "Halaman ini khusus admin/kaprodi."
     end
-    return unless prodi_bound_viewer? && current_user.study_program_id.nil?
-
-    redirect_to dashboard_path,
-                alert: "Akun kaprodi Anda belum terhubung ke Program Studi — minta admin mengisinya di Konfigurasi → Pengguna."
   end
 
   def prodi_bound_viewer?

@@ -16,6 +16,7 @@ class ExternalEvidenceImportsController < ApplicationController
   def new
     @study_program = selected_program
     @source_system = params[:source_system].to_s
+    @enabled_sources = enabled_sources_for(@study_program)
   end
 
   def create
@@ -79,11 +80,16 @@ class ExternalEvidenceImportsController < ApplicationController
   def managed_programs
     return StudyProgram.ordered if current_user.has_role?("superadmin")
 
-    permitted_ids = current_user.programs_with_permission("integration.manage").map(&:id)
-
     assignments = UserAssignment.active.where(user: current_user, assignment_role: "external_data_manager",
       scope_type: "StudyProgram").where("user_assignments.scope_id = user_assignments.study_program_id")
-    StudyProgram.where(id: permitted_ids).or(StudyProgram.where(id: assignments.select(:study_program_id))).distinct
+    assigned_programs = StudyProgram.where(id: assignments.select(:study_program_id))
+    # Staff data operators exercise their operational authority through an
+    # explicit assignment. A broad role permission must not silently turn
+    # that responsibility into cross-program integration access.
+    return assigned_programs if current_user.has_role?("tenaga_kependidikan") && !current_user.has_role?("admin")
+
+    permitted_ids = current_user.programs_with_permission("integration.manage").map(&:id)
+    StudyProgram.where(id: permitted_ids).or(assigned_programs).distinct
   end
 
   def selected_program
@@ -100,6 +106,15 @@ class ExternalEvidenceImportsController < ApplicationController
     set_programs
     @study_program ||= @programs.first
     @source_system ||= params[:source_system].to_s
+    @enabled_sources = enabled_sources_for(@study_program)
+  end
+
+  def enabled_sources_for(program)
+    return [] unless program
+
+    ExternalEvidenceCsvImport::ADAPTERS.keys.select do |source|
+      ModuleConfiguration.for(program).enabled?("integration_#{source}")
+    end
   end
 
   def preview_row_results(preview)

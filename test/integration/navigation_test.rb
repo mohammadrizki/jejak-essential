@@ -24,7 +24,7 @@ class NavigationTest < ActionDispatch::IntegrationTest
 
   test "role aktif admin menampilkan administrasi tanpa mewariskan menu role mahasiswa" do
     user = users(:budi)
-    user.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(user)
     user.update!(active_role: roles(:admin))
     sign_in user
 
@@ -39,7 +39,7 @@ class NavigationTest < ActionDispatch::IntegrationTest
 
   test "katalog instrumen WPBA dapat dibuka admin dan ditolak untuk role non-admin" do
     user = users(:budi)
-    user.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(user)
     user.update!(active_role: roles(:admin))
     sign_in user
 

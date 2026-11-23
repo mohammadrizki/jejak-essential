@@ -52,6 +52,10 @@ class EvidenceRequirementsController < ApplicationController
     end
     if attributes["epa_id"].present?
       attributes["epa_id"] = framework.epas.find_by(id: attributes["epa_id"])&.id
+      unless ModuleConfiguration.for(framework.study_program).enabled?("epa")
+        return redirect_to(@blueprint_item ? assessment_blueprint_path(@blueprint_item.blueprint_version.assessment_blueprint) : competency_framework_path(@framework),
+          alert: "Modul EPA tidak aktif untuk program studi ini. Aktifkan modul sebelum menambahkan Bukti yang Diharapkan EPA.")
+      end
     end
     requirement = EvidenceRequirement.new(attributes.merge(origin: origin, blueprint_item_id: source_id))
     if requirement.save
@@ -122,6 +126,9 @@ class EvidenceRequirementsController < ApplicationController
         .where(competency_item_id: item_ids)
         .or(EvidenceRequirement.where(origin: "manual", epa_id: epa_ids))
         .find(params[:id])
+    end
+    if @requirement.epa_id.present? && !ModuleConfiguration.for(@requirement.epa.competency_framework.study_program).enabled?("epa")
+      return redirect_to requirement_parent_path, alert: "Modul EPA tidak aktif. Bukti yang Diharapkan EPA hanya dapat diubah ketika modul aktif."
     end
   end
 

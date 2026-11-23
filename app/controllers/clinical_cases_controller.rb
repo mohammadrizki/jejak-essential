@@ -3,9 +3,10 @@
 class ClinicalCasesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_clinical_case, only: %i[show edit update destroy submit verify request_revision reject cancel_verification comment initiate_workplace_assessment break_glass issue_consent revoke_consent initiate_assessment]
-  before_action :require_logbook_enabled_for_write, only: %i[new create edit update]
+  before_action :require_logbook_enabled_for_write, only: %i[new create edit update destroy]
 
   def index
+    @logbook_module_enabled = ModuleConfiguration.for(current_user.study_program).enabled?("clinical_logbook")
     # to_verify = antrean kasus "Menunggu Verifikasi" yang boleh diverifikasi
     # pengajar ini (tanpa tanda pembimbing, atau menandai dia); reviewed =
     # kasus yang pernah diputuskan pengajar ini, supaya bisa dibuka ulang.
@@ -30,6 +31,8 @@ class ClinicalCasesController < ApplicationController
 
   def show
     authorize @clinical_case
+    @logbook_module_enabled = ModuleConfiguration.for(@clinical_case.user.study_program).enabled?("clinical_logbook")
+    @wpba_module_enabled = ModuleConfiguration.for(@clinical_case.user.study_program).enabled?("wpba")
     # Identitas pasien tersamar selama Privacy Mode menyala, kecuali bagi
     # pembimbing kasus ini atau pengguna yang memegang Break Glass aktif.
     @privacy_mode = AppSetting.privacy_mode?
@@ -55,7 +58,7 @@ class ClinicalCasesController < ApplicationController
   # tersalin dari kasus. Status "requested" sampai penilai mengisi rubrik.
   def initiate_workplace_assessment
     authorize @clinical_case
-    unless ModuleConfiguration.for(current_user.study_program).enabled?("wpba")
+    unless ModuleConfiguration.for(@clinical_case.user.study_program).enabled?("wpba")
       return redirect_to @clinical_case, alert: "WPBA sedang dinonaktifkan untuk program studi ini."
     end
     rotation = workplace_rotation_for(@clinical_case)
@@ -227,7 +230,8 @@ class ClinicalCasesController < ApplicationController
   private
 
   def require_logbook_enabled_for_write
-    return if ModuleConfiguration.for(current_user.study_program).enabled?("clinical_logbook")
+    program = @clinical_case&.user&.study_program || current_user.study_program
+    return if ModuleConfiguration.for(program).enabled?("clinical_logbook")
 
     redirect_to clinical_cases_path,
       alert: "Input Logbook kasus untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."

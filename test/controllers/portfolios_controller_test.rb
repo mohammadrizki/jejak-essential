@@ -18,6 +18,18 @@ class PortfolioControllerTest < ActionDispatch::IntegrationTest
     assert_match "2", response.body # total kegiatan budi
   end
 
+  test "menampilkan alur persiapan bukti dan portofolio dalam urutan yang jelas" do
+    get portfolio_path
+
+    assert_response :success
+    assert_select 'nav[aria-label="Alur persiapan portfolio"]'
+    assert_select "h2", text: /1\. Bukti yang Diharapkan/
+    assert_select "h2", text: /2\. Kumpulkan bukti/
+    assert_select "h2", text: /3\. Refleksi Pengalaman Belajar/
+    assert_select "h2", text: /4\. Ajukan artefak/
+    assert_select "h2", text: /5\. Portofolio Terpilih/
+  end
+
   test "export mengunduh CSV berisi kegiatan milik sendiri" do
     get export_portfolio_path
 

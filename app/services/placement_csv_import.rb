@@ -4,7 +4,7 @@ require "csv"
 
 # Impor penempatan mahasiswa dari CSV: dasar bersama ClinicalRotationCsvImport
 # dan TutorialEnrollmentCsvImport. Selalu dua tahap, sama dengan
-# StudentProgramRelabeler: #matches mencocokkan tanpa menyimpan apa pun, #apply!
+# Import layanan penempatan tetap terpisah dari transfer keanggotaan mahasiswa.
 # menyimpan semua baris siap dalam satu transaksi.
 #
 # Aman diulang: baris dengan mahasiswa, periode, dan bagian/blok yang sama

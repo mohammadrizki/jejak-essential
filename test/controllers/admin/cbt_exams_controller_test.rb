@@ -6,9 +6,10 @@ class Admin::CbtExamsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @admin.update!(active_role: roles(:admin))
     @exam = assessment_events(:cbt_blok)
+    users(:wati).update!(study_program: @exam.study_program)
   end
 
   test "selain admin ditolak" do
@@ -43,13 +44,15 @@ class Admin::CbtExamsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     old_date = @exam.exam_date
     imported = AssessmentInstance.create!(assessment_event: @exam, student: users(:wati), max_score: 100, score: 70,
-                                          status: "scored", source: "import", scored_at: old_date.in_time_zone, attempt_number: 9)
+      status: "scored", source: "import", performed_at: old_date.in_time_zone,
+      scored_at: old_date.in_time_zone, attempt_number: 9)
     new_date = old_date - 1
 
     patch admin_cbt_exam_path(@exam), params: { assessment_event: { exam_date: new_date.iso8601 } }
     assert_redirected_to admin_cbt_exams_path
     assert_equal new_date, @exam.reload.exam_date
-    assert_equal new_date, imported.reload.scored_at.to_date
+    assert_equal new_date, imported.reload.performed_at.to_date
+    assert_equal old_date, imported.scored_at.to_date, "waktu pencatatan nilai tidak berubah saat tanggal event dikoreksi"
 
     patch admin_cbt_exam_path(@exam), params: { assessment_event: { name: "CBT Kardio (revisi)" } }
     assert_equal "CBT Kardio (revisi)", @exam.reload.name

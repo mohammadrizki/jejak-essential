@@ -15,7 +15,7 @@ class SetupControlsTest < ActionDispatch::IntegrationTest
 
   def admin
     @admin ||= users(:budi).tap do |user|
-      user.roles << roles(:admin)
+      grant_bootstrapped_system_admin!(user)
       user.update!(active_role: roles(:admin))
     end
   end

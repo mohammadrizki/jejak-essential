@@ -14,7 +14,7 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
   end
 
   def make_admin(user)
-    user.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(user)
     user
   end
 
@@ -94,7 +94,7 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
         assessment_event_id: other_event.id, scheduled_at: 1.day.from_now } }
     end
     assert_response :unprocessable_entity
-    assert_match "di luar program studi binaan Anda", response.body
+    assert_match "di luar cakupan program studi Anda", response.body
 
     assert_difference "EvaluationSchedule.count", 1 do
       post admin_evaluation_schedules_path, params: { evaluation_schedule: { kind: "mini_cex", student_id: users(:siti).id,
@@ -112,8 +112,11 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
     get admin_learning_unit_path(pspd_unit)
     assert_response :not_found
 
-    post admin_learning_units_path, params: { learning_unit: { name: "Blok Baru", study_program_id: study_programs(:profesi_dokter).id } }
-    assert_equal study_programs(:sarjana_kedokteran), LearningUnit.find_by!(name: "Blok Baru").study_program
+    assert_no_difference "LearningUnit.count" do
+      post admin_learning_units_path, params: { learning_unit: { name: "Blok Baru", study_program_id: study_programs(:profesi_dokter).id } }
+    end
+    assert_response :unprocessable_entity
+    assert_match "berada di luar cakupan program studi", response.body
   end
 
   test "kaprodi tanpa prodi binaan ditolak dari Jadwal & Learning Unit" do
@@ -158,7 +161,7 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path # draf hanya terbuka bagi pemiliknya
 
     admin_teknis = users(:dedi)
-    admin_teknis.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin_teknis)
     sign_in admin_teknis
     get clinical_case_path(draft)
     assert_redirected_to root_path
@@ -190,6 +193,7 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
 
   test "penguji multi-peran tidak mengambil atau menilai percobaannya sendiri" do
     budi = users(:budi)
+    budi.update!(study_program: assessment_events(:soca_kardio).study_program)
     budi.roles << roles(:mahasiswa)
     own = budi.assessment_instances.create!(assessment_event: assessment_events(:soca_kardio), attempt_number: 1,
                                              max_score: 100, status: "submitted", submitted_at: Time.current)
@@ -207,7 +211,9 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
     student = User.create!(full_name: "Mahasiswa PSPD", email: "mhs-pspd@example.com", password: "Str0ngPass!x",
                            confirmed_at: Time.current, study_program: study_programs(:profesi_dokter))
     student.roles << roles(:mahasiswa)
-    outside = student.assessment_instances.create!(assessment_event: assessment_events(:soca_kardio), attempt_number: 1, max_score: 100,
+    pspd_event = AssessmentEvent.create!(name: "SOCA PSPD", assessment_type: "soca_msp",
+      academic_period: academic_periods(:current_period), study_program: student.study_program, max_score: 100)
+    outside = student.assessment_instances.create!(assessment_event: pspd_event, attempt_number: 1, max_score: 100,
                                                    status: "submitted", submitted_at: Time.current, self_evaluation: "EVALUASI-DIRI-RAHASIA")
     inside = users(:siti).assessment_instances.create!(assessment_event: assessment_events(:soca_kardio), attempt_number: 1, max_score: 100,
                                                        status: "submitted", submitted_at: Time.current)
@@ -239,7 +245,9 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
     student = User.create!(full_name: "Mahasiswa PSPD", email: "mhs-pspd@example.com", password: "Str0ngPass!x",
                            confirmed_at: Time.current, study_program: study_programs(:profesi_dokter))
     student.roles << roles(:mahasiswa)
-    instance = student.assessment_instances.create!(assessment_event: assessment_events(:soca_kardio), attempt_number: 1, max_score: 100,
+    event = AssessmentEvent.create!(name: "SOCA PSPD", assessment_type: "soca_msp",
+      academic_period: academic_periods(:current_period), study_program: student.study_program, max_score: 100)
+    instance = student.assessment_instances.create!(assessment_event: event, attempt_number: 1, max_score: 100,
                                                     status: "submitted", submitted_at: Time.current)
 
     sign_in users(:budi)
@@ -254,7 +262,9 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
     kaprodi.roles << roles(:kaprodi)
     student = User.create!(full_name: "Mahasiswa Kosong", email: "mhs-kosong@example.com", password: "Str0ngPass!x", confirmed_at: Time.current)
     student.roles << roles(:mahasiswa)
-    instance = student.assessment_instances.create!(assessment_event: assessment_events(:soca_kardio), attempt_number: 1, max_score: 100,
+    event = assessment_events(:soca_kardio)
+    event.update!(study_program: nil)
+    instance = student.assessment_instances.create!(assessment_event: event, attempt_number: 1, max_score: 100,
                                                     status: "submitted", submitted_at: Time.current)
 
     assert_not kaprodi.can_view_student?(student)

@@ -16,9 +16,32 @@ end
 
 # Hak akses peran menentukan tindakan; UserAssignment tetap menjadi
 # syarat kedua untuk membatasi mahasiswa, rotasi, dan dossier yang ditangani.
+[
+  ["users.manage", "Kelola pengguna", "Mengelola akun, status, dan profil pengguna."],
+  ["roles.manage", "Kelola peran dan izin", "Mengelola definisi peran dan permission peran."],
+  ["roles.assign", "Berikan peran", "Memberikan atau mencabut peran pengguna pada lingkup yang diizinkan."],
+  ["assignments.manage", "Kelola penugasan", "Mengatur assignment operasional dosen dan preseptor."],
+  ["curriculum.manage", "Kelola kurikulum", "Mengelola peta kompetensi, blueprint, dan Bukti yang Diharapkan."],
+  ["modules.manage", "Aktivasi modul", "Mengelola modul yang aktif untuk program studi."],
+  ["assessment.review", "Telaah asesmen", "Menelaah bukti dan hasil asesmen dalam lingkup assignment."],
+  ["assessment.decide", "Keputusan akademik", "Menerbitkan keputusan akademik dalam lingkup kewenangan."],
+  ["epa.decide", "Keputusan EPA", "Menerbitkan keputusan entrustment sesuai assignment."],
+  ["integration.manage", "Kelola integrasi", "Mengelola konfigurasi dan impor integrasi eksternal."],
+  ["audit.read", "Baca audit", "Melihat audit log sesuai cakupan yang diberikan."],
+  ["templates.manage", "Kelola pustaka template", "Mengelola template kerangka kompetensi bawaan."],
+  ["students.graduate", "Tetapkan kelulusan mahasiswa", "Menetapkan status lulus hanya untuk mahasiswa dalam program studi yang dikelola."],
+  ["students.transfer.request", "Ajukan transfer mahasiswa", "Mengajukan transfer bagi mahasiswa yang telah lulus dari program studi asal."],
+  ["students.transfer.accept", "Terima transfer mahasiswa", "Menerima atau menolak mahasiswa masuk ke program studi yang dikelola."]
+].each do |key, name, description|
+  SystemPermission.find_or_create_by!(key: key) do |permission|
+    permission.name = name
+    permission.description = description
+  end
+end
+
 {
   "admin" => %w[users.manage roles.assign assignments.manage curriculum.manage modules.manage integration.manage audit.read],
-  "kaprodi" => %w[users.manage roles.assign assignments.manage curriculum.manage modules.manage assessment.review assessment.decide epa.decide audit.read],
+  "kaprodi" => %w[users.manage roles.assign assignments.manage curriculum.manage modules.manage integration.manage assessment.review assessment.decide epa.decide audit.read students.graduate students.transfer.request students.transfer.accept],
   "dosen" => %w[assessment.review assessment.decide],
   "preseptor" => %w[assessment.review epa.decide],
   "tenaga_kependidikan" => %w[integration.manage audit.read]

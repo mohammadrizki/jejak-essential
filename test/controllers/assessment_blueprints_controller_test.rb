@@ -11,7 +11,7 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa melihat daftar blueprint" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get assessment_blueprints_path
@@ -21,7 +21,7 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin membuat blueprint dan memetakan kompetensi pada komponen versi draf" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     program = create_test_program
 
@@ -30,6 +30,7 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
         assessment_blueprint: {
           name: "Blueprint Baru",
           study_program_id: program.id,
+          initial_competency_framework_id: program.peta_kompetensi.id,
           description: "Contoh",
           learning_outcomes_text: "Mampu mendiagnosis nyeri dada"
         }
@@ -55,11 +56,17 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
     kaprodi = users(:dedi)
     program = StudyProgram.create!(name: "Program Kaprodi Uji", code: "kaprodi-#{SecureRandom.hex(3)}", level: "sarjana")
     kaprodi.update!(study_program: program)
+    grant_role_in_program!(kaprodi, "kaprodi", program)
+    framework = CompetencyFramework.create!(study_program: program, name: "Peta Kaprodi Uji", version: "1",
+      education_stage: "sarjana")
+    framework.competency_items.create!(title: "Domain Uji", code: "D-01", level_type: "domain")
+    framework.publish!
     sign_in kaprodi
 
     assert_difference "AssessmentBlueprint.count", 1 do
       post assessment_blueprints_path, params: {
-          assessment_blueprint: { name: "Blueprint Kaprodi", study_program_id: program.id }
+          assessment_blueprint: { name: "Blueprint Kaprodi", study_program_id: program.id,
+            initial_competency_framework_id: framework.id }
       }
     end
 
@@ -83,7 +90,7 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
 
   test "formulir tambah mapping di halaman detail mengirim parameter yang diterima controller" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     blueprint = AssessmentBlueprint.create!(name: "Blueprint Kosong", study_program: create_test_program)
 
@@ -96,7 +103,7 @@ class AssessmentBlueprintsControllerTest < ActionDispatch::IntegrationTest
 
   test "blueprint yang dipakai unit pembelajaran bisa dihapus; unitnya tetap ada" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     blueprint = AssessmentBlueprint.create!(name: "Blueprint Lepas", study_program: create_test_program)
     unit = LearningUnit.create!(name: "Blok Uji", study_program: study_programs(:sarjana_kedokteran), assessment_blueprint: blueprint)

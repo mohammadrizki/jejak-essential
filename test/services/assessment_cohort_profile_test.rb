@@ -18,7 +18,8 @@ class AssessmentCohortProfileTest < ActiveSupport::TestCase
   end
 
   def add_student(name, total, dims)
-    user = User.create!(full_name: name, email: "#{name.parameterize}@example.com", password: "rahasia-kuat-1", confirmed_at: Time.current)
+    user = User.create!(full_name: name, email: "#{name.parameterize}@example.com", password: "rahasia-kuat-1",
+      confirmed_at: Time.current, study_program: @event.study_program)
     user.roles << roles(:mahasiswa)
     instance = AssessmentInstance.create!(assessment_event: @event, student: user, attempt_number: 1, status: "scored",
                                           source: "import", score: total, max_score: 100, scored_at: Time.current)

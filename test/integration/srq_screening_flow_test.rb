@@ -7,7 +7,11 @@ class SrqScreeningFlowTest < ActionDispatch::IntegrationTest
     user = User.create!(full_name: "Probe #{slug}", email: "#{slug}@example.com", password: "Str0ngPass!x",
                         confirmed_at: Time.current, study_program: program, cohort_year: cohort_year)
     role = roles(role_code)
-    user.roles << role
+    if role_code.to_s == "admin"
+      grant_bootstrapped_system_admin!(user)
+    else
+      user.roles << role
+    end
     user.update_column(:active_role_id, role.id)
     user
   end

@@ -166,6 +166,7 @@ class Admin::UsersController < ApplicationController
       desired_grants.each do |role, scope, program|
         @user.user_roles.find_or_create_by!(role: role, scope_level: scope, study_program: program)
       end
+      StudentProgramEnrollmentBootstrap.ensure_current!(user: @user, by: current_user)
       new_grants = role_grant_snapshot(@user)
       if old_grants != new_grants
         RbacAuditEvent.create!(actor_user: current_user, subject_user: @user,
@@ -248,7 +249,7 @@ class Admin::UsersController < ApplicationController
     else
       StudyProgram.find_by(id: params[:study_program_id]) || manageable_programs.first
     end
-    return if current_user.has_permission?("users.manage", study_program: program)
+    return if program.present? && current_user.has_permission?("users.manage", study_program: program)
 
     redirect_to dashboard_path, alert: "Anda tidak memiliki hak akses pengelolaan pengguna pada lingkup ini."
   end

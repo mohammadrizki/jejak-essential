@@ -6,6 +6,8 @@ class EpaMilestonesController < ApplicationController
 
   def create
     authorize @framework, :update?
+    return unless require_epa_module!
+
     return redirect_to @framework, alert: "Buat versi draf sebelum mengubah target EPA." unless @framework.status == "draft"
 
     level = SupervisionLevel.joins(:supervision_scale_version)
@@ -19,6 +21,8 @@ class EpaMilestonesController < ApplicationController
 
   def destroy
     authorize @framework, :update?
+    return unless require_epa_module!
+
     return redirect_to @framework, alert: "Buat versi draf sebelum menghapus target EPA." unless @framework.status == "draft"
 
     @epa.epa_milestones.find(params[:id]).destroy!
@@ -32,6 +36,13 @@ class EpaMilestonesController < ApplicationController
   def set_framework_and_epa
     @framework = CompetencyFramework.find(params[:competency_framework_id])
     @epa = @framework.epas.find(params[:epa_id])
+  end
+
+  def require_epa_module!
+    return true if ModuleConfiguration.for(@framework.study_program).enabled?("epa")
+
+    redirect_to @framework, alert: "Modul EPA tidak aktif untuk program studi ini. Aktifkan modul sebelum mengelola target EPA."
+    false
   end
 
   def milestone_params

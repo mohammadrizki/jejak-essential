@@ -49,7 +49,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "kartu pengguna non-mahasiswa mengarah ke sunting pengguna bagi admin" do
-    users(:budi).roles << roles(:admin)
+    grant_bootstrapped_system_admin!(users(:budi))
     get search_path, params: { q: "wati" }
     assert_equal edit_admin_user_path(users(:wati)), card_for(users(:wati))["href"]
   end
@@ -70,15 +70,18 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "kaprodi hanya menemukan mahasiswa prodi binaannya" do
-    users(:siti).update!(study_program: study_programs(:profesi_dokter))
+    outside_student = User.create!(full_name: "Mahasiswa Profesi Search", email: "profesi-search@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:profesi_dokter),
+      active_role: roles(:mahasiswa))
+    outside_student.user_roles.create!(role: roles(:mahasiswa), scope_level: "system")
     sign_in users(:dedi)
-    get search_path, params: { q: "siti" }
+    get search_path, params: { q: "profesi-search" }
     assert_response :success
-    assert_no_match users(:siti).email, response.body
+    assert_no_match outside_student.email, response.body
   end
 
   test "admin menemukan semua pengguna" do
-    users(:budi).roles << roles(:admin)
+    grant_bootstrapped_system_admin!(users(:budi))
     get search_path, params: { q: "example.com" }
     [ :siti, :wati, :dedi ].each { |u| assert_match users(u).email, response.body }
   end
@@ -86,7 +89,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis tetap bisa mencari akun tetapi tidak mendapat tautan data akademik mahasiswa" do
     admin = User.create!(full_name: "Admin Direktori", email: "admin-direktori@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get search_path, params: { q: "siti" }

@@ -7,7 +7,7 @@ class Admin::AcademicActivityDomainsControllerTest < ActionDispatch::Integration
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @admin.update!(active_role: roles(:admin))
     sign_in @admin
   end

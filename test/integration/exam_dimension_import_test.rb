@@ -7,7 +7,7 @@ class ExamDimensionImportTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @period = academic_periods(:current_period)
     @framework = competency_frameworks(:skdi_ringkas)
     @keterampilan = @framework.domains.find { |d| d.title.include?("Keterampilan") } || @framework.domains.first
@@ -195,7 +195,7 @@ class ExamDimensionImportTest < ActionDispatch::IntegrationTest
     sign_in users(:siti)
     get academic_assessments_path
     assert_response :success
-    assert_match "Capaian per Ranah Kompetensi", response.body
+    assert_match "Spiderweb Capaian Kompetensi", response.body
     assert_match @keterampilan.title, response.body
     assert_match "75.0%", response.body
   end

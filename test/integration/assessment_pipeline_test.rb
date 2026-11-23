@@ -8,7 +8,7 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
   end
 
   # ── Admin & impor ──
@@ -141,8 +141,9 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
            params: { csv_text: csv, mapping: { email: "email", score: "skor", attempt: "percobaan", date: "tanggal" } }
     end
     siti = users(:siti)
-    assert_equal Date.new(2026, 9, 20), AssessmentInstance.find_by!(assessment_event: event, student: siti, attempt_number: 2).scored_at.to_date
-    assert_equal event.exam_date, AssessmentInstance.find_by!(assessment_event: event, student: siti, attempt_number: 3).scored_at.to_date
+    assert_equal Date.new(2026, 9, 20), AssessmentInstance.find_by!(assessment_event: event, student: siti, attempt_number: 2).performed_at.to_date
+    assert_equal event.exam_date, AssessmentInstance.find_by!(assessment_event: event, student: siti, attempt_number: 3).performed_at.to_date
+    assert_equal Date.current, AssessmentInstance.find_by!(assessment_event: event, student: siti, attempt_number: 2).scored_at.to_date
     assert_nil AssessmentInstance.find_by(assessment_event: event, student: siti, attempt_number: 4)
     assert_match "tanggal &quot;kemarin&quot; tidak dikenali", response.body
   end
@@ -182,7 +183,8 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
     assert_select '[data-testid="cohort-position"]', 0 # kohort baru 1 orang
 
     2.times do |i|
-      u = User.create!(full_name: "Kohort #{i}", email: "kohort#{i}@example.com", password: "rahasia-kuat-1", confirmed_at: Time.current)
+      u = User.create!(full_name: "Kohort #{i}", email: "kohort#{i}@example.com", password: "rahasia-kuat-1",
+        confirmed_at: Time.current, study_program: event.study_program)
       AssessmentInstance.create!(assessment_event: event, student: u, attempt_number: 1, status: "scored", source: "import",
                                  score: 70 + i * 10, max_score: 100, scored_at: Time.current)
     end
@@ -202,7 +204,8 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
     assert_no_match "Persentil", response.body
 
     2.times do |i|
-      u = User.create!(full_name: "Kohort #{i}", email: "kohort#{i}@example.com", password: "rahasia-kuat-1", confirmed_at: Time.current)
+      u = User.create!(full_name: "Kohort #{i}", email: "kohort#{i}@example.com", password: "rahasia-kuat-1",
+        confirmed_at: Time.current, study_program: event.study_program)
       AssessmentInstance.create!(assessment_event: event, student: u, attempt_number: 1, status: "scored", source: "import",
                                  score: 70 + i * 10, max_score: 100, scored_at: Time.current)
     end
@@ -266,8 +269,14 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
     get student_assessments_path
     assert_no_match "SOCA Sistem Kardiovaskular", response.body
 
-    users(:siti).update!(study_program: study_programs(:profesi_dokter))
     tutorial_enrollments(:siti_kardio).update!(active: true)
+
+    other_program_student = User.create!(full_name: "Mahasiswa Profesi Event", email: "profesi-event@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:profesi_dokter),
+      active_role: roles(:mahasiswa))
+    other_program_student.user_roles.create!(role: roles(:mahasiswa), scope_level: "system")
+    sign_out users(:siti)
+    sign_in other_program_student
     get student_assessments_path
     assert_no_match "SOCA Sistem Kardiovaskular", response.body
   end
@@ -354,15 +363,15 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
     assert_not EntrustmentDecision.exists?(student: users(:siti), competency_item: epa)
 
     get entrustment_decisions_path(student_id: users(:siti).id)
-    assert_redirected_to dashboard_path
-    assert_match "Modul EPA tidak aktif", flash[:alert]
+    assert_response :success
+    assert_match "Modul EPA nonaktif", response.body
   end
 
   test "mahasiswa melihat Peta EPA miliknya tanpa form; pengajar tanpa relasi ditolak menilai" do
     sign_in users(:siti)
     get entrustment_decisions_path
-    assert_redirected_to dashboard_path
-    assert_match "Modul EPA tidak aktif", flash[:alert]
+    assert_response :success
+    assert_match "Modul EPA nonaktif", response.body
 
     stranger = User.create!(full_name: "Dosen Asing", email: "asing@example.com", password: "rahasia-kuat-1", confirmed_at: Time.current)
     stranger.roles << roles(:dosen)
@@ -374,7 +383,7 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
 
   test "admin teknis tanpa assignment tidak dapat membuka dossier EPA mahasiswa" do
     admin = users(:dedi)
-    admin.roles << roles(:admin) unless admin.has_role?("admin")
+    grant_bootstrapped_system_admin!(admin) unless admin.has_role?("admin")
     sign_in admin
     get entrustment_decisions_path(student_id: users(:siti).id)
     assert_redirected_to root_path

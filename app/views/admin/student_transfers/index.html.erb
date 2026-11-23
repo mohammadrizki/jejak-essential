@@ -1,0 +1,115 @@
+<% content_for :title, "Transfer Mahasiswa" %>
+<% input_class = "block w-full rounded-xl border-0 py-2 px-3 text-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-500" %>
+<div class="max-w-6xl space-y-6">
+  <header>
+    <h1 class="text-xl font-bold text-gray-900">Transfer Mahasiswa</h1>
+    <p class="mt-1 text-sm text-gray-600">Kaprodi asal menetapkan kelulusan dan mengajukan transfer. Pengajuan tidak memindahkan akun. Kaprodi prodi tujuan meninjau dan menerima atau menolak; seluruh keanggotaan dan bukti historis tetap tertaut pada akun mahasiswa yang sama.</p>
+  </header>
+
+  <section class="grid gap-5 lg:grid-cols-2">
+    <% if @graduate_programs.any? %>
+      <%= form_with url: admin_student_transfers_path, method: :post, multipart: true, class: "rounded-2xl bg-white p-5 ring-1 ring-gray-200 space-y-4" do %>
+        <h2 class="font-semibold text-gray-900">Catat kelulusan dari prodi</h2>
+        <%= hidden_field_tag :mode, "graduate" %>
+        <div>
+          <%= label_tag :source_study_program_id, "Program studi asal", class: "mb-1 block text-sm font-medium" %>
+          <%= select_tag :source_study_program_id, options_for_select(@graduate_programs.map { |p| [p.name, p.id] }, @source_program_id), include_blank: "Pilih prodi", required: true, class: input_class %>
+        </div>
+        <div>
+          <%= label_tag :csv_file, "CSV berisi email/NPM dan tanggal lulus (opsional)", class: "mb-1 block text-sm font-medium" %>
+          <%= file_field_tag :csv_file, accept: ".csv,text/csv", required: true, class: "block w-full text-sm" %>
+          <%= link_to "Unduh template", template_admin_student_transfers_path(format: :csv, mode: "graduate"), class: "mt-1 inline-block text-xs text-indigo-700" %>
+        </div>
+        <%= submit_tag "Pratinjau kelulusan", class: "rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+      <% end %>
+    <% end %>
+
+    <% if @request_programs.any? %>
+      <%= form_with url: admin_student_transfers_path, method: :post, multipart: true, class: "rounded-2xl bg-white p-5 ring-1 ring-gray-200 space-y-4" do %>
+        <h2 class="font-semibold text-gray-900">Ajukan transfer ke prodi tujuan</h2>
+        <%= hidden_field_tag :mode, "transfer" %>
+        <div>
+          <%= label_tag :source_study_program_id, "Program studi asal", class: "mb-1 block text-sm font-medium" %>
+          <%= select_tag :source_study_program_id, options_for_select(@request_programs.map { |p| [p.name, p.id] }, @source_program_id), include_blank: "Pilih prodi", required: true, class: input_class %>
+        </div>
+        <div>
+          <%= label_tag :destination_study_program_id, "Program studi tujuan", class: "mb-1 block text-sm font-medium" %>
+          <%= select_tag :destination_study_program_id, options_for_select(@destination_programs.map { |p| [p.name, p.id] }, @destination_program_id), include_blank: "Pilih prodi tujuan", required: true, class: input_class %>
+        </div>
+        <div>
+          <%= label_tag :csv_file, "CSV email/NPM asal, NPM tujuan, dan angkatan tujuan (opsional)", class: "mb-1 block text-sm font-medium" %>
+          <%= file_field_tag :csv_file, accept: ".csv,text/csv", required: true, class: "block w-full text-sm" %>
+          <%= link_to "Unduh template", template_admin_student_transfers_path(format: :csv, mode: "transfer"), class: "mt-1 inline-block text-xs text-indigo-700" %>
+        </div>
+        <%= submit_tag "Pratinjau pengajuan", class: "rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+      <% end %>
+    <% end %>
+  </section>
+
+  <% if @matches.present? %>
+    <% eligible = @matches.count(&:eligible?) %>
+    <section class="overflow-hidden rounded-2xl bg-white ring-1 ring-gray-200">
+      <div class="border-b bg-gray-50 px-5 py-3 text-sm font-semibold">Pratinjau: <%= eligible %> dari <%= @matches.size %> baris siap diproses</div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead class="bg-white text-xs uppercase text-gray-500"><tr><th class="px-4 py-3">Baris</th><th class="px-4 py-3">Email/NPM</th><th class="px-4 py-3">Mahasiswa</th><th class="px-4 py-3">Prodi asal</th><th class="px-4 py-3">Status</th></tr></thead>
+          <tbody class="divide-y"><% @matches.each do |match| %><tr>
+            <td class="px-4 py-3"><%= match.line %></td><td class="px-4 py-3 font-mono text-xs"><%= match.identifier %></td>
+            <td class="px-4 py-3"><%= match.user&.full_name || "—" %></td><td class="px-4 py-3"><%= match.enrollment&.study_program&.name || "—" %></td>
+            <td class="px-4 py-3"><span class="rounded-full px-2 py-1 text-xs <%= match.eligible? ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' %>"><%= match.note %></span></td>
+          </tr><% end %></tbody>
+        </table>
+      </div>
+      <% if eligible.positive? %>
+        <div class="border-t bg-gray-50 px-5 py-4">
+          <%= form_with url: admin_student_transfers_path, method: :post, data: { turbo_confirm: @mode == "graduate" ? "Catat kelulusan untuk #{eligible} mahasiswa?" : "Ajukan transfer untuk #{eligible} mahasiswa? Akun belum dipindahkan sampai prodi tujuan menerima." } do %>
+            <%= hidden_field_tag :apply, "1" %><%= hidden_field_tag :mode, @mode, id: nil %>
+            <%= hidden_field_tag :source_study_program_id, @source_program_id, id: nil %><%= hidden_field_tag :destination_study_program_id, @destination_program_id, id: nil %>
+            <%= hidden_field_tag :csv_raw, @csv_raw %>
+            <%= submit_tag(@mode == "graduate" ? "Tetapkan lulus untuk #{eligible} mahasiswa" : "Ajukan transfer untuk #{eligible} mahasiswa", class: "rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white") %>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if @incoming_transfers.exists? %>
+    <section class="space-y-3">
+      <h2 class="text-lg font-semibold text-gray-900">Pengajuan masuk untuk program studi yang dikelola</h2>
+      <% @incoming_transfers.each do |transfer| %>
+        <article class="rounded-2xl bg-white p-5 ring-1 ring-gray-200 md:flex md:items-center md:justify-between md:gap-5">
+          <div><p class="font-semibold"><%= transfer.student.full_name %> <span class="font-normal text-gray-500">(<%= transfer.student.email %>)</span></p>
+            <p class="text-sm text-gray-600"><%= transfer.source_enrollment.study_program.name %> → <%= transfer.destination_study_program.name %> · lulus <%= l(transfer.source_enrollment.completed_on) %></p>
+            <p class="text-xs text-gray-500">NPM tujuan: <%= transfer.destination_identifier_number.presence || "menggunakan yang tercatat" %>; angkatan: <%= transfer.destination_cohort_year.presence || "tidak diubah" %></p></div>
+          <% if transfer.status == "pending" && StudentTransferWorkflow.authorized_for?(current_user, "students.transfer.accept", transfer.destination_study_program) %>
+            <div class="mt-4 flex shrink-0 gap-2 md:mt-0">
+              <%= button_to "Terima", accept_admin_student_transfers_path(transfer_id: transfer.id), method: :patch, data: { turbo_confirm: "Terima transfer dan aktifkan mahasiswa di prodi tujuan?" }, class: "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white" %>
+              <%= form_with url: reject_admin_student_transfers_path(transfer_id: transfer.id), method: :patch, class: "flex gap-2" do %>
+                <%= text_field_tag :reason, nil, required: true, minlength: 10, placeholder: "Alasan penolakan", class: "w-40 rounded-lg border px-2 text-sm" %>
+                <%= submit_tag "Tolak", class: "rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white" %>
+              <% end %>
+            </div>
+          <% else %><span class="mt-3 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"><%= transfer.status_label %></span><% end %>
+        </article>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if @outgoing_transfers.exists? %>
+    <section class="space-y-3">
+      <h2 class="text-lg font-semibold text-gray-900">Riwayat pengajuan dari prodi asal</h2>
+      <div class="overflow-x-auto rounded-2xl bg-white ring-1 ring-gray-200">
+        <table class="min-w-full text-left text-sm">
+          <thead class="bg-gray-50 text-xs uppercase text-gray-500"><tr><th class="px-4 py-3">Mahasiswa</th><th class="px-4 py-3">Asal → tujuan</th><th class="px-4 py-3">Diajukan</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Catatan keputusan</th></tr></thead>
+          <tbody class="divide-y divide-gray-100"><% @outgoing_transfers.each do |transfer| %><tr>
+            <td class="px-4 py-3"><%= transfer.student.full_name %><span class="block text-xs text-gray-500"><%= transfer.student.email %></span></td>
+            <td class="px-4 py-3"><%= transfer.source_enrollment.study_program.name %> → <%= transfer.destination_study_program.name %></td>
+            <td class="px-4 py-3"><%= l(transfer.created_at.to_date) %></td>
+            <td class="px-4 py-3"><%= transfer.status_label %></td>
+            <td class="px-4 py-3 text-gray-600"><%= transfer.decision_note.presence || "—" %></td>
+          </tr><% end %></tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+</div>

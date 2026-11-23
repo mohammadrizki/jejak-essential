@@ -6,7 +6,7 @@
     <label class="flex items-center gap-2">
       <%= hidden_field_tag "evidence_requirement[fulfillment_rule][require_validation]", "0" %>
       <%= check_box_tag "evidence_requirement[fulfillment_rule][require_validation]", "1", rule.fetch("require_validation", true), class: "rounded border-gray-300 text-indigo-600" %>
-      Hitung hanya bukti yang sudah dinilai atau divalidasi
+      Bukti harus dinilai atau divalidasi sebelum dihitung. Refleksi tersimpan dihitung sebagai bukti terkumpul; mutunya ditelaah terpisah.
     </label>
     <label class="flex items-center gap-2">
       <%= hidden_field_tag "evidence_requirement[fulfillment_rule][critical]", "0" %>

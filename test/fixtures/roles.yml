@@ -18,6 +18,10 @@ admin:
   code: admin
   name: Admin
 
+superadmin:
+  code: superadmin
+  name: Superadmin
+
 tenaga_kependidikan:
   code: tenaga_kependidikan
   name: Tenaga Kependidikan

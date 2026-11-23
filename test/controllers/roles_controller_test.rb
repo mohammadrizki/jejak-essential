@@ -5,7 +5,7 @@ class RolesControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @user = users(:budi)
-    @user.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@user)
     sign_in @user
   end
 
@@ -17,6 +17,7 @@ class RolesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "menolak berpindah ke peran yang tidak dimiliki" do
+    @user.update!(active_role: roles(:dosen))
     patch switch_roles_path, params: { role_code: "mahasiswa" }
 
     assert_equal roles(:dosen), @user.reload.active_role

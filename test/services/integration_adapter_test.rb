@@ -52,7 +52,7 @@ class IntegrationAdapterTest < ActiveSupport::TestCase
     epa = framework.epas.create!(code: "EPA-EXT", title: "Melakukan prosedur klinis")
     requirement = EvidenceRequirement.create!(epa: epa, origin: "manual", source_type: "external", required_count: 1)
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     configuration = ModuleConfiguration.for(program)
     configuration.update!({ "wpba" => "0", "integration_clinical_wpba" => "1" }, actor: admin)
     payload = {

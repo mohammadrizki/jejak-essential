@@ -5,7 +5,7 @@ class CompetencyMilestonesControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa menambah target milestone baru" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     periode_baru = AcademicPeriod.create!(name: "Periode Baru", start_date: 1.month.from_now, end_date: 6.months.from_now)
@@ -27,7 +27,7 @@ class CompetencyMilestonesControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa menghapus target milestone" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     milestone = competency_milestones(:klinis_target_current_period)
@@ -38,7 +38,7 @@ class CompetencyMilestonesControllerTest < ActionDispatch::IntegrationTest
 
   test "formulir target di halaman peta kompetensi mengirim parameter yang diterima controller" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get competency_framework_path(competency_frameworks(:skdi_ringkas))

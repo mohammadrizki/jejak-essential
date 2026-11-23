@@ -10,7 +10,7 @@ class Admin::GlideSyncsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @admin.update!(active_role: roles(:admin))
     @date = 2.days.ago.to_date
   end

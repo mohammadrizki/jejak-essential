@@ -12,7 +12,7 @@ class DopsEvaluationsControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis tanpa assignment tidak dapat melihat hasil DOPS" do
     admin = User.create!(full_name: "Admin DOPS", email: "admin-dops@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get dops_evaluation_path(dops_evaluations(:dops_siti_infus))
@@ -60,7 +60,7 @@ class DopsEvaluationsControllerTest < ActionDispatch::IntegrationTest
     assessor.update!(study_program: study_programs(:profesi_dokter))
     admin = User.create!(full_name: "Admin modul", email: "admin-modul-dops@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     ModuleConfiguration.for(assessor.study_program).update!({ wpba: false }, actor: admin)
     sign_in assessor
 
@@ -78,7 +78,7 @@ class DopsEvaluationsControllerTest < ActionDispatch::IntegrationTest
   test "penilai tidak dapat membuat atau mengoreksi WPBA saat modul program mahasiswa nonaktif" do
     admin = User.create!(full_name: "Admin modul", email: "admin-modul-dops-disabled@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     ModuleConfiguration.for(users(:siti).study_program).update!({ wpba: false }, actor: admin)
     sign_in users(:budi)
 

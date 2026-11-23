@@ -47,7 +47,7 @@
   elsif is_admin
     items << ["Program Studi", study_programs_path, request.path.start_with?("/study_programs")]
     items << ["Pengguna", admin_users_path, request.path.start_with?("/admin/users")]
-    items << ["Master Data", admin_wpba_instruments_path, request.path.start_with?("/admin/wpba_instruments")]
+    items << ["Master Data", admin_wpba_instruments_path, request.path.start_with?("/admin/wpba_instruments")] if current_user.has_role?("superadmin")
     items << ["Pengaturan", edit_module_configuration_path(study_program_id: StudyProgram.ordered.first&.id), request.path.start_with?("/module_configuration")]
   elsif is_tendik
     items << ["Impor Bukti", external_evidence_imports_path, request.path.start_with?("/external_evidence_imports")] if external_data_assigned

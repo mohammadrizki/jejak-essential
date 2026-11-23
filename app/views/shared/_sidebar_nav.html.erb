@@ -166,12 +166,12 @@
     <%= render "shared/nav_item", label: "Dashboard Capaian", path: analytics_path, active: active_class.call("/analitik") %>
     <%= render "shared/nav_item", label: "Capaian Kompetensi", path: academic_assessments_path, active: active_class.call("/capaian-belajar") %>
     <% if epa_staff_visible %><%= render "shared/nav_item", label: "Tinjauan EPA", path: epa_promotions_path, active: active_class.call("/epa_promotions") %><% end %>
-    <%= render "shared/nav_item", label: "Ekspor Data (CSV)", path: admin_exports_path, active: active_class.call("/admin/exports") %>
+    <% unless is_admin %><%= render "shared/nav_item", label: "Ekspor Data (CSV)", path: admin_exports_path, active: active_class.call("/admin/exports") if DataExport.allowed?(current_user) %><% end %>
   <% end %>
   <%= render "shared/nav_accordion", label: "Pengguna dan Penugasan", open: active_class.call(%w[/cari /user_assignments]) do %>
     <%= render "shared/nav_item", label: "Mahasiswa dalam Lingkup Saya", path: search_path, active: active_class.call("/cari") %>
     <%= render "shared/nav_item", label: "Penugasan dan Reviewer", path: user_assignments_path, active: active_class.call("/user_assignments") %>
-    <%= render "shared/nav_item", label: "Relabel Prodi Mahasiswa", path: new_admin_student_relabel_path, active: active_class.call("/admin/student_relabel") %>
+    <% if StudyProgram.ordered.any? { |program| %w[students.graduate students.transfer.request students.transfer.accept].any? { |permission| StudentTransferWorkflow.authorized_for?(current_user, permission, program) } } %><%= render "shared/nav_item", label: "Transfer Mahasiswa", path: admin_student_transfers_path, active: active_class.call("/admin/student_transfers") %><% end %>
   <% end %>
   <%= render "shared/nav_item", label: "Aktivasi Modul", path: edit_module_configuration_path(study_program_id: current_user.study_program_id), active: active_class.call("/module_configuration") %>
 <% end %>
@@ -188,10 +188,10 @@
     <%= render "shared/nav_item", label: "Periode Akademik", path: academic_periods_path, active: active_class.call("/academic_periods") %>
     <%= render "shared/nav_item", label: term("nav.clinical_rotations"), path: clinical_rotations_path, active: active_class.call("/clinical_rotations") %>
   <% end %>
-  <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: active_class.call(%w[/admin/users /admin/student_relabel /external_identity_mappings /external_evidence_imports]) do %>
+  <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: active_class.call(%w[/admin/users /admin/student_relabel /admin/student_transfers /external_identity_mappings /external_evidence_imports]) do %>
     <%= render "shared/nav_item", label: "Pengguna & Peran", path: admin_users_path, active: active_class.call("/admin/users") %>
     <% if current_user.has_role?("superadmin") %><%= render "shared/nav_item", label: "Kelola Peran & Hak Akses", path: roles_path, active: active_class.call("/roles") %><% end %>
-    <%= render "shared/nav_item", label: "Relabel Prodi Mahasiswa", path: new_admin_student_relabel_path, active: active_class.call("/admin/student_relabel") %>
+    <% if StudyProgram.ordered.any? { |program| %w[students.graduate students.transfer.request students.transfer.accept].any? { |permission| StudentTransferWorkflow.authorized_for?(current_user, permission, program) } } %><%= render "shared/nav_item", label: "Transfer Mahasiswa", path: admin_student_transfers_path, active: active_class.call("/admin/student_transfers") %><% end %>
     <% if has_external_data_access %>
       <%= render "shared/nav_item", label: "Pemetaan Identifier Eksternal", path: external_identity_mappings_path, active: active_class.call("/external_identity_mappings") %>
       <%= render "shared/nav_item", label: "Impor Bukti Eksternal", path: external_evidence_imports_path, active: active_class.call("/external_evidence_imports") %>
@@ -200,7 +200,7 @@
   <%= render "shared/nav_accordion", label: "Master Data", open: active_class.call(%w[/admin/assessment_events /admin/wpba_instruments /assessment_form_templates /admin/glide_syncs /admin/logbook_case_targets /admin/academic_activity_domains /admin/diagnosis_definitions /admin/skill_definitions /admin/medication_definitions /admin/exports]) do %>
     <%= render "shared/nav_item", label: "Instrumen Asesmen Internal", path: assessment_form_templates_path, active: active_class.call(%w[/assessment_form_templates /assessment_form_submissions]) %>
     <%= render "shared/nav_item", label: "Event Asesmen", path: admin_assessment_events_path, active: active_class.call("/admin/assessment_events") %>
-    <%= render "shared/nav_item", label: "Katalog Instrumen WPBA", path: admin_wpba_instruments_path, active: active_class.call("/admin/wpba_instruments") %>
+    <% if current_user.has_role?("superadmin") %><%= render "shared/nav_item", label: "Katalog Instrumen WPBA", path: admin_wpba_instruments_path, active: active_class.call("/admin/wpba_instruments") %><% end %>
     <%= render "shared/nav_item", label: "Target Kasus Logbook", path: admin_logbook_case_targets_path, active: active_class.call("/admin/logbook_case_targets") %>
     <%= render "shared/nav_item", label: "Domain Kegiatan Akademik", path: admin_academic_activity_domains_path, active: active_class.call("/admin/academic_activity_domains") %>
     <%= render "shared/nav_item", label: "Diagnosis", path: admin_diagnosis_definitions_path, active: active_class.call("/admin/diagnosis_definitions") %>
@@ -215,9 +215,14 @@
     <%= render "shared/nav_item", label: "Tata Kelola Data", path: admin_data_governance_path, active: active_class.call("/admin/data_governance") %>
   <% end %>
   <% else %>
-    <% if current_user.has_permission?("users.manage") || current_user.has_permission?("assignments.manage") %>
-      <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: active_class.call("/admin/users") do %>
-        <% if current_user.has_permission?("users.manage") %><%= render "shared/nav_item", label: "Pengguna", path: admin_users_path, active: active_class.call("/admin/users") %><% end %>
+    <% if current_user.programs_with_permission("users.manage", "assignments.manage", "integration.manage").any? %>
+      <%= render "shared/nav_accordion", label: "Pengguna & Hak Akses", open: active_class.call(%w[/admin/users /admin/student_transfers]) do %>
+        <% if current_user.programs_with_permission("users.manage").any? %><%= render "shared/nav_item", label: "Pengguna", path: admin_users_path, active: active_class.call("/admin/users") %><% end %>
+        <% if StudyProgram.ordered.any? { |program| %w[students.graduate students.transfer.request students.transfer.accept].any? { |permission| StudentTransferWorkflow.authorized_for?(current_user, permission, program) } } %><%= render "shared/nav_item", label: "Transfer Mahasiswa", path: admin_student_transfers_path, active: active_class.call("/admin/student_transfers") %><% end %>
+        <% if current_user.programs_with_permission("integration.manage").any? %>
+          <%= render "shared/nav_item", label: "Pemetaan Identifier Eksternal", path: external_identity_mappings_path, active: active_class.call("/external_identity_mappings") %>
+          <%= render "shared/nav_item", label: "Impor Bukti Eksternal", path: external_evidence_imports_path, active: active_class.call("/external_evidence_imports") %>
+        <% end %>
       <% end %>
     <% end %>
     <% module_program = StudyProgram.ordered.find { |program| current_user.has_permission?("modules.manage", study_program: program) } %>

@@ -4,6 +4,7 @@ class AssessmentFormSubmissionsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   test "mengisi formulir menyimpan jawaban per pertanyaan" do
+    users(:budi).update!(study_program: users(:dedi).study_program)
     sign_in users(:dedi)
     template = assessment_form_templates(:tutor_evaluation)
     rating_field = assessment_form_fields(:kejelasan_materi)
@@ -39,6 +40,7 @@ class AssessmentFormSubmissionsControllerTest < ActionDispatch::IntegrationTest
   # relasi berbeda struktur) → galat 500, sah maupun tidak.
   test "subjek dari ?subject_user_id= terpilih dan ikut di daftar meski bukan dosen" do
     sign_in users(:dedi) # Form Builder: kaprodi & admin
+    users(:wati).update!(study_program: users(:dedi).study_program)
     template = assessment_form_templates(:tutor_evaluation)
     siti = users(:siti) # mahasiswa — bukan kandidat bawaan (dosen/preseptor)
 
@@ -89,7 +91,7 @@ class AssessmentFormSubmissionsControllerTest < ActionDispatch::IntegrationTest
 
     admin = User.create!(full_name: "Admin Form Audit", email: "form-audit-admin@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     get assessment_form_submission_path(submission)
     assert_response :success
@@ -97,6 +99,7 @@ class AssessmentFormSubmissionsControllerTest < ActionDispatch::IntegrationTest
 
   test "pertanyaan wajib yang tidak dipilih tidak lagi lolos diam-diam" do
     sign_in users(:dedi)
+    users(:budi).update!(study_program: users(:dedi).study_program)
     template = assessment_form_templates(:tutor_evaluation)
 
     # Meniru radio yang tidak dipilih: parameternya tidak terkirim sama sekali.

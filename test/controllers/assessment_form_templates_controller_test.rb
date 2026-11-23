@@ -12,7 +12,7 @@ class AssessmentFormTemplatesControllerTest < ActionDispatch::IntegrationTest
       get assessment_form_templates_path
       assert_redirected_to root_path
       get assessment_form_template_path(template)
-      assert_response :not_found
+      assert_redirected_to root_path
       get new_assessment_form_template_path
       assert_redirected_to root_path
       get new_assessment_form_template_assessment_form_submission_path(template)
@@ -61,7 +61,7 @@ class AssessmentFormTemplatesControllerTest < ActionDispatch::IntegrationTest
   test "admin bisa membuat formulir baru" do
     admin = users(:budi)
     admin.update!(study_program: study_programs(:sarjana_kedokteran))
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     admin.roles << roles(:kaprodi)
     sign_in admin
 
@@ -101,7 +101,7 @@ class AssessmentFormTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "admin dapat menentukan lingkup program pada template dan Kaprodi tidak dapat mengubah lingkupnya" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     post assessment_form_templates_path, params: { assessment_form_template: {

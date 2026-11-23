@@ -153,7 +153,7 @@ class RubricScoringTest < ActionDispatch::IntegrationTest
     sign_in users(:budi)
     patch examiner_evaluation_path(@instance), params: { answers: { @anamnesis.id.to_s => "4", @penalaran.id.to_s => "8" } }
 
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     patch assessment_form_template_assessment_form_field_path(@template, @anamnesis), params: {
       assessment_form_field: { label: @anamnesis.label, field_type: "textarea" }
     }
@@ -162,7 +162,7 @@ class RubricScoringTest < ActionDispatch::IntegrationTest
   end
 
   test "urutan pertanyaan dapat diubah" do
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     sign_in @admin
 
     patch move_up_assessment_form_template_assessment_form_field_path(@template, @penalaran)
@@ -173,7 +173,7 @@ class RubricScoringTest < ActionDispatch::IntegrationTest
   end
 
   test "template yang sudah dipakai tidak bisa dihapus" do
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     sign_in @admin
 
     # Dipakai sebagai rubrik event
@@ -198,7 +198,7 @@ class RubricScoringTest < ActionDispatch::IntegrationTest
 
   # ── Assessment Event ──
   test "impor CSV ditolak untuk event non-ujian meski alamatnya dibuka langsung" do
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     sign_in @admin
 
     get import_admin_assessment_event_path(@event) # SOCA = rubrik
@@ -212,8 +212,9 @@ class RubricScoringTest < ActionDispatch::IntegrationTest
   end
 
   test "mengubah nilai maksimum event ikut memperbarui percobaan yang belum dinilai saja" do
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     sign_in @admin
+    users(:wati).update!(study_program: @event.study_program)
     scored = AssessmentInstance.create!(assessment_event: @event, student: users(:wati), attempt_number: 1,
                                         max_score: 100, score: 80, status: "scored", scored_at: Time.current)
 
@@ -224,7 +225,7 @@ class RubricScoringTest < ActionDispatch::IntegrationTest
   end
 
   test "event yang sudah punya nilai tidak bisa dihapus" do
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     sign_in @admin
     @instance.update!(status: "scored", score: 70, scored_at: Time.current)
 

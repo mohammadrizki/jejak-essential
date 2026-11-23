@@ -4,6 +4,7 @@ class ActivityLogsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
+    grant_permission_to_role!("dosen", "assessment.review")
     sign_in users(:budi)
     UserAssignment.create!(user: users(:budi), assigned_by: users(:dedi),
       assignment_role: "logbook_verifier", study_program: study_programs(:sarjana_kedokteran),
@@ -21,6 +22,22 @@ class ActivityLogsControllerTest < ActionDispatch::IntegrationTest
   def form_params(log, **changes)
     { title: log.title, academic_activity_domain_id: log.academic_activity_domain_id, delivery_mode: log.delivery_mode,
       started_at: log.started_at&.strftime("%Y-%m-%dT%H:%M") || "2026-10-01T08:00" }.merge(changes)
+  end
+
+  test "modul Logbook nonaktif menyembunyikan input dan menolak pencatatan baru" do
+    sign_in users(:siti)
+    setting = AppSetting.find_or_initialize_by(key: "module_configuration:study_program:#{users(:siti).study_program_id}")
+    setting.value = { "modules" => { "clinical_logbook" => false } }
+    setting.save!
+
+    get activity_logs_path
+    assert_response :success
+    assert_no_match new_activity_log_path, response.body
+    assert_match "riwayat baca-saja", response.body
+    assert_no_difference "ActivityLog.count" do
+      post activity_logs_path, params: { activity_log: { title: "Catatan setelah modul nonaktif" } }
+    end
+    assert_redirected_to activity_logs_path
   end
 
   test "mengubah isi kegiatan terverifikasi mengembalikannya ke antrean verifikasi" do

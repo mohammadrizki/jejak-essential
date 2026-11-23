@@ -38,7 +38,7 @@ class MalformedQueryParamsTest < ActionDispatch::IntegrationTest
 
   test "filter berbentuk hash ditolak 400" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get admin_users_path, params: { role: "dosen" }

@@ -11,6 +11,8 @@ class ExternalEvidenceImportsControllerTest < ActionDispatch::IntegrationTest
     @student = users(:siti)
     @program = @student.study_program
     @manager = users(:dedi)
+    grant_permission_to_role!("kaprodi", "modules.manage")
+    grant_permission_to_role!("kaprodi", "integration.manage")
     ModuleConfiguration.for(@program).update!({ "integration_moodle" => true }, actor: @manager)
     @requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
       source_type: "external", required_count: 1)
@@ -63,9 +65,8 @@ class ExternalEvidenceImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "adapter WPBA klinis eksternal mengimpor Bukti yang Diharapkan EPA melalui pratinjau dan konfirmasi" do
-    admin = users(:budi)
-    admin.roles << roles(:admin)
     program = study_programs(:profesi_dokter)
+    admin = grant_scoped_admin!(users(:budi), program, "modules.manage", "integration.manage")
     student = User.create!(full_name: "Mahasiswa EPA Impor", email: "epa-import-student@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: program)
     student.roles << roles(:mahasiswa)

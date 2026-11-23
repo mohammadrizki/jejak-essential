@@ -28,8 +28,8 @@
   end
   brand_title    = "JEJAK"
   brand_subtitle = current_user.study_program&.name || t("chrome.brand_subtitle_default")
-  # Relabel Prodi, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data
-  # juga terbuka untuk kaprodi (terikat prodinya).
+  # Transfer Mahasiswa, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data
+  # juga dapat dibuka kaprodi sesuai permission dan cakupan program studi.
   is_prodi_manager = is_kaprodi
   is_form_manager = is_kaprodi || current_user.has_role?("superadmin")
   # Monitoring SRQ mengikuti peran aktif kaprodi; admin biasa tidak melihatnya.

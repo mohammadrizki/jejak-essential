@@ -5,13 +5,15 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
   end
 
-  test "bukan admin ditolak" do
+  test "kaprodi hanya melihat daftar pengguna dalam program studinya" do
     sign_in users(:dedi)
     get admin_users_path
-    assert_redirected_to dashboard_path
+    assert_response :success
+    assert_match users(:siti).full_name, response.body
+    assert_no_match users(:wati).full_name, response.body
   end
 
   test "admin melihat daftar dan menyaring per peran" do
@@ -23,12 +25,12 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_no_match users(:wati).full_name, response.body
   end
 
-  test "admin mengubah peran dan prodi pengguna; peran aktif ikut disesuaikan" do
+  test "admin mengubah peran tanpa memindahkan keanggotaan mahasiswa; peran aktif ikut disesuaikan" do
     sign_in @admin
     siti = users(:siti)
 
     patch admin_user_path(siti), params: {
-      user: { full_name: "Siti M.", study_program_id: study_programs(:profesi_dokter).id, role_ids: [ roles(:dosen).id ] }
+      user: { full_name: "Siti M.", study_program_id: study_programs(:sarjana_kedokteran).id, role_ids: [ roles(:dosen).id ] }
     }
     assert_redirected_to admin_users_path
 
@@ -36,7 +38,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Siti M.", siti.full_name
     assert_equal [ "dosen" ], siti.roles.pluck(:code)
     assert_equal roles(:dosen), siti.active_role
-    assert_equal study_programs(:profesi_dokter), siti.study_program
+    assert_equal study_programs(:sarjana_kedokteran), siti.study_program
   end
 
   test "pengguna tanpa peran ditolak" do

@@ -2,6 +2,7 @@ require "test_helper"
 
 class ArtifactSubmissionTest < ActiveSupport::TestCase
   test "verified logbook goes through review before the student selects it" do
+    grant_permission!(roles(:kaprodi), "assessment.review")
     log = verified_logbook
     submission = ArtifactSubmission.create!(student: users(:siti), source_type: "ActivityLog",
       source_id: log.id, selection_reason: "Menunjukkan komunikasi dan tindak lanjut klinis.",
@@ -43,12 +44,13 @@ class ArtifactSubmissionTest < ActiveSupport::TestCase
   test "reviewer assignment is scoped and admin is not automatically a reviewer" do
     student = users(:siti)
     kaprodi = users(:dedi)
+    grant_permission!(roles(:dosen), "assessment.review")
     kaprodi.update!(study_program: student.study_program)
     assert_not AssignmentAuthorization.assigned?(user: kaprodi, role: "artifact_reviewer", student: student)
     assert_not AssignmentAuthorization.assigned?(user: users(:budi), role: "artifact_reviewer", student: student)
     admin = User.create!(full_name: "Admin Teknis", email: "admin-teknis@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    UserRole.create!(user: admin, role: roles(:admin), scope_level: "study_program", study_program: student.study_program)
     assert_not AssignmentAuthorization.assigned?(user: admin, role: "artifact_reviewer", student: student)
 
     assignment = UserAssignment.create!(user: users(:budi), assigned_by: users(:dedi),
@@ -61,6 +63,11 @@ class ArtifactSubmissionTest < ActiveSupport::TestCase
   end
 
   private
+
+  def grant_permission!(role, key)
+    permission = SystemPermission.find_or_create_by!(key: key) { |record| record.name = key.humanize }
+    role.role_permissions.find_or_create_by!(system_permission: permission) { |grant| grant.scope_level = "system" }
+  end
 
   def verified_logbook
     log = ActivityLog.create!(user: users(:siti), title: "Kegiatan tervalidasi", category: "klinis",

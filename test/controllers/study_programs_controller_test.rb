@@ -5,7 +5,7 @@ class StudyProgramsControllerTest < ActionDispatch::IntegrationTest
 
   def sign_in_admin
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     admin
   end

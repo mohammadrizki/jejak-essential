@@ -12,7 +12,7 @@ class MiniCexEvaluationsControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis tanpa assignment tidak dapat melihat hasil Mini-CEX" do
     admin = User.create!(full_name: "Admin WPBA", email: "admin-wpba@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get mini_cex_evaluation_path(mini_cex_evaluations(:minicex_siti_demam))

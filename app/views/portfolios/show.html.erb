@@ -1,55 +1,160 @@
 <div class="flex items-center justify-between flex-wrap gap-3">
-  <h1 class="text-xl font-bold text-gray-900">Portfolio Saya</h1>
+  <div>
+    <h1 class="text-xl font-bold text-gray-900">Portofolio Saya</h1>
+    <p class="mt-1 text-sm text-gray-500">Siapkan bukti, refleksikan pembelajaran, lalu kurasi artefak yang ingin ditampilkan.</p>
+  </div>
   <%= link_to "Unduh CSV", export_portfolio_path,
         class: "text-sm bg-indigo-50 text-indigo-700 font-medium px-4 py-2 rounded-xl hover:bg-indigo-100" %>
 </div>
 
-<div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-  <div class="bg-white rounded-2xl ring-1 ring-gray-200 p-5">
-    <p class="text-xs font-semibold text-gray-500 uppercase">Total Kegiatan</p>
-    <p class="text-2xl font-bold text-gray-900 mt-1"><%= @total %></p>
-  </div>
-  <div class="bg-white rounded-2xl ring-1 ring-gray-200 p-5">
-    <p class="text-xs font-semibold text-sky-600 uppercase">Klinis</p>
-    <p class="text-2xl font-bold text-gray-900 mt-1"><%= @klinis_count %></p>
-  </div>
-  <div class="bg-white rounded-2xl ring-1 ring-gray-200 p-5">
-    <p class="text-xs font-semibold text-emerald-600 uppercase">Non-Klinis</p>
-    <p class="text-2xl font-bold text-gray-900 mt-1"><%= @non_klinis_count %></p>
-  </div>
-</div>
+<nav aria-label="Alur persiapan portfolio" class="mt-4 rounded-2xl bg-white p-4 ring-1 ring-gray-200">
+  <ol class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <% [["1", "Pahami target", "#expected-evidence"], ["2", "Kumpulkan bukti", "#collect-evidence"],
+        ["3", "Tulis refleksi", new_reflection_entry_path], ["4", "Ajukan artefak", "#artifact-submissions"],
+        ["5", "Kurasi portofolio", "#selected-portfolio"]].each do |number, label, path| %>
+      <li><%= link_to path, class: "flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700" do %>
+        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700"><%= number %></span>
+        <span><%= label %></span>
+      <% end %></li>
+    <% end %>
+  </ol>
+</nav>
 
-<section id="selected-portfolio" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+<section id="expected-evidence" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div>
-      <h2 class="text-sm font-semibold text-gray-800">Portofolio Terpilih</h2>
-      <p class="mt-1 text-xs text-gray-500">Pilih artefak yang sudah ditelaah. Portofolio privat secara default; sumber tetap berada di Logbook atau Koleksi Bukti.</p>
+      <h2 class="text-sm font-semibold text-gray-800">1. Bukti yang Diharapkan</h2>
+      <p class="mt-1 text-xs text-gray-500">Target disusun program studi. Kecukupan bukti berbeda dari keputusan capaian kompetensi.</p>
+    </div>
+    <%= link_to "Lihat Peta Artefak", artifact_map_path, class: "text-sm font-medium text-indigo-700 hover:underline" %>
+  </div>
+  <% if @evidence_requirements.any? %>
+    <div class="mt-3 divide-y divide-gray-100">
+      <% @evidence_requirements.each do |requirement| %>
+        <% progress = EvidenceRequirementProgress.new(requirement, student: @student).call %>
+        <% version = progress.requirement_version %>
+        <% rule = version&.fulfillment_rule || requirement.fulfillment_rule %>
+        <% source_type = version&.source_type || requirement.source_type %>
+        <% target = requirement.competency_indicator&.description || requirement.competency_item&.title || requirement.epa&.title || "Target kompetensi" %>
+        <% linked_records = requirement.evidence_records.select { |record| record.student&.id == current_user.id } %>
+        <article class="py-4" id="requirement-<%= requirement.id %>">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-semibold text-gray-800"><%= target %></p>
+              <p class="mt-1 text-xs text-gray-500"><%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(source_type, "Bukti") %><%= " · Kritis" if rule["critical"] %><%= " · Wajib" if version&.configuration&.fetch("is_mandatory", requirement.is_mandatory) %></p>
+            </div>
+            <span class="rounded-full px-2.5 py-1 text-xs font-semibold <%= progress.status == :fulfilled ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800' %>"><%= progress.status.to_s.humanize %> · <%= progress.record_count %>/<%= progress.required_count %></span>
+          </div>
+          <% if rule["minimum_pass"].to_i.positive? || rule["minimum_distinct_cases"].to_i.positive? || rule["minimum_distinct_assessors"].to_i.positive? || rule["minimum_distinct_opportunities"].to_i.positive? || rule["minimum_distinct_dates"].to_i.positive? || rule["minimum_span_days"].to_i.positive? %>
+            <p class="mt-1 text-[11px] text-gray-500">Lulus <%= progress.pass_count %>/<%= rule["minimum_pass"].to_i %> · Kasus <%= progress.case_count %>/<%= rule["minimum_distinct_cases"].to_i %> · Penilai <%= progress.assessor_count %>/<%= [rule["minimum_assessors"], rule["minimum_distinct_assessors"]].compact.map(&:to_i).max.to_i %> · Kesempatan <%= progress.opportunity_count %>/<%= rule["minimum_distinct_opportunities"].to_i %> · Tanggal <%= progress.distinct_date_count %>/<%= rule["minimum_distinct_dates"].to_i %> · Rentang <%= progress.span_days %>/<%= rule["minimum_span_days"].to_i %> hari</p>
+          <% end %>
+          <% if rule["additional_criteria"].present? %><p class="mt-1 text-xs text-gray-500"><%= rule["additional_criteria"] %></p><% end %>
+          <% if version.present? %><p class="mt-1 text-[11px] text-gray-400">Versi aturan: <%= version.version %></p><% end %>
+
+          <% if linked_records.any? %>
+            <ul class="mt-2 space-y-1 border-l-2 border-slate-100 pl-3">
+              <% linked_records.sort_by(&:evidence_date).reverse_each do |record| %>
+                <% source_label = record.assessment_instance&.assessment_event&.name || record.activity_log&.title || record.reflection_entry&.title || record.epa_observation&.epa&.title || record.mini_cex_evaluation&.case_description || record.dops_evaluation&.procedure_name || record.wpba_observation&.wpba_instrument_version&.wpba_instrument&.name || record.evidence_source&.instrument_code || "Bukti tercatat" %>
+                <li class="text-xs text-gray-600"><%= record.evidence_date %> · <%= source_label %> · <%= record.result.humanize %><%= " · Menunggu validasi" if record.evidence_source&.validation_status == "unverified" %></li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p class="mt-2 text-xs text-gray-400">Belum ada bukti yang ditautkan.</p>
+          <% end %>
+
+          <% choices = @evidence_choices.fetch(requirement, []) %>
+          <% if choices.any? %>
+            <%= form_with url: evidence_requirement_evidence_records_path(requirement), scope: :evidence_record, class: "mt-3 flex flex-wrap gap-2" do |f| %>
+              <%= f.select :source_key, choices, { prompt: "Pilih bukti aktual" }, class: "min-w-[16rem] rounded-lg border-gray-300 text-xs" %>
+              <%= f.date_field :evidence_date, value: Date.current, class: "rounded-lg border-gray-300 text-xs" %>
+              <%= f.submit "Tautkan bukti", class: "rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white cursor-pointer" %>
+            <% end %>
+          <% elsif progress.status != :fulfilled %>
+            <p class="mt-2 text-xs text-gray-500">Belum ada sumber bukti yang cocok. Lengkapi asesmen, validasi logbook, atau buat refleksi terlebih dahulu.</p>
+          <% end %>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="mt-3 rounded-xl border border-dashed border-gray-300 p-4 text-sm text-gray-500">Program studi belum memiliki Bukti yang Diharapkan aktif. Hubungi pengelola program studi untuk menyiapkan Peta Kompetensi dan Blueprint Asesmen.</p>
+  <% end %>
+</section>
+
+<section id="collect-evidence" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+  <h2 class="text-sm font-semibold text-gray-800">2. Kumpulkan bukti</h2>
+  <p class="mt-1 text-xs text-gray-500">Bukti tetap dicatat pada sumber asalnya. Tautkan ke target di atas setelah asesmen dinilai, kegiatan logbook divalidasi, atau observasi tersedia.</p>
+  <% if @collected_evidence.any? %>
+    <ul class="mt-3 divide-y divide-gray-100">
+      <% @collected_evidence.first(30).each do |entry| %>
+        <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <span class="text-sm text-gray-700"><%= entry[:date] %> · <span class="font-medium"><%= entry[:kind] %></span> · <%= entry[:title].presence || "Tanpa judul" %></span>
+          <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600"><%= entry[:status] %></span>
+          <% if entry[:path].present? %><%= link_to "Buka sumber", entry[:path], class: "text-xs font-medium text-indigo-700 hover:underline" %><% end %>
+        </li>
+      <% end %>
+    </ul>
+    <% if @collected_evidence.size > 30 %><p class="mt-2 text-xs text-gray-400">Menampilkan 30 dari <%= @collected_evidence.size %> entri terbaru. Buka Logbook atau Refleksi untuk melihat seluruh catatan pada sumbernya.</p><% end %>
+  <% else %>
+    <p class="mt-3 text-sm text-gray-500">Koleksi Bukti masih kosong. Mulai dari Logbook, asesmen, observasi, atau refleksi.</p>
+  <% end %>
+  <div class="mt-3 flex flex-wrap gap-2">
+    <%= link_to "Tautkan bukti ke target", portfolio_path(anchor: "expected-evidence"), class: "rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50" %>
+    <%= link_to "Buka Logbook Klinis", activity_logs_path, class: "rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50" %>
+    <%= link_to "Tulis Refleksi", new_reflection_entry_path, class: "rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50" %>
+    <%= link_to "Lihat umpan balik asesmen", student_feedback_journal_path, class: "rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50" %>
+  </div>
+</section>
+
+<% if @epa_observations.any? %>
+  <section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+    <h2 class="text-sm font-semibold text-gray-800">Observasi formatif EPA</h2>
+    <p class="mt-1 text-xs text-gray-500">Observasi tercatat otomatis sebagai bukti EPA yang sesuai. Keputusan entrustment tetap ditetapkan terpisah oleh Otoritas Akademik.<%= " Modul EPA tidak aktif; entri di bawah ini hanya riwayat baca-saja." unless @epa_module_enabled %></p>
+    <div class="mt-3 divide-y divide-gray-100">
+      <% @epa_observations.each do |observation| %>
+        <article class="py-3">
+          <div class="flex flex-wrap justify-between gap-2 text-sm"><span class="font-medium"><%= observation.epa.code %> · <%= observation.epa.title %></span><span class="text-xs text-gray-500"><%= l(observation.observed_at, format: :long) %> · <%= observation.complexity.humanize %></span></div>
+          <p class="mt-1 text-sm text-gray-700"><%= observation.narrative %></p>
+          <p class="mt-1 text-xs text-gray-500">Pengamat: <%= observation.observer.full_name %> · Supervisi: <%= observation.supervision_level.label %></p>
+          <% if observation.safety_flag? %><p class="mt-1 text-xs <%= observation.safety_resolved_at.present? ? 'text-amber-700' : 'text-rose-700' %>"><%= observation.safety_resolved_at.present? ? "Tindak lanjut keselamatan dicatat" : "Flag keselamatan belum ditindaklanjuti" %></p><% end %>
+        </article>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<section id="reflection-preparation" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-sm font-semibold text-gray-800">3. Refleksi Pengalaman Belajar</h2>
+      <p class="mt-1 text-xs text-gray-500">Refleksi membantu menjelaskan makna bukti dan rencana perbaikan. Refleksi tidak otomatis menjadi keputusan capaian.</p>
+    </div>
+    <%= link_to "Tulis refleksi", new_reflection_entry_path, class: "rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700" %>
+  </div>
+  <% if @reflections.any? %>
+    <ul class="mt-3 divide-y divide-gray-100">
+      <% @reflections.first(5).each do |reflection| %>
+        <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+          <span class="text-sm text-gray-700"><%= reflection.title.presence || "Refleksi #{reflection.entry_date}" %><span class="ml-2 text-xs text-gray-400"><%= reflection.entry_date %></span></span>
+          <%= link_to "Buka", reflection_entry_path(reflection), class: "text-xs font-medium text-indigo-700 hover:underline" %>
+        </li>
+      <% end %>
+    </ul>
+    <%= link_to "Lihat semua refleksi", reflection_entries_path, class: "mt-2 inline-block text-xs text-indigo-700 hover:underline" %>
+  <% else %>
+    <p class="mt-3 text-sm text-gray-500">Belum ada refleksi. Mulai dengan empat pertanyaan panduan untuk mencatat pembelajaran dan langkah berikutnya.</p>
+  <% end %>
+</section>
+
+<section id="artifact-submissions" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="text-sm font-semibold text-gray-800">4. Ajukan artefak untuk ditelaah</h2>
+      <p class="mt-1 text-xs text-gray-500">Pengajuan meminta telaah atas artefak pilihan. Persetujuan artefak tidak otomatis menjadi keputusan capaian kompetensi.</p>
     </div>
     <% if UserAssignment.active.exists?(user: current_user, assignment_role: "artifact_reviewer") %>
       <%= link_to "Antrean telaah artefak", artifact_submissions_path, class: "text-sm font-medium text-indigo-700 hover:underline" %>
     <% end %>
   </div>
-  <% if @portfolio_selections.any? %>
-    <div class="mt-3 divide-y divide-gray-100">
-      <% @portfolio_selections.each do |selection| %>
-        <article class="flex flex-wrap items-center justify-between gap-3 py-3">
-          <div>
-            <p class="text-sm font-medium text-gray-800"><%= selection.artifact_submission.source_title %></p>
-            <p class="text-xs text-gray-500"><%= selection.artifact_submission.selection_reason %> · <%= selection.visibility == "private" ? "Privat" : "Dapat dilihat penelaah yang berwenang" %></p>
-          </div>
-          <%= button_to "Keluarkan", portfolio_selection_path(selection), method: :delete,
-            class: "rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700" %>
-        </article>
-      <% end %>
-    </div>
-  <% else %>
-    <p class="mt-3 text-sm text-gray-500">Belum ada artefak terpilih.</p>
-  <% end %>
-</section>
-
-<section id="artifact-submissions" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
-  <h2 class="text-sm font-semibold text-gray-800">Ajukan artefak untuk ditelaah</h2>
-  <p class="mt-1 text-xs text-gray-500">Kegiatan harus tervalidasi. Pengajuan tidak otomatis menjadi keputusan capaian kompetensi.</p>
   <% if @artifact_sources.any? %>
     <%= form_with model: ArtifactSubmission.new, class: "mt-3 grid gap-3" do |f| %>
       <%= f.select :source_type, @artifact_sources.map { |label, type, id| [label, "#{type}:#{id}"] },
@@ -57,11 +162,11 @@
       <%= f.text_area :selection_reason, required: true, minlength: 10, maxlength: 2000, rows: 2,
         placeholder: "Mengapa artefak ini bermakna bagi perkembangan kompetensi Anda?", class: "rounded-lg border-gray-300 text-sm" %>
       <%= f.text_area :reflection, maxlength: 5000, rows: 3,
-        placeholder: "Refleksi (opsional): apa yang dipelajari dan tindak lanjut Anda?", class: "rounded-lg border-gray-300 text-sm" %>
+        placeholder: "Refleksi dan tindak lanjut (opsional)", class: "rounded-lg border-gray-300 text-sm" %>
       <%= f.submit "Ajukan untuk ditelaah", class: "w-fit rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
     <% end %>
   <% else %>
-    <p class="mt-3 text-sm text-gray-500">Belum ada logbook tervalidasi, refleksi, atau bukti tervalidasi yang dapat diajukan.</p>
+    <p class="mt-3 text-sm text-gray-500">Belum ada logbook tervalidasi atau bukti tervalidasi yang dapat diajukan. Refleksi dapat diajukan setelah disimpan.</p>
   <% end %>
   <% if @artifact_submissions.any? %>
     <div class="mt-4 divide-y divide-gray-100">
@@ -77,7 +182,7 @@
               <%= form_with model: PortfolioSelection.new, url: portfolio_selections_path, class: "flex gap-2" do |f| %>
                 <%= hidden_field_tag :artifact_submission_id, submission.id %>
                 <%= f.select :visibility, [["Privat", "private"], ["Penelaah berwenang", "assigned_reviewers"]], {}, class: "rounded-lg border-gray-300 text-xs" %>
-                <%= f.submit "Pilih", class: "rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white" %>
+                <%= f.submit "Pilih untuk portofolio", class: "rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white" %>
               <% end %>
             <% elsif submission.status == "rejected" %>
               <%= button_to "Ajukan ulang", resubmit_artifact_submission_path(submission), method: :patch,
@@ -93,65 +198,41 @@
   <% end %>
 </section>
 
-<% if @epa_observations.any? %>
-  <section class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
-    <h2 class="text-sm font-semibold text-gray-800">Observasi formatif EPA</h2>
-    <p class="mt-1 text-xs text-gray-500">Observasi ini mencatat kinerja pada kejadian tertentu; keputusan entrustment ditetapkan terpisah oleh Otoritas Akademik.</p>
+<section id="selected-portfolio" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+  <h2 class="text-sm font-semibold text-gray-800">5. Portofolio Terpilih</h2>
+  <p class="mt-1 text-xs text-gray-500">Portofolio bersifat privat secara default. Artefak terpilih tetap merujuk ke sumber aslinya dan dapat dikeluarkan tanpa menghapus bukti.</p>
+  <% if @portfolio_selections.any? %>
     <div class="mt-3 divide-y divide-gray-100">
-      <% @epa_observations.each do |observation| %>
-        <article class="py-3">
-          <div class="flex flex-wrap justify-between gap-2 text-sm"><span class="font-medium"><%= observation.epa.code %> · <%= observation.epa.title %></span><span class="text-xs text-gray-500"><%= l(observation.observed_at, format: :long) %> · <%= observation.complexity.humanize %></span></div>
-          <p class="mt-1 text-sm text-gray-700"><%= observation.narrative %></p>
-          <p class="mt-1 text-xs text-gray-500">Pengamat: <%= observation.observer.full_name %> · Supervisi yang diberikan: <%= observation.supervision_level.label %></p>
-          <% if observation.safety_flag? %><p class="mt-1 text-xs <%= observation.safety_resolved_at.present? ? 'text-amber-700' : 'text-rose-700' %>"><%= observation.safety_resolved_at.present? ? "Tindak lanjut keselamatan dicatat" : "Flag keselamatan belum ditindaklanjuti" %></p><% end %>
+      <% @portfolio_selections.each do |selection| %>
+        <article class="flex flex-wrap items-center justify-between gap-3 py-3">
+          <div>
+            <p class="text-sm font-medium text-gray-800"><%= selection.artifact_submission.source_title %></p>
+            <p class="text-xs text-gray-500"><%= selection.artifact_submission.selection_reason %> · <%= selection.visibility == "private" ? "Privat" : "Dapat dilihat penelaah yang berwenang" %></p>
+          </div>
+          <%= button_to "Keluarkan", portfolio_selection_path(selection), method: :delete,
+            class: "rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700" %>
         </article>
       <% end %>
     </div>
-  </section>
-<% end %>
+  <% else %>
+    <p class="mt-3 text-sm text-gray-500">Belum ada artefak terpilih. Artefak dapat dipilih setelah telaah disetujui.</p>
+  <% end %>
+</section>
 
-<% if @evidence_requirements.any? %>
-  <section id="evidence-requirements" class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
-    <h2 class="text-sm font-semibold text-gray-800">Bukti yang Diharapkan</h2>
-    <p class="mt-1 text-xs text-gray-500">Bukti dari observasi EPA dicatat otomatis; tautkan sumber asesmen, WPBA, logbook, atau refleksi yang relevan. Kecukupan bukti terpisah dari keputusan ketercapaian kompetensi.</p>
-    <div class="mt-3 divide-y divide-gray-100">
-      <% @evidence_requirements.each do |requirement| %>
-        <% progress = EvidenceRequirementProgress.new(requirement, student: @student).call %>
-        <% version = progress.requirement_version %>
-        <% rule = version&.fulfillment_rule || requirement.fulfillment_rule %>
-        <% source_type = version&.source_type || requirement.source_type %>
-        <div class="py-3">
-          <div class="flex items-center justify-between gap-3 text-sm">
-            <span class="font-medium text-gray-700"><%= requirement.competency_indicator&.description || requirement.competency_item&.title || requirement.epa&.title %> · <%= EvidenceRequirement::SOURCE_TYPE_LABELS.fetch(source_type) %><%= " · Kritis" if rule["critical"] %></span>
-            <span class="text-xs text-gray-500"><%= progress.record_count %>/<%= progress.required_count %> bukti valid · <%= progress.status.to_s.humanize %></span>
-          </div>
-          <% if rule["minimum_pass"].to_i.positive? || rule["minimum_distinct_cases"].to_i.positive? || rule["minimum_distinct_assessors"].to_i.positive? || rule["minimum_distinct_opportunities"].to_i.positive? || rule["minimum_distinct_dates"].to_i.positive? || rule["minimum_span_days"].to_i.positive? %>
-            <p class="mt-1 text-[11px] text-gray-500">Lulus: <%= progress.pass_count %>/<%= rule["minimum_pass"].to_i %> · Kasus berbeda: <%= progress.case_count %>/<%= rule["minimum_distinct_cases"].to_i %> · Penilai berbeda: <%= progress.assessor_count %>/<%= rule["minimum_distinct_assessors"].to_i %> · Kesempatan berbeda: <%= progress.opportunity_count %>/<%= rule["minimum_distinct_opportunities"].to_i %> · Tanggal berbeda: <%= progress.distinct_date_count %>/<%= rule["minimum_distinct_dates"].to_i %> · Rentang: <%= progress.span_days %>/<%= rule["minimum_span_days"].to_i %> hari</p>
-          <% end %>
-          <% if rule["additional_criteria"].present? %><p class="mt-1 text-[11px] text-gray-500"><%= rule["additional_criteria"] %></p><% end %>
-          <% if version.present? %><p class="mt-1 text-[11px] text-gray-400">Versi Bukti yang Diharapkan: <%= version.version %></p><% end %>
-        <% if @evidence_sources.fetch(source_type, []).any? %>
-            <%= form_with url: evidence_requirement_evidence_records_path(requirement), scope: :evidence_record, class: "mt-2 flex flex-wrap gap-2" do |f| %>
-              <%= f.select :source_key, @evidence_sources.fetch(source_type, []), { prompt: "Pilih bukti aktual" }, class: "min-w-[16rem] rounded-lg border-gray-300 text-xs" %>
-              <%= f.date_field :evidence_date, value: Date.current, class: "rounded-lg border-gray-300 text-xs" %>
-              <%= f.submit "Tautkan", class: "rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white cursor-pointer" %>
-            <% end %>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
-  </section>
-<% end %>
+<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+  <div class="rounded-2xl bg-white p-5 ring-1 ring-gray-200"><p class="text-xs font-semibold uppercase text-gray-500">Total Kegiatan</p><p class="mt-1 text-2xl font-bold text-gray-900"><%= @total %></p></div>
+  <div class="rounded-2xl bg-white p-5 ring-1 ring-gray-200"><p class="text-xs font-semibold uppercase text-sky-600">Klinis</p><p class="mt-1 text-2xl font-bold text-gray-900"><%= @klinis_count %></p></div>
+  <div class="rounded-2xl bg-white p-5 ring-1 ring-gray-200"><p class="text-xs font-semibold uppercase text-emerald-600">Non-Klinis</p><p class="mt-1 text-2xl font-bold text-gray-900"><%= @non_klinis_count %></p></div>
+</div>
 
 <% if @total.positive? %>
-  <div class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 p-5">
-    <p class="text-sm font-semibold text-gray-700 mb-3">Tren 6 Bulan Terakhir</p>
+  <div class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+    <p class="mb-3 text-sm font-semibold text-gray-700">Tren 6 Bulan Terakhir</p>
     <%= column_chart @monthly_counts, colors: [ "#4f46e5" ], height: "220px" %>
   </div>
-
   <% if @type_counts.any? %>
-    <div class="mt-4 bg-white rounded-2xl ring-1 ring-gray-200 p-5">
-      <p class="text-sm font-semibold text-gray-700 mb-3">Jenis Kegiatan Terbanyak</p>
+    <div class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-gray-200">
+      <p class="mb-3 text-sm font-semibold text-gray-700">Jenis Kegiatan Terbanyak</p>
       <%= bar_chart @type_counts, colors: [ "#6366f1" ], height: "220px" %>
     </div>
   <% end %>

@@ -4,6 +4,8 @@ class WpbaObservationsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
+    grant_permission_to_role!("dosen", "assessment.review")
+    grant_permission_to_role!("kaprodi", "modules.manage")
     @instrument = WpbaInstrument.create!(code: "CUSTOM-HTTP-#{SecureRandom.hex(3)}", name: "Instrumen observasi", instrument_type: "other")
     @version = @instrument.versions.create!(version_label: "1.0", definition: {
       "components" => [{ "key" => "quality", "label" => "Mutu", "type" => "rating", "minimum" => 1, "maximum" => 5, "required" => true }]
@@ -113,7 +115,7 @@ class WpbaObservationsControllerTest < ActionDispatch::IntegrationTest
     assessor.update!(study_program: study_programs(:profesi_dokter))
     admin = User.create!(full_name: "Admin modul", email: "admin-modul-wpba@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_scoped_admin!(admin, assessor.study_program, "modules.manage")
     ModuleConfiguration.for(assessor.study_program).update!({ wpba: false }, actor: admin)
     sign_in assessor
 
@@ -130,7 +132,7 @@ class WpbaObservationsControllerTest < ActionDispatch::IntegrationTest
   test "observasi baru ditolak bila WPBA program mahasiswa nonaktif meski penilai dari program aktif" do
     admin = User.create!(full_name: "Admin modul", email: "admin-modul-wpba-disabled@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_scoped_admin!(admin, users(:siti).study_program, "modules.manage")
     ModuleConfiguration.for(users(:siti).study_program).update!({ wpba: false }, actor: admin)
     sign_in users(:budi)
 

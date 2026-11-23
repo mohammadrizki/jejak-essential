@@ -186,8 +186,16 @@ Rails.application.routes.draw do
         patch :registration
       end
     end
-    # Relabel massal prodi mahasiswa dari CSV (pindah / label ke prodi saya) —
-    # pratinjau dulu, lalu terapkan.
+    resources :student_transfers, only: %i[index create] do
+      collection do
+        get :template
+        patch :graduate
+        patch :accept
+        patch :reject
+      end
+    end
+    # Legacy URL retained only as a safe redirect; it no longer changes a
+    # student's current program directly.
     resource :student_relabel, only: %i[new create] do
       get :template, on: :collection
     end

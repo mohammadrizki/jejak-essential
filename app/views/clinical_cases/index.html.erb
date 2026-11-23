@@ -8,8 +8,9 @@
 
 <div class="flex items-center justify-between flex-wrap gap-3">
   <h1 class="text-xl font-bold text-gray-900">Kasus Klinis</h1>
-  <%= link_to "+ Kasus Baru", new_clinical_case_path,
+  <% if @logbook_module_enabled %><%= link_to "+ Kasus Baru", new_clinical_case_path,
         class: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
+  <% else %><span class="text-xs text-slate-500">Modul Logbook nonaktif · riwayat baca-saja</span><% end %>
 </div>
 
 <% if current_user.can_verify_clinical_cases? %>

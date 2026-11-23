@@ -72,7 +72,9 @@ class EvidenceRequirementProgress
     return false unless EvidenceRecord::RESULTS.include?(record.result)
     return false if rule.fetch("require_validation", true) && record.result == "not_assessed"
     return false unless valid_results.include?(record.result)
-    return false if rule.fetch("require_validation", true) && record.evidence_source&.validation_status != "validated"
+    reflection_is_submitted_evidence = source_type == "reflection" && record.reflection_entry.present?
+    return false if rule.fetch("require_validation", true) && !reflection_is_submitted_evidence &&
+      record.evidence_source&.validation_status != "validated"
     return false unless source_type_matches?(record, source_type)
 
     true
@@ -87,8 +89,11 @@ class EvidenceRequirementProgress
       record.evidence_source&.source_type == "wpba" ||
       record.evidence_source&.instrument_code.in?(%w[CBD MINI-CEX DOPS EPA-OBS])
     when "external" then record.evidence_source&.source_type == "external"
-    when "epa_observation" then record.epa_observation&.status == "recorded" &&
-      (!record.epa_observation.safety_flag? || record.epa_observation.safety_resolved_at.present?)
+    when "epa_observation"
+      (record.epa_observation&.status == "recorded" &&
+        (!record.epa_observation.safety_flag? || record.epa_observation.safety_resolved_at.present?)) ||
+        (record.evidence_source&.source_type == "epa_observation" && record.evidence_source.validation_status == "validated" &&
+          (!record.evidence_source.context.to_h.fetch("safety_flag", false) || record.evidence_source.context.to_h.fetch("safety_resolved", false)))
     when "portfolio", "other" then true
     else false
     end

@@ -3,11 +3,12 @@
 class ActivityLogsController < ApplicationController
   before_action :authenticate_user!, except: %i[feed]
   before_action :set_activity_log, only: %i[show edit update destroy generate_patient_code verify]
-  before_action :require_logbook_enabled_for_write, only: %i[new create edit update]
+  before_action :require_logbook_enabled_for_write, only: %i[new create edit update destroy generate_patient_code]
 
   # scope=to_verify (pengajar saja): kegiatan siapa pun yang belum
   # diverifikasi, meniru tab "Perlu Diverifikasi" ClinicalCasesController.
   def index
+    @logbook_module_enabled = ModuleConfiguration.for(current_user.study_program).enabled?("clinical_logbook")
     @scope = params[:scope] == "to_verify" && current_user.can_verify_clinical_cases? ? "to_verify" : "mine"
     @competency_item_id = params[:competency_item_id].presence
 
@@ -32,6 +33,7 @@ class ActivityLogsController < ApplicationController
 
   def show
     authorize @activity_log
+    @logbook_module_enabled = ModuleConfiguration.for(@activity_log.user.study_program).enabled?("clinical_logbook")
   end
 
   def verify
@@ -100,6 +102,7 @@ class ActivityLogsController < ApplicationController
   # Kalender bulanan sederhana (grid HTML, tanpa library JS) — bisa navigasi
   # bulan lewat query param ?bulan=YYYY-MM.
   def calendar
+    @logbook_module_enabled = ModuleConfiguration.for(current_user.study_program).enabled?("clinical_logbook")
     @month = parse_month(params[:bulan]) || Date.current.beginning_of_month
     @logs_by_day = current_user.activity_logs.in_month(@month).recent.with_taxonomy
                                .includes(:competency_items).group_by(&:activity_date)
@@ -124,7 +127,8 @@ class ActivityLogsController < ApplicationController
   private
 
   def require_logbook_enabled_for_write
-    return if ModuleConfiguration.for(current_user.study_program).enabled?("clinical_logbook")
+    program = @activity_log&.user&.study_program || current_user.study_program
+    return if ModuleConfiguration.for(program).enabled?("clinical_logbook")
 
     redirect_to activity_logs_path, alert: "Input Logbook untuk program studi ini sedang dinonaktifkan; riwayat tetap dapat dibaca."
   end

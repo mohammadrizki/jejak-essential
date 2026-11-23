@@ -6,6 +6,8 @@ class EpasController < ApplicationController
 
   def create
     authorize @framework, :update?
+    return unless require_epa_module!
+
     attributes = epa_params
     competency_item_ids = Array(attributes.delete(:competency_item_ids)).reject(&:blank?)
     epa = @framework.epas.new(attributes.merge(status: "published"))
@@ -24,6 +26,8 @@ class EpasController < ApplicationController
 
   def destroy
     authorize @framework, :update?
+    return unless require_epa_module!
+
     epa = @framework.epas.find(params[:id])
     if epa.destroy
       redirect_to @framework, notice: "EPA dihapus.", status: :see_other
@@ -34,6 +38,8 @@ class EpasController < ApplicationController
 
   def map_competency
     authorize @framework, :update?
+    return unless require_epa_module!
+
     epa = @framework.epas.find(params[:id])
     return redirect_to @framework, alert: "Buat versi draf sebelum mengubah pemetaan EPA." unless @framework.status == "draft"
 
@@ -53,6 +59,13 @@ class EpasController < ApplicationController
 
   def set_framework
     @framework = CompetencyFramework.find(params[:competency_framework_id])
+  end
+
+  def require_epa_module!
+    return true if ModuleConfiguration.for(@framework.study_program).enabled?("epa")
+
+    redirect_to @framework, alert: "Modul EPA tidak aktif untuk program studi ini. Aktifkan modul sebelum mengelola EPA."
+    false
   end
 
   def epa_params

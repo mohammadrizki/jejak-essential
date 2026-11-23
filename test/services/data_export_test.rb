@@ -4,7 +4,7 @@ require "csv"
 class DataExportTest < ActiveSupport::TestCase
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @kaprodi = users(:dedi) # kaprodi Sarjana Kedokteran
   end
 

@@ -59,7 +59,8 @@ class ClinicalCaseVerificationActionsTest < ActionDispatch::IntegrationTest
     assert_equal "verification_cancelled", @kasus.case_verification_comments.last.action
 
     get entrustment_decisions_path(student_id: users(:siti).id)
-    assert_redirected_to dashboard_path
+    assert_response :success
+    assert_match "Modul EPA nonaktif", response.body
   end
 
   test "pengajar lain tidak boleh membatalkan verifikasi orang lain" do

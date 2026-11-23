@@ -45,7 +45,7 @@ class AppShellTest < ActionDispatch::IntegrationTest
 
   test "admin melihat kelompok administrasi dan konfigurasi yang tersedia" do
     admin_user = users(:budi)
-    admin_user.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin_user)
     admin_user.update!(active_role: roles(:admin))
     sign_in admin_user
 

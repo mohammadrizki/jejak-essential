@@ -11,7 +11,7 @@ class AcademicPeriodsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa mengelola periode" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get academic_periods_path
@@ -21,7 +21,7 @@ class AcademicPeriodsControllerTest < ActionDispatch::IntegrationTest
 
   test "periode yang masih dipakai tidak bisa dihapus dan rotasinya tidak ikut terhapus" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     period = academic_periods(:current_period)
 
@@ -35,7 +35,7 @@ class AcademicPeriodsControllerTest < ActionDispatch::IntegrationTest
 
   test "periode yang belum dipakai bisa dihapus" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     period = AcademicPeriod.create!(name: "Periode Kosong", start_date: 1.year.from_now.to_date, end_date: (1.year.from_now + 4.months).to_date)
 

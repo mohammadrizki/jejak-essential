@@ -20,7 +20,7 @@ class UserTest < ActiveSupport::TestCase
 
   test "switch_active_role! berhasil untuk peran yang dimiliki" do
     user = users(:budi)
-    user.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(user)
 
     assert user.switch_active_role!("admin")
     assert_equal roles(:admin), user.reload.active_role

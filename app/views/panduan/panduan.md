@@ -70,7 +70,7 @@ Kaprodi dan admin prodi yang baru menerima aplikasi dapat mulai dari [Panduan Pe
   - [6.1 Tahun/Periode Akademik](#tahunperiode-akademik)
   - [6.2 Program Studi](#program-studi)
   - [6.3 Pengguna & impor CSV](#pengguna--impor-csv)
-  - [6.4 Relabel Prodi Mahasiswa](#relabel-prodi-mahasiswa)
+  - [6.4 Transfer Mahasiswa](#transfer-mahasiswa)
   - [6.5 Assessment Events dan impor nilai](#assessment-events-dan-impor-nilai)
   - [6.6 Jadwal DOPS & Mini-CEX](#jadwal-dops--mini-cex)
   - [6.7 Kerangka Kompetensi](#kerangka-kompetensi)
@@ -168,7 +168,7 @@ Bagian ini memandu Anda dari aplikasi kosong sampai mahasiswa dan dosen siap mem
 | Periode, pengguna, rotasi, enrolment | | Ya | Menyediakan data |
 | Kerangka kompetensi, target kasus, master data | | Memasukkan | Menetapkan isi |
 | Event asesmen dan impor nilai | | Ya | Menetapkan jadwal |
-| Learning Unit, Jadwal DOPS & Mini-CEX, Relabel Prodi | | Semua prodi | Prodi sendiri |
+| Learning Unit, Jadwal DOPS & Mini-CEX, Transfer Mahasiswa | | Semua prodi | Sesuai permission dan cakupan prodi |
 | Assessment Form Builder | | Ya | Ya |
 | Dashboard Analitik, Ekspor Data | | Semua prodi | Prodi sendiri |
 | Pendaftaran mandiri, nonaktifkan atau hapus akun | | Ya | |
@@ -283,7 +283,7 @@ annisa.putri@kampus.ac.id,Annisa Putri,mahasiswa,pspd
 
 ![Hasil impor: akun baru, satu baris kaprodi tanpa prodi ditolak dengan alasannya, dan tabel kata sandi sementara dengan tombol Unduh CSV](panduan/mulai-03-impor-hasil.png)
 
-**Langkah 4: isi NPM dan angkatan secara massal.** Berkas impor tidak memuat kolom ini. Mahasiswa dapat mengisinya sendiri di profil, tetapi lebih rapi diisi admin lewat **Konfigurasi → Relabel Prodi Mahasiswa**:
+**Langkah 4: isi NPM dan angkatan secara massal.** Berkas impor tidak memuat kolom ini. Mahasiswa dapat mengisinya sendiri di profil, atau pengelola dapat memperbaruinya melalui alur Transfer Mahasiswa saat prodi tujuan menerima pengajuan:
 
 1. Siapkan CSV berkolom `email,npm,angkatan`, satu berkas per prodi.
 2. Pilih **Prodi tujuan** yang sama dengan prodi mahasiswa itu sekarang, lalu klik **Pratinjau**.
@@ -464,7 +464,7 @@ Pesan untuk mahasiswa:
 | Setiap minggu | Periksa **Mahasiswa Perlu Perhatian** di Beranda, **Dashboard Analitik**, dan **Monitoring SRQ**, lalu catat tindak lanjutnya | Reset kata sandi dan buka akun terkunci bila diminta |
 | Setiap selesai ujian | Periksa nilai unit di **Learning Unit & Matrix** | Impor nilai ke event terkait |
 | Setiap bulan | **Ekspor Data** untuk rapat evaluasi prodi | Nonaktifkan atau hapus akun yang tak dikenal, lalu periksa **Riwayat Ekspor** dan audit **Data Governance** |
-| Setiap semester | Tetapkan target kasus dan bobot baru | Buat periode, event, dan target baru; impor akun, rotasi, dan enrolment; pindah prodi lewat **Relabel Prodi** |
+| Setiap semester | Periksa kelulusan dan pengajuan transfer sesuai kewenangan | Buat periode, event, dan target baru; impor akun, rotasi, dan enrolment |
 | Saat aplikasi dimutakhirkan | Coba satu alur singkat sesudahnya | Minta IT mencadangkan data sebelum `docker compose pull` |
 
 Kaprodi memantau satu mahasiswa lewat **Daftar Mahasiswa**: cari nama, lalu buka Dasbor Mahasiswa (hanya-baca). Dari sana tersedia Evaluasi Akademik, Peta Kompetensi, dan Peta EPA mahasiswa itu.
@@ -539,7 +539,7 @@ Buka **Ikhtisar → Profil Saya** (`/profile`) lalu **Sunting Profil**. Halaman 
 
 **Program Studi sangat penting bagi mahasiswa**: ia menentukan event asesmen mana yang tampil untuk Anda, target kasus logbook, Learning Unit, kurva persentil kohort, dan tampilan Anda di Dashboard Analitik kaprodi. Program studi tersedia dua: **Sarjana Kedokteran (pssk)** dan **Profesi Dokter (pspd)** — admin dapat menambah lainnya.
 
-Bagi **kaprodi**, isian **Program Studi Binaan** hanya ditampilkan dan tidak dapat diubah sendiri, karena prodi itulah batas hak akses kaprodi (mahasiswa yang dapat dibuka, Dashboard Analitik bagian *Program Studi*, Relabel Prodi, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data). Admin menetapkannya lewat **Konfigurasi → Pengguna → Sunting**.
+Bagi **kaprodi**, isian **Program Studi Binaan** hanya ditampilkan dan tidak dapat diubah sendiri, karena prodi itulah batas hak akses kaprodi (mahasiswa yang dapat dibuka, Dashboard Analitik bagian *Program Studi*, Transfer Mahasiswa sesuai permission, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data). Admin menetapkannya lewat **Konfigurasi → Pengguna → Sunting**.
 
 ---
 
@@ -613,7 +613,7 @@ Sidebar hanya memuat enam grup, dan **menyempit mengikuti peran aktif** — buka
 | **Perjalanan Belajar** | Logbook ▾ (Kasus Klinis, Logbook Kegiatan), Rotasi Klinik, Enrolment Tutorial, Refleksi, Tugas Akhir, Kesehatan Mental (SRQ)* | semua (*hanya mahasiswa) |
 | **Asesmen** | Asesmen & Evaluasi ▾ (Evaluasi Akademik, Workplace Assessment, Rubric-based Assessment, Jurnal Umpan Balik*, Assessment Form Builder†) | semua (*Jurnal hanya mahasiswa; †Form Builder hanya kaprodi & admin) |
 | **Kompetensi & Prestasi** | Peta Kompetensi, Peta EPA & Entrustment | semua |
-| **Coaching Center** | Validasi Kasus Klinis & Validasi Kegiatan (hanya akun yang boleh memverifikasi — dosen / preseptor / admin), Dashboard Analitik, Daftar Mahasiswa, serta Relabel Prodi Mahasiswa, Jadwal DOPS & Mini-CEX, Learning Unit & Matrix, Monitoring SRQ, dan Ekspor Data (CSV) (kaprodi) | peran aktif dosen / preseptor / kaprodi / admin |
+| **Coaching Center** | Validasi Kasus Klinis & Validasi Kegiatan (hanya akun yang boleh memverifikasi — dosen / preseptor / admin), Dashboard Analitik, Daftar Mahasiswa, serta Transfer Mahasiswa sesuai permission, Jadwal DOPS & Mini-CEX, Learning Unit & Matrix, Monitoring SRQ, dan Ekspor Data (CSV) (kaprodi) | peran aktif dosen / preseptor / kaprodi / admin |
 | **Konfigurasi** | 19 menu pengelolaan (lihat [Bab 6](#bab-6--panduan-admin-konfigurasi)) | akun yang **memiliki** peran admin, apa pun peran aktifnya |
 
 Lencana angka di **Validasi Kasus Klinis** dan **Validasi Kegiatan** menunjukkan jumlah butir yang menunggu verifikasi oleh Anda — kasus/kegiatan milik akun Anda sendiri tidak dihitung.
@@ -672,7 +672,7 @@ Halaman **Ikhtisar → Notifikasi** (`/notifications`) memuat semua pemberitahua
 | **Mahasiswa** | Mencatat perjalanan belajar | Mencatat kegiatan & kasus, mengajukan verifikasi, meminta DOPS/Mini-CEX/CBD/Long Case dari kasus, mendaftar & mengumpulkan asesmen rubrik, menulis refleksi, mendaftarkan tugas akhir, melihat nilai, capaian, dan peta EPA miliknya sendiri. |
 | **Dosen** | Pembimbing akademik, tutor, penguji | Memverifikasi kasus (yang menandainya atau tanpa tanda pembimbing) & kegiatan mahasiswa mana pun, menilai DOPS/Mini-CEX, menilai di Lembar Penguji, memberi skor tugas akhir, memutuskan tingkat EPA bagi mahasiswa yang berelasi, Dashboard Analitik bagian *Mahasiswa Bimbingan*. |
 | **Preseptor** | Pembimbing klinis di wahana | Setara dosen untuk verifikasi & penilaian; menjadi penilai bawaan DOPS/Mini-CEX yang diminta dari kasus pada rotasinya; Dashboard Analitik bagian *Mahasiswa di Wahana Anda*. |
-| **Kaprodi** | Pemantau program studi | Membuka halaman mahasiswa **prodi binaannya** (hanya melihat — tidak memverifikasi kasus/kegiatan, tidak menilai DOPS/Mini-CEX, tidak memutuskan EPA), Dashboard Analitik bagian *Program Studi*, Relabel Prodi Mahasiswa, Jadwal DOPS & Mini-CEX, Learning Unit & Matrix, **Ekspor Data (CSV)** — semuanya terkunci ke prodi binaan yang ditetapkan admin — serta **Assessment Form Builder** (kelola penuh) dan Lembar Penguji untuk mahasiswa prodi binaannya atau bila ditunjuk sebagai penguji. |
+| **Kaprodi** | Pemantau program studi | Membuka halaman mahasiswa **prodi binaannya** (hanya melihat — tidak memverifikasi kasus/kegiatan, tidak menilai DOPS/Mini-CEX, tidak memutuskan EPA), Dashboard Analitik bagian *Program Studi*, Transfer Mahasiswa sesuai permission prodi asal/tujuan, Jadwal DOPS & Mini-CEX, Learning Unit & Matrix, **Ekspor Data (CSV)** — semuanya dibatasi oleh permission dan assignment — serta **Assessment Form Builder** (kelola penuh) dan Lembar Penguji untuk mahasiswa prodi binaannya atau bila ditunjuk sebagai penguji. |
 | **Admin** | Pengelola instalasi | Semua hal di atas ditambah seluruh grup **Konfigurasi**: pengguna, periode, prodi, event asesmen, kurikulum, master data, taksonomi, istilah, dan tata kelola data. |
 
 Aturan yang berlaku lintas peran:
@@ -1205,8 +1205,8 @@ Tiap baris memuat jumlah kegiatan pada periode terpilih (kolom **Kegiatan Period
 
 ### 5.10 Khusus kaprodi
 
-- **Relabel Prodi Mahasiswa** (`/admin/student_relabel/new`): unggah CSV `email,npm,angkatan` → pratinjau per baris → terapkan. Kaprodi dapat **Pindah** mahasiswa prodinya sendiri atau **Label ke prodi saya** (mengklaim mahasiswa dari prodi mana pun ke prodi Anda). Rincian format di [Relabel Prodi Mahasiswa](#relabel-prodi-mahasiswa).
-- **Prodi binaan** akun Anda menentukan cakupan mahasiswa yang dapat Anda buka (Dasbor Mahasiswa dan halaman asesmennya), bagian *Program Studi* di Dashboard Analitik, mahasiswa yang boleh Anda pindahkan di Relabel, serta Jadwal DOPS & Mini-CEX, Learning Unit, dan isi berkas Ekspor Data yang Anda kelola. Prodi ini ditetapkan admin (**Konfigurasi → Pengguna → Sunting**) dan tidak dapat diubah dari Sunting Profil. Bila belum diisi, Relabel Prodi, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data menolak dengan pesan *akun kaprodi belum terhubung ke Program Studi*.
+- **Transfer Mahasiswa** (`/admin/student_transfers`): Kaprodi prodi asal menetapkan kelulusan, lalu mengirim pengajuan transfer melalui CSV. Prodi tujuan menerima atau menolak pengajuan. Hanya setelah diterima, akun mahasiswa berpindah ke keanggotaan aktif prodi tujuan; identitas JEJAK dan riwayat akademik prodi asal tetap tersimpan. Superadmin tidak otomatis memiliki kewenangan keputusan akademik.
+- **Prodi binaan** akun Anda menentukan cakupan mahasiswa yang dapat Anda buka (Dasbor Mahasiswa dan halaman asesmennya), bagian *Program Studi* di Dashboard Analitik, kewenangan menetapkan kelulusan atau mengajukan transfer pada prodi asal, serta akses ke keputusan transfer prodi tujuan jika diberi permission di sana. Prodi ini ditetapkan admin (**Konfigurasi → Pengguna → Sunting**) dan tidak dapat diubah dari Sunting Profil.
 - **Coaching Center → Jadwal DOPS & Mini-CEX** (`/admin/evaluation_schedules`): koordinasi asesmen opsional per prodi; modul nonaktif menghentikan input baru tetapi riwayat tetap dapat dibaca. Akses tetap dibatasi ke mahasiswa prodi dalam kewenangan pengguna.
 - **Coaching Center → Learning Unit & Matrix** (`/admin/learning_units`): hanya unit prodi Anda; prodi unit baru otomatis dikunci ke prodi Anda, dan komponen Assessment Matrix dipilih dari event prodi Anda atau event lintas prodi. Lihat [Bab 6](#bab-6--panduan-admin-konfigurasi).
 - **Coaching Center → Ekspor Data (CSV)** (`/admin/exports`): unduh data mahasiswa prodi Anda — data mahasiswa, rekap capaian, logbook, kasus (tanpa draf dan tanpa identitas pasien), rotasi, tutorial, tugas akhir, DOPS/Mini-CEX, nilai event asesmen, keputusan EPA, jadwal, dan jawaban Assessment Form. Pilihan prodi terkunci ke prodi Anda; dataset Pengguna & Peran dan Master Data khusus admin. Lihat [Ekspor Data (CSV)](#ekspor-data-csv).
@@ -1274,26 +1274,21 @@ budi@kampus.ac.id,Budi Santoso,dosen+preseptor,
 - `prodi`: kode atau nama prodi; kosong → tidak diubah. Wajib bagi kaprodi yang bukan admin, karena itulah prodi binaannya; barisnya ditolak bila kosong.
 - Akun baru: kata sandi sementara acak per akun, langsung terkonfirmasi, wajib diganti saat masuk pertama. Daftar email + kata sandi sementara ditampilkan **sekali** di halaman hasil impor (tombol **Unduh CSV**) — simpan sebelum meninggalkan halaman. Akun lama: hanya nama/peran/prodi yang diperbarui, kata sandi tidak disentuh. Setiap baris gagal dilaporkan dengan nomor barisnya.
 
-Berkas CSV boleh disimpan sebagai *CSV UTF-8* maupun *CSV (dipisahkan koma)* bawaan Excel di Windows — nama beraksen seperti *José* atau *Behçet* tetap terbaca. Ketentuan ini berlaku untuk semua impor CSV: pengguna, master data, nilai Assessment Event, CBT & OSCE format Glide, dan relabel prodi.
+Berkas CSV boleh disimpan sebagai *CSV UTF-8* maupun *CSV (dipisahkan koma)* bawaan Excel di Windows — nama beraksen seperti *José* atau *Behçet* tetap terbaca. Ketentuan ini berlaku untuk semua impor CSV: pengguna, master data, nilai Assessment Event, CBT & OSCE format Glide, dan Transfer Mahasiswa.
 
 ![Halaman Impor Pengguna dari CSV dengan contoh format berkas](panduan/6-3-impor-pengguna.png)
 
-### 6.4 Relabel Prodi Mahasiswa
+### 6.4 Transfer Mahasiswa
 
-`/admin/student_relabel/new` — memindahkan mahasiswa antar-prodi secara massal (mis. mahasiswa PSSK yang lanjut ke PSPD) sekaligus memperbarui NPM dan angkatan.
+`/admin/student_transfers` menyediakan alur berotorisasi untuk perpindahan mahasiswa antarprogram studi. Prodi asal dan prodi tujuan mengambil keputusan pada tahap yang berbeda; pengajuan CSV tidak langsung mengubah prodi pada akun.
 
-~~~csv
-email,npm,angkatan
-ani@kampus.ac.id,2301234567,2023
-1901111111,2301234568,
-~~~
+**1. Tetapkan kelulusan pada prodi asal.** Kaprodi dengan permission kelulusan pada prodi asal mengunggah CSV `email,tanggal_lulus` (atau email/NPM dan tanggal lulus), meninjau pratinjau, lalu menerapkan. NPM dapat digunakan untuk pencocokan berdasarkan keanggotaan historis di prodi asal.
 
-- `email`: email akun **atau NPM lama**; `npm`: NPM baru (kosong = tetap); `angkatan`: kosong = angkatan bawaan formulir, atau tidak diubah.
-- Alur **dua tahap**: **Pratinjau** menampilkan status tiap baris ("siap" atau alasan dilewati), lalu **Terapkan** menyimpan seluruh baris siap dalam **satu transaksi**.
-- Baris dilewati (tidak menggagalkan batch) bila: akun tidak ditemukan, NPM lama cocok >1 akun, bukan peran Mahasiswa, muncul dua kali, angkatan tak terbaca, di luar prodi kaprodi, NPM baru dobel, atau tidak ada perubahan.
-- Tidak ada mode "Tandai Lulus" — JEJAK Essential tidak mengelola status alumni.
+**2. Ajukan transfer.** Kaprodi prodi asal memilih prodi tujuan dan mengunggah CSV `email,npm_tujuan,angkatan_tujuan`. Sistem membuat pengajuan berstatus menunggu keputusan. Ini tidak mengubah keanggotaan aktif maupun NPM pada akun.
 
-![Relabel Prodi Mahasiswa dilihat kaprodi: aksi, prodi tujuan, angkatan default, dan berkas CSV](panduan/6-4-relabel-prodi.png)
+**3. Tinjau dari prodi tujuan.** Kaprodi yang memiliki permission penerimaan pada prodi tujuan dapat menerima atau menolak pengajuan. Penerimaan membuat keanggotaan baru untuk mahasiswa yang sama, memperbarui prodi aktif kompatibilitas, dan mempertahankan keanggotaan lulus serta seluruh riwayat prodi asal. Penolakan dicatat dengan alasan dan tidak mengubah keanggotaan mahasiswa.
+
+Setiap unggahan menampilkan pratinjau dan hanya baris valid yang diproses. Semua perubahan dalam satu batch berlangsung atomik. Superadmin tidak otomatis memperoleh permission kelulusan atau keputusan transfer; kewenangan akademik harus diberikan secara eksplisit dan tetap dibatasi ke program studi.
 
 ### 6.5 Assessment Events dan impor nilai
 
@@ -1714,7 +1709,7 @@ Data itu sudah dipakai — oleh rotasi/event/milestone (periode), penilaian DOPS
 | Tahun/Periode Akademik | `/academic_periods` |
 | Program Studi | `/study_programs` |
 | Pengguna / Impor CSV | `/admin/users`, `/admin/users/import` |
-| Relabel Prodi Mahasiswa | `/admin/student_relabel/new` |
+| Transfer Mahasiswa | `/admin/student_transfers` |
 | Assessment Events | `/admin/assessment_events` |
 | Jadwal DOPS & Mini-CEX | `/admin/evaluation_schedules` |
 | Kerangka Kompetensi | `/competency_frameworks` |

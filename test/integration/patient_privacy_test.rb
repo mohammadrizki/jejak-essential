@@ -140,7 +140,7 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
 
   test "admin teknis tanpa assignment tidak dapat membuka dossier kasus pasien" do
     admin = users(:dedi)
-    admin.roles << roles(:admin) unless admin.has_role?("admin")
+    grant_bootstrapped_system_admin!(admin) unless admin.has_role?("admin")
     sign_in admin
     get clinical_case_path(@case)
     assert_redirected_to root_path
@@ -148,7 +148,7 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
 
   test "admin mematikan Privacy Mode lalu identitas tampil; audit terlihat di Data Governance" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     BreakGlassAccess.grant!(user: admin, clinical_case: @case, reason: "Audit internal kelengkapan data")
@@ -327,7 +327,7 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
 
   test "admin mengelola master diagnosis dan mengimpor CSV" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     post admin_diagnosis_definitions_path, params: { diagnosis_definition: { name: "Hipertensi esensial", icd10_code: "I10", skdi_level: "4A", active: "1" } }
@@ -354,7 +354,7 @@ class PatientPrivacyTest < ActionDispatch::IntegrationTest
   end
 test "halaman tambah/sunting master data dan target kasus terbuka untuk admin" do
   admin = users(:budi)
-  admin.roles << roles(:admin)
+  grant_bootstrapped_system_admin!(admin)
   sign_in admin
 
   get new_admin_diagnosis_definition_path

@@ -101,7 +101,7 @@ class CompetencyFrameworkLifecycle
         EvidenceRecord.where(evidence_requirement_id: requirements.select(:id)).count],
       ["capaian kompetensi mahasiswa (#{CompetencyAttainment.where(competency_item_id: item_ids).count})",
         CompetencyAttainment.where(competency_item_id: item_ids).count],
-      ["keputusan entrustment (#{decisions.count})", decisions.count],
+      ["keputusan entrustment pada Peta EPA (#{decisions.count})", decisions.count],
       ["observasi EPA (#{EpaObservation.where(epa_id: epa_ids).count})", EpaObservation.where(epa_id: epa_ids).count],
       ["dossier promosi EPA (#{EpaPromotion.where(epa_id: epa_ids).count})", EpaPromotion.where(epa_id: epa_ids).count],
       ["pemetaan kompetensi blueprint (#{AssessmentBlueprintMapping.where(competency_item_id: item_ids).count})",

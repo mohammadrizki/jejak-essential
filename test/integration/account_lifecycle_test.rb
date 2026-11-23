@@ -7,7 +7,7 @@ class AccountLifecycleTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @admin.update!(active_role: roles(:admin))
   end
 
@@ -62,7 +62,7 @@ class AccountLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal existing, User.from_google_omniauth(auth)
   end
 
-  test "bukan admin tidak dapat mengubah pendaftaran maupun status akun" do
+  test "kaprodi hanya mengelola akun dalam prodi dan tidak dapat mengubah pendaftaran global" do
     asing = stranger
     sign_in users(:dedi)
     patch registration_admin_users_path, params: { open: false }
@@ -70,8 +70,8 @@ class AccountLifecycleTest < ActionDispatch::IntegrationTest
     assert AppSetting.registration_open?
 
     patch deactivate_admin_user_path(users(:siti))
-    assert_redirected_to dashboard_path
-    assert_not users(:siti).reload.deactivated?
+    assert_redirected_to edit_admin_user_path(users(:siti))
+    assert users(:siti).reload.deactivated?
 
     assert_no_difference("User.count") { delete admin_user_path(asing) }
   end
@@ -160,7 +160,7 @@ class AccountLifecycleTest < ActionDispatch::IntegrationTest
     csv = "email,nama,peran,prodi\n" \
           "kaprodi.a@example.com,Kaprodi A,kaprodi,\n" \
           "kaprodi.b@example.com,Kaprodi B,kaprodi,pspd\n" \
-          "kaprodi.c@example.com,Kaprodi C,kaprodi+admin,\n" \
+          "kaprodi.c@example.com,Kaprodi C,kaprodi+admin,pssk\n" \
           "dedi@example.com,Dedi Kaprodi,kaprodi,\n"
     file = Rack::Test::UploadedFile.new(StringIO.new(csv), "text/csv", original_filename: "pengguna.csv")
     post import_admin_users_path, params: { file: file }
@@ -190,6 +190,7 @@ class AccountLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal [ "mahasiswa" ], siti.roles.pluck(:code)
 
     patch admin_user_path(siti), params: { user: { full_name: siti.full_name, study_program_id: "", role_ids: [ roles(:kaprodi).id, roles(:admin).id ] } }
-    assert_redirected_to admin_users_path
+    assert_response :unprocessable_entity
+    assert_equal [ "mahasiswa" ], siti.reload.roles.pluck(:code), "peran admin tidak boleh diberikan tanpa cakupan program studi"
   end
 end

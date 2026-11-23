@@ -119,7 +119,7 @@ class PrescriptionPracticeTest < ActionDispatch::IntegrationTest
   # ── Master obat ──
   test "admin mengelola master obat dan mengimpor CSV" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get admin_medication_definitions_path

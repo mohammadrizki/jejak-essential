@@ -9,7 +9,7 @@ class PostFormsRenderWithoutTurboTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     sign_in @admin
   end
 

@@ -23,6 +23,7 @@ class AssessmentsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "new_dops_evaluation", response.body
 
     sign_in users(:budi)
+    grant_wpba_assessor_permission!(users(:budi), study_programs(:sarjana_kedokteran))
     get assessments_path
     assert_match new_dops_evaluation_path, response.body
   end
@@ -38,5 +39,29 @@ class AssessmentsControllerTest < ActionDispatch::IntegrationTest
     get assessments_path
     assert_match "Menunggu Diselesaikan", response.body
     assert_match draft.procedure_name, response.body
+  end
+
+  test "modul WPBA nonaktif menyembunyikan tombol input tetapi mempertahankan hasil lama" do
+    sign_in users(:budi)
+    setting = AppSetting.find_or_initialize_by(key: "module_configuration:study_program:#{users(:siti).study_program_id}")
+    setting.value = { "modules" => { "wpba" => false } }
+    setting.save!
+
+    get assessments_path
+
+    assert_response :success
+    assert_no_match new_dops_evaluation_path, response.body
+    assert_no_match new_mini_cex_evaluation_path, response.body
+    assert_match dops_evaluations(:dops_siti_infus).procedure_name, response.body
+  end
+
+  private
+
+  def grant_wpba_assessor_permission!(user, program)
+    permission = SystemPermission.find_or_create_by!(key: "assessment.review") { |record| record.name = "Telaah asesmen" }
+    RolePermission.find_or_create_by!(role: roles(:dosen), system_permission: permission) do |grant|
+      grant.scope_level = "study_program"
+    end
+    user.user_roles.find_or_create_by!(role: roles(:dosen), scope_level: "study_program", study_program: program)
   end
 end

@@ -15,7 +15,7 @@ class CompetencyItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa menambah ranah baru" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     framework = competency_frameworks(:skdi_ringkas)
 
@@ -26,7 +26,7 @@ class CompetencyItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa menambah sub-kompetensi di bawah ranah" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     framework = competency_frameworks(:skdi_ringkas)
     domain = competency_items(:domain_klinis)
@@ -40,7 +40,7 @@ class CompetencyItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa menghapus simpul kompetensi" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     framework = competency_frameworks(:skdi_ringkas)
     sub = competency_items(:sub_anamnesis)
@@ -52,7 +52,7 @@ class CompetencyItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "simpul yang dipakai Peta EPA mahasiswa tidak bisa dihapus beserta sub-kompetensinya" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     program = study_programs(:profesi_dokter)
     student = User.create!(full_name: "Mahasiswa Profesi", email: "epa-mahasiswa@example.com",
@@ -79,7 +79,7 @@ class CompetencyItemsControllerTest < ActionDispatch::IntegrationTest
 
   test "menghapus simpul melepas pemetaan dimensi ujian dan pertanyaan rubrik, bukan galat" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     framework = competency_frameworks(:skdi_ringkas)
     sub = competency_items(:sub_anamnesis)

@@ -6,7 +6,7 @@ class Admin::ExportsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @admin.update!(active_role: roles(:admin))
     @kaprodi = users(:dedi) # kaprodi Sarjana Kedokteran
     @pspd = study_programs(:profesi_dokter)

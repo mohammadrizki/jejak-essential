@@ -33,7 +33,7 @@ class ClinicalRotationsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin bisa membuat rotasi baru" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     assert_difference "ClinicalRotation.count", 1 do
@@ -50,7 +50,7 @@ class ClinicalRotationsControllerTest < ActionDispatch::IntegrationTest
 
   test "rotasi yang sudah punya penilaian DOPS/Mini-CEX tidak bisa dihapus" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     assert_no_difference [ "ClinicalRotation.count", "DopsEvaluation.count" ] do
@@ -62,7 +62,9 @@ class ClinicalRotationsControllerTest < ActionDispatch::IntegrationTest
 
   test "formulir rotasi menawarkan akun berperan Preseptor sebagai preseptor" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
+    admin.update!(study_program: study_programs(:sarjana_kedokteran))
+    users(:wati).update!(study_program: study_programs(:sarjana_kedokteran))
     sign_in admin
 
     get new_clinical_rotation_path

@@ -45,7 +45,7 @@ class EvidenceSourcesControllerTest < ActionDispatch::IntegrationTest
 
   test "admin without an explicit reviewer assignment cannot review external sources" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get evidence_sources_path

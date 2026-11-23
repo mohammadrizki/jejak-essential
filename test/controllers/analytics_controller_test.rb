@@ -15,7 +15,7 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match users(:siti).full_name, response.body
     assert_no_match "Mahasiswa di Wahana Anda", response.body
-    assert_no_match "Program Studi", response.body
+    assert_select "main h2", text: "Program Studi", count: 0
   end
 
   test "preseptor melihat mahasiswa di rotasi yang dibimbingnya" do
@@ -36,7 +36,7 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin teknis tanpa role akademik tidak dapat melihat analitik mahasiswa" do
     admin = User.create!(full_name: "Admin Teknis", email: "admin.analytics@example.com", password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get analytics_path
@@ -45,14 +45,14 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
 
   test "akun admin dan dosen hanya melihat lingkup dosen" do
     admin_dosen = users(:budi)
-    admin_dosen.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin_dosen)
     sign_in admin_dosen
 
     get analytics_path
     assert_response :success
     assert_match "Mahasiswa Bimbingan", response.body
     assert_no_match "Mahasiswa di Wahana Anda", response.body
-    assert_no_match "Program Studi", response.body
+    assert_select "main h2", text: "Program Studi", count: 0
   end
 
   test "mahasiswa berisiko (skor rendah) diurutkan lebih dulu daripada yang skornya tinggi" do

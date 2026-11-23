@@ -5,7 +5,7 @@ class PlacementImportsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @admin.update!(active_role: roles(:admin))
     @period = academic_periods(:current_period)
   end
@@ -20,8 +20,17 @@ class PlacementImportsControllerTest < ActionDispatch::IntegrationTest
       "hantu@example.com,#{@period.name},Ilmu Saraf,RSUD Kota,2026-10-12,2026-12-20,\n"
   end
 
-  test "selain admin ditolak, termasuk kaprodi" do
-    [ users(:dedi), users(:wati), users(:siti) ].each do |user|
+  test "kaprodi dapat membuka impor dalam lingkupnya, peran tanpa permission ditolak" do
+    sign_in users(:dedi)
+    get import_clinical_rotations_path
+    assert_response :success
+    assert_no_difference("ClinicalRotation.count") do
+      post import_clinical_rotations_path, params: { csv_raw: "baris tidak valid" }
+    end
+    assert_response :unprocessable_entity
+    sign_out users(:dedi)
+
+    [ users(:wati), users(:siti) ].each do |user|
       sign_in user
       get import_clinical_rotations_path
       assert_redirected_to root_path

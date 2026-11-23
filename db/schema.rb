@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -1463,6 +1463,55 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_160000) do
     t.index ["user_id", "screened_on"], name: "index_srq_screenings_on_user_id_and_screened_on", unique: true
   end
 
+  create_table "student_program_enrollments", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "study_program_id", null: false
+    t.bigint "created_by_id"
+    t.string "identifier_number"
+    t.integer "cohort_year"
+    t.string "status", default: "active", null: false
+    t.date "started_on", null: false
+    t.date "completed_on"
+    t.text "status_reason"
+    t.jsonb "provenance", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_student_program_enrollments_on_created_by_id"
+    t.index ["study_program_id", "identifier_number"], name: "idx_student_program_enrollment_identifier", unique: true, where: "(identifier_number IS NOT NULL)"
+    t.index ["study_program_id"], name: "index_student_program_enrollments_on_study_program_id"
+    t.index ["user_id"], name: "idx_one_active_student_program_enrollment", unique: true, where: "((status)::text = 'active'::text)"
+    t.index ["user_id"], name: "index_student_program_enrollments_on_user_id"
+    t.check_constraint "completed_on IS NULL OR completed_on >= started_on", name: "chk_student_program_enrollments_dates"
+    t.check_constraint "status::text <> 'graduated'::text OR completed_on IS NOT NULL", name: "chk_student_program_enrollments_graduation_date"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'graduated'::character varying, 'withdrawn'::character varying, 'suspended'::character varying]::text[])", name: "chk_student_program_enrollments_status"
+  end
+
+  create_table "student_program_transfers", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "source_enrollment_id", null: false
+    t.bigint "destination_study_program_id", null: false
+    t.bigint "destination_enrollment_id"
+    t.bigint "requested_by_id", null: false
+    t.bigint "decided_by_id"
+    t.string "destination_identifier_number"
+    t.integer "destination_cohort_year"
+    t.string "status", default: "pending", null: false
+    t.text "decision_note"
+    t.datetime "decided_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["decided_by_id"], name: "index_student_program_transfers_on_decided_by_id"
+    t.index ["destination_enrollment_id"], name: "index_student_program_transfers_on_destination_enrollment_id"
+    t.index ["destination_study_program_id", "status", "created_at"], name: "idx_student_transfers_destination_status"
+    t.index ["destination_study_program_id"], name: "idx_on_destination_study_program_id_5b7cfa6e28"
+    t.index ["requested_by_id"], name: "index_student_program_transfers_on_requested_by_id"
+    t.index ["source_enrollment_id"], name: "idx_one_pending_transfer_per_enrollment", unique: true, where: "((status)::text = 'pending'::text)"
+    t.index ["source_enrollment_id"], name: "index_student_program_transfers_on_source_enrollment_id"
+    t.index ["student_id"], name: "index_student_program_transfers_on_student_id"
+    t.check_constraint "status::text <> 'accepted'::text OR destination_enrollment_id IS NOT NULL", name: "chk_student_program_transfers_accepted_enrollment"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'cancelled'::character varying]::text[])", name: "chk_student_program_transfers_status"
+  end
+
   create_table "study_programs", force: :cascade do |t|
     t.string "code"
     t.bigint "competency_framework_id"
@@ -1886,6 +1935,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_160000) do
   add_foreign_key "role_permissions", "system_permissions"
   add_foreign_key "srq_screenings", "users"
   add_foreign_key "srq_screenings", "users", column: "followed_up_by_id"
+  add_foreign_key "student_program_enrollments", "study_programs"
+  add_foreign_key "student_program_enrollments", "users"
+  add_foreign_key "student_program_enrollments", "users", column: "created_by_id"
+  add_foreign_key "student_program_transfers", "student_program_enrollments", column: "destination_enrollment_id"
+  add_foreign_key "student_program_transfers", "student_program_enrollments", column: "source_enrollment_id"
+  add_foreign_key "student_program_transfers", "study_programs", column: "destination_study_program_id"
+  add_foreign_key "student_program_transfers", "users", column: "decided_by_id"
+  add_foreign_key "student_program_transfers", "users", column: "requested_by_id"
+  add_foreign_key "student_program_transfers", "users", column: "student_id"
   add_foreign_key "study_programs", "competency_frameworks"
   add_foreign_key "study_programs", "users", column: "srq_enabled_by_id"
   add_foreign_key "supervision_levels", "supervision_scale_versions"

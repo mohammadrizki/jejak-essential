@@ -186,6 +186,9 @@ class DataExport
     @dataset = self.class.dataset_for(key, viewer) or raise AccessDenied, "Dataset tidak tersedia untuk akun ini."
     @viewer = viewer
     @admin = viewer.has_role?("superadmin")
+    if !@admin && viewer.study_program_bound? && viewer.study_program_id.nil?
+      raise AccessDenied, "Akun Kaprodi belum terhubung ke Program Studi."
+    end
     @permitted_program_ids = viewer.programs_with_permission("users.manage").map(&:id) unless @admin
     @study_program = resolve_study_program(study_program_id) if @dataset.filter?(:program)
     @period = AcademicPeriod.find_by(id: academic_period_id) if academic_period_id.present? && @dataset.filter?(:period)
@@ -248,9 +251,12 @@ class DataExport
     raise AccessDenied, "Tidak ada program studi dalam cakupan hak akses ekspor Anda." if @permitted_program_ids.blank?
     if requested_id.present?
       program = StudyProgram.where(id: @permitted_program_ids).find_by(id: requested_id)
-      raise AccessDenied, "Program studi berada di luar cakupan hak akses ekspor Anda." if program.blank?
+      # A forged program filter must never widen scope. A bound viewer gets
+      # their own program export; unbound managers still receive a denial.
+      return program if program.present?
+      return StudyProgram.find_by(id: @viewer.study_program_id) if @viewer.study_program_bound?
 
-      return program
+      raise AccessDenied, "Program studi berada di luar cakupan hak akses ekspor Anda."
     end
 
     StudyProgram.where(id: @permitted_program_ids).ordered.first

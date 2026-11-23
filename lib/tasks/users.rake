@@ -25,6 +25,8 @@ namespace :users do
     password = ENV["ADMIN_PASSWORD"].to_s
     next if email.empty? || password.empty?
 
+    superadmin_role = Role.find_or_create_by!(code: "superadmin") { |r| r.name = "Superadmin" }
+    superadmin_role = Role.find_or_create_by!(code: "superadmin") { |r| r.name = "Superadmin" }
     admin_role = Role.find_or_create_by!(code: "admin") { |r| r.name = "Admin" }
     if admin_role.users.exists?
       puts "users:bootstrap_admin: sudah ada admin, dilewati. Kosongkan ADMIN_PASSWORD di .env."
@@ -40,6 +42,7 @@ namespace :users do
     user.password = user.password_confirmation = password
     user.confirmed_at ||= Time.current
     if user.save
+      user.user_roles.find_or_create_by!(role: superadmin_role, scope_level: "system")
       user.roles << admin_role
       user.update_columns(active_role_id: admin_role.id, must_change_password: true)
       puts "users:bootstrap_admin: admin pertama dibuat (#{email}). Kata sandi wajib diganti saat masuk. Kosongkan ADMIN_PASSWORD di .env."
@@ -67,6 +70,7 @@ namespace :users do
     user.confirmed_at ||= Time.current if user.respond_to?(:confirmed_at)
     user.save!
 
+    user.user_roles.find_or_create_by!(role: superadmin_role, scope_level: "system")
     user.roles << admin_role unless user.has_role?("admin")
     user.update!(active_role: admin_role) if user.active_role.nil?
 

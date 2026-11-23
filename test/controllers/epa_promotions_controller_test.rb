@@ -9,6 +9,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
     @student.roles << roles(:mahasiswa)
     authority = users(:dedi)
     authority.update!(study_program: study_programs(:profesi_dokter))
+    grant_role_in_program!(authority, "kaprodi", study_programs(:profesi_dokter))
     UserAssignment.create!(user: authority, assigned_by: authority, study_program: study_programs(:profesi_dokter),
       assignment_role: "epa_panel_member", scope_type: "User", scope_id: @student.id,
       reason: "Ditunjuk sebagai otoritas panel EPA mahasiswa.")
@@ -250,7 +251,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis tanpa assignment tidak dapat membuka dossier EPA mahasiswa" do
     admin = User.create!(full_name: "Admin EPA Teknis", email: "admin-epa@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     get epa_observations_path(student_id: @student.id)
@@ -261,7 +262,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis yang tercatat pada rotasi historis tidak dapat melihat dossier atau mengisi observasi EPA" do
     admin = User.create!(full_name: "Admin EPA pada Rotasi", email: "admin-epa-rotasi@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     rotation = @student.clinical_rotations.first
     # Simulasikan relasi data lama yang tersimpan sebelum validasi role preseptor.
     rotation.update_column(:preceptor_id, admin.id)
@@ -276,7 +277,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis tanpa assignment tidak melihat daftar promosi atau narasi panel" do
     admin = User.create!(full_name: "Admin Daftar EPA", email: "admin-daftar-epa@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     @promotion.epa_promotion_reviews.create!(reviewer: users(:dedi), recommendation: "deferred",
       notes: "Catatan panel yang harus tetap terbatas kepada anggota yang ditugaskan.")
     sign_in admin
@@ -295,7 +296,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
       submitted_at: Time.current, safety_flag: true)
     admin = User.create!(full_name: "Admin Keselamatan", email: "admin-keselamatan@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
 
     sign_in admin
     patch resolve_safety_epa_observation_path(safety_observation), params: {
@@ -313,7 +314,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
 
   test "preseptor yang ditugaskan dapat mengisi observasi mobile dan catatan tersimpan terpisah dari keputusan" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     ModuleConfiguration.for(@student.study_program).update!({ "wpba" => "0" }, actor: admin)
     sign_in users(:wati)
     get new_epa_observation_path(student_id: @student.id, epa_id: @promotion.epa_id)
@@ -354,6 +355,7 @@ class EpaPromotionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "tinjauan ulang yang jatuh tempo membuat dossier baru dan keputusan lama tetap aktif sampai disahkan" do
+    grant_permission_to_role!("dosen", "epa.decide")
     @promotion.update!(status: "approved", reviewed_by: users(:dedi), reviewed_at: Time.current,
       finalized_by: users(:dedi), finalized_at: Time.current)
     old_decision = EntrustmentDecision.decide!(student: @student, epa: @promotion.epa, level: 3,

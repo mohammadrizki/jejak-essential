@@ -50,6 +50,22 @@ class ClinicalCasesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "draft", ClinicalCase.order(:id).last.status
   end
 
+  test "modul Logbook nonaktif menyembunyikan input kasus dan menolak kasus baru" do
+    sign_in users(:siti)
+    setting = AppSetting.find_or_initialize_by(key: "module_configuration:study_program:#{users(:siti).study_program_id}")
+    setting.value = { "modules" => { "clinical_logbook" => false } }
+    setting.save!
+
+    get clinical_cases_path
+    assert_response :success
+    assert_no_match new_clinical_case_path, response.body
+    assert_match "riwayat baca-saja", response.body
+    assert_no_difference "ClinicalCase.count" do
+      post clinical_cases_path, params: { clinical_case: { case_date: Date.current, chief_complaint: "Tidak boleh dicatat" } }
+    end
+    assert_redirected_to clinical_cases_path
+  end
+
   test "mahasiswa mengisi dokumentasi klinis lengkap termasuk tanda vital" do
     sign_in users(:siti)
 
@@ -83,8 +99,7 @@ class ClinicalCasesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Logbook kasus yang dinonaktifkan menolak input lewat URL langsung tetapi mempertahankan baca riwayat" do
-    admin = users(:budi)
-    admin.roles << roles(:admin)
+    admin = grant_scoped_admin!(users(:budi), users(:siti).study_program, "modules.manage")
     ModuleConfiguration.for(users(:siti).study_program).update!({ clinical_logbook: "0" }, actor: admin)
     sign_in users(:siti)
 

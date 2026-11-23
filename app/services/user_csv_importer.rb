@@ -89,6 +89,7 @@ class UserCsvImporter
           program = scope == "study_program" ? user.study_program : nil
           user.user_roles.find_or_create_by!(role: role, scope_level: scope, study_program: program)
         end
+        StudentProgramEnrollmentBootstrap.ensure_current!(user: user)
         user.update_column(:active_role_id, roles.first.id) if user.active_role_id.nil?
       end
 

@@ -14,7 +14,7 @@ class ForbiddenLinksHiddenTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_competency_framework_path, 0
 
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
     get competency_frameworks_path
     assert_select "a[href=?]", new_competency_framework_path

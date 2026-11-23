@@ -41,7 +41,7 @@ class TutorialEnrollmentsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin membuat, menonaktifkan, dan menghapus enrolmen" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     assert_difference "TutorialEnrollment.count", 1 do
@@ -66,7 +66,7 @@ class TutorialEnrollmentsControllerTest < ActionDispatch::IntegrationTest
 
   test "blok yang sama tidak boleh didaftarkan dua kali pada periode yang sama" do
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     sign_in admin
 
     assert_no_difference "TutorialEnrollment.count" do

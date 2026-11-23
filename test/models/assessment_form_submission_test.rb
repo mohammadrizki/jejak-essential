@@ -56,7 +56,7 @@ class AssessmentFormSubmissionTest < ActiveSupport::TestCase
     assert submission.respondent_visible_to?(users(:siti)) # respondennya sendiri
 
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     assert submission.respondent_visible_to?(admin) # admin selalu bisa lihat
   end
 end

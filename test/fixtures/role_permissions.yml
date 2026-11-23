@@ -1,0 +1,189 @@
+admin_users_manage:
+  role: admin
+  system_permission: users_manage
+  scope_level: system
+
+admin_roles_assign:
+  role: admin
+  system_permission: roles_assign
+  scope_level: system
+
+admin_assignments_manage:
+  role: admin
+  system_permission: assignments_manage
+  scope_level: system
+
+admin_curriculum_manage:
+  role: admin
+  system_permission: curriculum_manage
+  scope_level: system
+
+admin_modules_manage:
+  role: admin
+  system_permission: modules_manage
+  scope_level: system
+
+admin_integration_manage:
+  role: admin
+  system_permission: integration_manage
+  scope_level: system
+
+admin_audit_read:
+  role: admin
+  system_permission: audit_read
+  scope_level: system
+
+kaprodi_users_manage:
+  role: kaprodi
+  system_permission: users_manage
+  scope_level: system
+
+kaprodi_roles_assign:
+  role: kaprodi
+  system_permission: roles_assign
+  scope_level: system
+
+kaprodi_assignments_manage:
+  role: kaprodi
+  system_permission: assignments_manage
+  scope_level: system
+
+kaprodi_curriculum_manage:
+  role: kaprodi
+  system_permission: curriculum_manage
+  scope_level: system
+
+kaprodi_modules_manage:
+  role: kaprodi
+  system_permission: modules_manage
+  scope_level: system
+
+kaprodi_assessment_review:
+  role: kaprodi
+  system_permission: assessment_review
+  scope_level: system
+
+kaprodi_assessment_decide:
+  role: kaprodi
+  system_permission: assessment_decide
+  scope_level: system
+
+kaprodi_epa_decide:
+  role: kaprodi
+  system_permission: epa_decide
+  scope_level: system
+
+kaprodi_audit_read:
+  role: kaprodi
+  system_permission: audit_read
+  scope_level: system
+
+kaprodi_integration_manage:
+  role: kaprodi
+  system_permission: integration_manage
+  scope_level: system
+
+kaprodi_students_graduate:
+  role: kaprodi
+  system_permission: students_graduate
+  scope_level: system
+
+kaprodi_students_transfer_request:
+  role: kaprodi
+  system_permission: students_transfer_request
+  scope_level: system
+
+kaprodi_students_transfer_accept:
+  role: kaprodi
+  system_permission: students_transfer_accept
+  scope_level: system
+
+dosen_assessment_review:
+  role: dosen
+  system_permission: assessment_review
+  scope_level: system
+
+dosen_assessment_decide:
+  role: dosen
+  system_permission: assessment_decide
+  scope_level: system
+
+preseptor_assessment_review:
+  role: preseptor
+  system_permission: assessment_review
+  scope_level: system
+
+preseptor_epa_decide:
+  role: preseptor
+  system_permission: epa_decide
+  scope_level: system
+
+tenaga_kependidikan_integration_manage:
+  role: tenaga_kependidikan
+  system_permission: integration_manage
+  scope_level: system
+
+tenaga_kependidikan_audit_read:
+  role: tenaga_kependidikan
+  system_permission: audit_read
+  scope_level: system
+
+superadmin_users_manage:
+  role: superadmin
+  system_permission: users_manage
+  scope_level: system
+
+superadmin_roles_manage:
+  role: superadmin
+  system_permission: roles_manage
+  scope_level: system
+
+superadmin_roles_assign:
+  role: superadmin
+  system_permission: roles_assign
+  scope_level: system
+
+superadmin_assignments_manage:
+  role: superadmin
+  system_permission: assignments_manage
+  scope_level: system
+
+superadmin_curriculum_manage:
+  role: superadmin
+  system_permission: curriculum_manage
+  scope_level: system
+
+superadmin_modules_manage:
+  role: superadmin
+  system_permission: modules_manage
+  scope_level: system
+
+superadmin_assessment_review:
+  role: superadmin
+  system_permission: assessment_review
+  scope_level: system
+
+superadmin_assessment_decide:
+  role: superadmin
+  system_permission: assessment_decide
+  scope_level: system
+
+superadmin_epa_decide:
+  role: superadmin
+  system_permission: epa_decide
+  scope_level: system
+
+superadmin_integration_manage:
+  role: superadmin
+  system_permission: integration_manage
+  scope_level: system
+
+superadmin_audit_read:
+  role: superadmin
+  system_permission: audit_read
+  scope_level: system
+
+superadmin_templates_manage:
+  role: superadmin
+  system_permission: templates_manage
+  scope_level: system

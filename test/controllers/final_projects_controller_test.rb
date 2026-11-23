@@ -25,7 +25,7 @@ class FinalProjectsControllerTest < ActionDispatch::IntegrationTest
   test "admin teknis tanpa peran akademik tidak melihat atau menilai proyek mahasiswa" do
     admin = User.create!(full_name: "Admin Teknis Proyek", email: "admin-proyek@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     project = final_projects(:skripsi_siti)
 
     sign_in admin

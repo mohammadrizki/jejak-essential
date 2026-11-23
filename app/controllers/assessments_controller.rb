@@ -6,6 +6,7 @@ class AssessmentsController < ApplicationController
   before_action :authenticate_user!
 
   def index
+    @can_create_wpba = AssessmentAssignment.wpba_enabled_rotations_for(current_user).exists?
     dops_scope = policy_scope(DopsEvaluation).includes(:student, :evaluator)
     mini_cex_scope = policy_scope(MiniCexEvaluation).includes(:student, :evaluator)
     generic_wpba_scope = policy_scope(WpbaObservation).includes(:student, :observer, wpba_instrument_version: :wpba_instrument)

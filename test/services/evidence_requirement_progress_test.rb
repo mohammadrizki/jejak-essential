@@ -95,6 +95,34 @@ class EvidenceRequirementProgressTest < ActiveSupport::TestCase
     assert_equal ["canonical", "jejak", "dops_evaluation:#{dops.id}"], second.source_key
   end
 
+  test "validated external evidence can satisfy an external evidence requirement" do
+    requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
+      source_type: "external", required_count: 1)
+    source = EvidenceSource.create!(student: users(:siti), source_system: "examtool",
+      source_record_id: "cbt-result-#{SecureRandom.hex(4)}", source_revision: "1",
+      activity_key: "examtool:#{SecureRandom.hex(8)}", source_type: "external", occurred_on: Date.current,
+      validation_status: "validated", validated_by: users(:budi), validated_at: Time.current,
+      result: "other", instrument_code: "CBT")
+    requirement.evidence_records.create!(evidence_source: source, evidence_date: Date.current, result: "other")
+
+    result = EvidenceRequirementProgress.new(requirement, student: users(:siti)).call
+
+    assert_equal :fulfilled, result.status
+    assert_equal 1, result.record_count
+  end
+
+  test "a saved reflection can count as collected reflection evidence without implying competence attainment" do
+    item = competency_items(:sub_anamnesis)
+    requirement = EvidenceRequirement.create!(origin: "manual", competency_item: item,
+      source_type: "reflection", required_count: 1)
+    reflection = reflection_entries(:refleksi_siti)
+    requirement.evidence_records.create!(reflection_entry: reflection,
+      evidence_date: reflection.entry_date, result: "other")
+
+    assert_equal :fulfilled, EvidenceRequirementProgress.new(requirement, student: reflection.user).call.status
+    assert_empty CompetencyAttainment.where(competency_item: item, student: reflection.user)
+  end
+
   test "a requested WPBA observation does not count as valid evidence" do
     item = competency_items(:sub_anamnesis)
     requirement = EvidenceRequirement.create!(origin: "manual", competency_item: item,

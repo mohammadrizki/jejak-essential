@@ -9,6 +9,7 @@ class Admin::AssessmentEventsController < ApplicationController
   before_action :require_assessment_manager!
   before_action :set_event, only: %i[show edit update destroy import import_template import_preview import_create add_instance]
   before_action :authorize_event_program!, only: %i[show edit update destroy import import_template import_preview import_create add_instance]
+  before_action :require_wpba_module_enabled!, only: %i[edit destroy add_instance]
   before_action :require_importable_event!, only: %i[import import_template import_preview import_create]
 
   def index
@@ -242,6 +243,14 @@ class Admin::AssessmentEventsController < ApplicationController
     return if permitted_event_program?(@event.study_program)
 
     redirect_to admin_assessment_events_path, alert: "Event berada di luar cakupan program studi Anda."
+  end
+
+  def require_wpba_module_enabled!
+    return unless @event.wpba?
+    return if event_module_enabled?(@event)
+
+    redirect_to admin_assessment_event_path(@event),
+      alert: "Modul WPBA atau Penjadwalan Asesmen nonaktif; event historis hanya dapat dibaca."
   end
 
   def scoped_students

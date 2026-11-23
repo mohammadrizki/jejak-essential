@@ -8,7 +8,7 @@ class RubricBuilderTest < ActionDispatch::IntegrationTest
 
   setup do
     @admin = users(:budi)
-    @admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(@admin)
     @template = AssessmentFormTemplate.create!(name: "Rubrik Mini-CEX Blok", is_active: true)
     @framework = competency_frameworks(:skdi_ringkas)
     @keterampilan = @framework.domains.find { |d| d.title.include?("Keterampilan") } || @framework.domains.first
@@ -138,7 +138,7 @@ class RubricBuilderTest < ActionDispatch::IntegrationTest
 
     sign_in users(:siti)
     get academic_assessments_path
-    assert_match "Capaian per Ranah Kompetensi", response.body
+    assert_match "Spiderweb Capaian Kompetensi", response.body
   end
 
   test "pertanyaan rubrik tanpa pemetaan tidak menyumbang ke peta kompetensi" do

@@ -32,7 +32,14 @@ namespace :demo do
 
       roles.each do |code|
         role = Role.find_by!(code: code)
-        user.roles << role unless user.has_role?(code)
+        next if user.user_roles.exists?(role: role)
+
+        if code == "admin"
+          program = study_program || StudyProgram.find_by!(name: "Sarjana Kedokteran")
+          user.user_roles.create!(role: role, scope_level: "study_program", study_program: program)
+        else
+          user.roles << role
+        end
       end
       user.update!(active_role: user.roles.find_by(code: roles.first)) if user.active_role.nil?
       user
@@ -41,7 +48,7 @@ namespace :demo do
     sarjana = StudyProgram.find_or_create_by!(name: "Sarjana Kedokteran")
     profesi = StudyProgram.find_or_create_by!(name: "Profesi Dokter")
 
-    admin = demo_user("admin.demo@jejakessential.test", full_name: "Admin Demo", roles: %w[admin])
+    admin = demo_user("admin.demo@jejakessential.test", full_name: "Admin Demo", roles: %w[admin], study_program: sarjana)
     dosen = demo_user("dosen.demo@jejakessential.test", full_name: "Dosen Demo", roles: %w[dosen])
     preseptor = demo_user("preseptor.demo@jejakessential.test", full_name: "Preseptor Demo", roles: %w[preseptor])
     kaprodi = demo_user("kaprodi.demo@jejakessential.test", full_name: "Kaprodi Demo", roles: %w[kaprodi], study_program: sarjana)

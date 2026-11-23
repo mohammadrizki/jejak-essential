@@ -25,7 +25,7 @@ class EvidenceRequirementsControllerTest < ActionDispatch::IntegrationTest
     requirement = EvidenceRequirement.create!(origin: "manual", competency_item: competency_items(:sub_anamnesis),
       source_type: "wpba", required_count: 1)
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     admin.update!(active_role: roles(:admin))
     sign_in admin
 

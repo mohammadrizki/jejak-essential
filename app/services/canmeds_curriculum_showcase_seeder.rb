@@ -192,7 +192,11 @@ class CanmedsCurriculumShowcaseSeeder
 
     BLUEPRINT_COMPONENTS.each do |definition|
       item = version.blueprint_items.find_or_create_by!(code: definition.fetch(:code)) do |record|
-        record.assessment_method = AssessmentMethod.find_by!(code: definition.fetch(:method))
+        method_code = definition.fetch(:method)
+        record.assessment_method = AssessmentMethod.find_or_create_by!(code: method_code) do |method|
+          method.name = method_code.humanize
+          method.assessment_type = %w[mini_cex dops cbd].include?(method_code) ? "workplace" : "written"
+        end
         record.title = definition.fetch(:title)
         record.assessment_context = definition.fetch(:context)
         record.weight = definition.fetch(:weight)
@@ -233,11 +237,21 @@ class CanmedsCurriculumShowcaseSeeder
     BLUEPRINT_EVIDENCE_RULES.each do |definition|
       item = version.blueprint_items.find_by!(code: definition.fetch(:item_code))
       indicator = framework.competency_indicators.find_by!(code: definition.fetch(:indicator_code))
-      next if item.evidence_requirements.exists?(competency_indicator_id: indicator.id, status: "active")
+      existing_requirement = item.evidence_requirements.find_by(competency_indicator_id: indicator.id, status: "active")
+      if existing_requirement
+        if definition.fetch(:source_type) == "reflection"
+          rule = existing_requirement.fulfillment_rule.to_h.merge(
+            "require_validation" => false,
+            "valid_results" => %w[other]
+          )
+          existing_requirement.update!(fulfillment_rule: rule) unless existing_requirement.fulfillment_rule == rule
+        end
+        next
+      end
 
       fulfillment_rule = {
-        require_validation: true,
-        valid_results: %w[pass borderline],
+        require_validation: definition.fetch(:source_type) != "reflection",
+        valid_results: definition.fetch(:source_type) == "reflection" ? %w[other] : %w[pass borderline],
         minimum_valid_evidence: definition.fetch(:required_count),
         minimum_pass: definition.fetch(:minimum_pass, 0),
         minimum_distinct_cases: definition.fetch(:minimum_distinct_cases, 0),
@@ -290,7 +304,12 @@ class CanmedsCurriculumShowcaseSeeder
     BLUEPRINT_EVIDENCE_RULES.all? do |definition|
       item = version.blueprint_items.find_by(code: definition.fetch(:item_code))
       indicator = version.competency_framework.competency_indicators.find_by(code: definition.fetch(:indicator_code))
-      item && indicator && item.evidence_requirements.exists?(competency_indicator_id: indicator.id, status: "active")
+      requirement = item&.evidence_requirements&.find_by(competency_indicator_id: indicator&.id, status: "active")
+      next false unless item && indicator && requirement
+      next true unless definition.fetch(:source_type) == "reflection"
+
+      rule = requirement.current_version&.fulfillment_rule || requirement.fulfillment_rule
+      rule["require_validation"] == false && rule.fetch("valid_results", []).include?("other")
     end
   end
 end

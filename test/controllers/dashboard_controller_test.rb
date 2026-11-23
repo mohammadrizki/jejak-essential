@@ -39,7 +39,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "admin melihat tautan konfigurasi di Akses Cepat" do
     admin_user = users(:budi)
-    admin_user.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin_user)
     admin_user.update!(active_role: roles(:admin))
     sign_in admin_user
 
@@ -239,9 +239,11 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "mahasiswa Profesi mendapat pintasan EPA" do
-    student = users(:siti)
-    student.update!(study_program: study_programs(:profesi_dokter))
-    assert_equal "profesi", student.reload.study_program.level
+    student = User.create!(full_name: "Mahasiswa Profesi", email: "profesi-dashboard@example.com",
+      password: "rahasia-kuat-1", confirmed_at: Time.current, study_program: study_programs(:profesi_dokter),
+      active_role: roles(:mahasiswa))
+    student.user_roles.create!(role: roles(:mahasiswa), scope_level: "system")
+    assert_equal "profesi", student.study_program.level
     sign_in student
 
     get dashboard_path

@@ -83,7 +83,7 @@ class UserAssignmentTest < ActiveSupport::TestCase
   test "admin teknis tidak otomatis menjadi pengusul capaian kompetensi" do
     admin = User.create!(full_name: "Admin Tanpa Otoritas Akademik", email: "admin-proposer@example.com",
       password: "rahasia-kuat-1", confirmed_at: Time.current)
-    admin.roles << roles(:admin)
+    grant_bootstrapped_system_admin!(admin)
     student = users(:siti)
 
     assert_not AssignmentAuthorization.assigned?(user: admin, role: "competency_attainment_proposer", student: student)
