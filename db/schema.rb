@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -151,7 +151,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["artifact_submission_id", "reviewer_id", "reviewed_at"], name: "idx_artifact_submission_review_history"
     t.index ["artifact_submission_id"], name: "index_artifact_submission_reviews_on_artifact_submission_id"
     t.index ["reviewer_id"], name: "index_artifact_submission_reviews_on_reviewer_id"
-    t.check_constraint "decision::text = ANY (ARRAY['approved'::character varying, 'rejected'::character varying]::text[])", name: "chk_artifact_submission_review_decision"
+    t.check_constraint "decision::text = ANY (ARRAY['approved'::character varying::text, 'rejected'::character varying::text])", name: "chk_artifact_submission_review_decision"
   end
 
   create_table "artifact_submissions", force: :cascade do |t|
@@ -172,8 +172,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["status", "submitted_at"], name: "index_artifact_submissions_on_status_and_submitted_at"
     t.index ["student_id", "source_type", "source_id"], name: "idx_artifact_submission_source_once", unique: true
     t.index ["student_id"], name: "index_artifact_submissions_on_student_id"
-    t.check_constraint "source_type::text = ANY (ARRAY['ActivityLog'::character varying, 'ReflectionEntry'::character varying, 'EvidenceRecord'::character varying]::text[])", name: "chk_artifact_submission_source_type"
-    t.check_constraint "status::text = ANY (ARRAY['submitted'::character varying, 'approved'::character varying, 'rejected'::character varying, 'withdrawn'::character varying]::text[])", name: "chk_artifact_submission_status"
+    t.check_constraint "source_type::text = ANY (ARRAY['ActivityLog'::character varying::text, 'ReflectionEntry'::character varying::text, 'EvidenceRecord'::character varying::text])", name: "chk_artifact_submission_source_type"
+    t.check_constraint "status::text = ANY (ARRAY['submitted'::character varying::text, 'approved'::character varying::text, 'rejected'::character varying::text, 'withdrawn'::character varying::text])", name: "chk_artifact_submission_status"
   end
 
   create_table "assessment_blueprint_mappings", force: :cascade do |t|
@@ -385,7 +385,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["blueprint_item_id"], name: "index_blueprint_item_epas_on_blueprint_item_id"
     t.index ["epa_id"], name: "index_blueprint_item_epas_on_epa_id"
     t.index ["supervision_level_id"], name: "index_blueprint_item_epas_on_supervision_level_id"
-    t.check_constraint "assessment_purpose::text = ANY (ARRAY['formative'::character varying, 'summative'::character varying, 'entrustment'::character varying]::text[])", name: "chk_blueprint_epa_purpose"
+    t.check_constraint "assessment_purpose::text = ANY (ARRAY['formative'::character varying::text, 'summative'::character varying::text, 'entrustment'::character varying::text])", name: "chk_blueprint_epa_purpose"
     t.check_constraint "expected_level IS NULL OR expected_level >= 1", name: "chk_blueprint_epa_expected_level"
   end
 
@@ -421,7 +421,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["assessment_blueprint_id"], name: "idx_one_published_blueprint_version", unique: true, where: "((status)::text = 'published'::text)"
     t.index ["assessment_blueprint_id"], name: "index_blueprint_versions_on_assessment_blueprint_id"
     t.index ["competency_framework_id"], name: "index_blueprint_versions_on_competency_framework_id"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])", name: "chk_blueprint_version_status"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'published'::character varying::text, 'archived'::character varying::text])", name: "chk_blueprint_version_status"
   end
 
   create_table "break_glass_accesses", force: :cascade do |t|
@@ -516,7 +516,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.datetime "created_at", null: false
     t.index ["competency_attainment_id"], name: "idx_on_competency_attainment_id_6813ec2ada"
     t.index ["reviewer_id"], name: "index_competency_attainment_reviews_on_reviewer_id"
-    t.check_constraint "decision::text = ANY (ARRAY['approved'::character varying, 'rejected'::character varying]::text[])", name: "chk_competency_attainment_review_decision"
+    t.check_constraint "decision::text = ANY (ARRAY['approved'::character varying::text, 'rejected'::character varying::text])", name: "chk_competency_attainment_review_decision"
   end
 
   create_table "competency_attainments", force: :cascade do |t|
@@ -540,7 +540,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["student_id", "competency_item_id", "decision_date"], name: "idx_competency_attainments_history"
     t.index ["student_id"], name: "index_competency_attainments_on_student_id"
     t.check_constraint "attainment_level IS NULL OR attainment_level >= 1 AND attainment_level <= 5", name: "chk_competency_attainment_level"
-    t.check_constraint "status::text = ANY (ARRAY['proposed'::character varying, 'approved'::character varying, 'rejected'::character varying]::text[])", name: "chk_competency_attainment_status"
+    t.check_constraint "status::text = ANY (ARRAY['proposed'::character varying::text, 'approved'::character varying::text, 'rejected'::character varying::text])", name: "chk_competency_attainment_status"
   end
 
   create_table "competency_frameworks", force: :cascade do |t|
@@ -557,8 +557,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["study_program_id", "version"], name: "idx_framework_program_version", unique: true
     t.index ["study_program_id"], name: "idx_one_published_competency_framework", unique: true, where: "((status)::text = 'published'::text)"
     t.index ["study_program_id"], name: "index_competency_frameworks_on_study_program_id"
-    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['sarjana'::character varying, 'profesi'::character varying, 'spesialis'::character varying, 'subspesialis'::character varying]::text[]))", name: "chk_framework_education_stage"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])", name: "chk_framework_status"
+    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['sarjana'::character varying::text, 'profesi'::character varying::text, 'spesialis'::character varying::text, 'subspesialis'::character varying::text]))", name: "chk_framework_education_stage"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'published'::character varying::text, 'archived'::character varying::text])", name: "chk_framework_status"
     t.check_constraint "version IS NOT NULL AND status IS NOT NULL AND education_stage IS NOT NULL", name: "chk_framework_required_fields"
   end
 
@@ -591,7 +591,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["competency_framework_id"], name: "index_competency_items_on_competency_framework_id"
     t.index ["parent_id"], name: "index_competency_items_on_parent_id"
     t.check_constraint "level_type IS NOT NULL", name: "chk_competency_level_type_present"
-    t.check_constraint "level_type::text = ANY (ARRAY['domain'::character varying, 'competency'::character varying, 'subcompetency'::character varying]::text[])", name: "chk_competency_level_type"
+    t.check_constraint "level_type::text = ANY (ARRAY['domain'::character varying::text, 'competency'::character varying::text, 'subcompetency'::character varying::text])", name: "chk_competency_level_type"
     t.check_constraint "parent_id IS NULL OR parent_id <> id", name: "chk_competency_not_self_parent"
   end
 
@@ -616,7 +616,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["source_competency_id", "target_competency_id", "relationship_type"], name: "idx_competency_progressions_unique", unique: true
     t.index ["source_competency_id"], name: "index_competency_progressions_on_source_competency_id"
     t.index ["target_competency_id"], name: "index_competency_progressions_on_target_competency_id"
-    t.check_constraint "relationship_type::text = ANY (ARRAY['prerequisite'::character varying, 'supports'::character varying, 'develops_into'::character varying]::text[])", name: "chk_progression_relationship_type"
+    t.check_constraint "relationship_type::text = ANY (ARRAY['prerequisite'::character varying::text, 'supports'::character varying::text, 'develops_into'::character varying::text])", name: "chk_progression_relationship_type"
     t.check_constraint "source_competency_id <> target_competency_id", name: "chk_progression_not_self"
   end
 
@@ -697,7 +697,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["actor_id"], name: "index_entrustment_decision_events_on_actor_id"
     t.index ["entrustment_decision_id", "occurred_at"], name: "idx_entrustment_decision_events_history"
     t.index ["entrustment_decision_id"], name: "index_entrustment_decision_events_on_entrustment_decision_id"
-    t.check_constraint "event_type::text = ANY (ARRAY['issued'::character varying, 'restricted'::character varying, 'renewed'::character varying, 'revoked'::character varying, 'expired'::character varying, 'corrected'::character varying, 'superseded'::character varying]::text[])", name: "chk_entrustment_decision_event_type"
+    t.check_constraint "event_type::text = ANY (ARRAY['issued'::character varying::text, 'restricted'::character varying::text, 'renewed'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text, 'corrected'::character varying::text, 'superseded'::character varying::text])", name: "chk_entrustment_decision_event_type"
   end
 
   create_table "entrustment_decisions", force: :cascade do |t|
@@ -740,9 +740,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["student_id"], name: "index_entrustment_decisions_on_student_id"
     t.index ["superseded_by_id"], name: "index_entrustment_decisions_on_superseded_by_id"
     t.index ["supervision_level_id"], name: "index_entrustment_decisions_on_supervision_level_id"
-    t.check_constraint "decision_kind::text = ANY (ARRAY['legacy'::character varying, 'ad_hoc'::character varying, 'summative'::character varying]::text[])", name: "chk_entrustment_decision_kind"
+    t.check_constraint "decision_kind::text = ANY (ARRAY['legacy'::character varying::text, 'ad_hoc'::character varying::text, 'summative'::character varying::text])", name: "chk_entrustment_decision_kind"
     t.check_constraint "decision_status::text = 'revoked'::text AND revoked_at IS NOT NULL AND revoked_by_id IS NOT NULL AND length(btrim(COALESCE(revocation_reason, ''::text))) >= 10 OR decision_status::text <> 'revoked'::text OR decision_kind::text = 'legacy'::text", name: "chk_entrustment_revocation_audit"
-    t.check_constraint "decision_status::text = ANY (ARRAY['active'::character varying, 'restricted'::character varying, 'expired'::character varying, 'revoked'::character varying, 'superseded'::character varying]::text[])", name: "chk_entrustment_decision_status"
+    t.check_constraint "decision_status::text = ANY (ARRAY['active'::character varying::text, 'restricted'::character varying::text, 'expired'::character varying::text, 'revoked'::character varying::text, 'superseded'::character varying::text])", name: "chk_entrustment_decision_status"
     t.check_constraint "valid_until IS NULL OR valid_until > valid_from", name: "chk_entrustment_validity_window"
   end
 
@@ -764,7 +764,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["epa_id", "competency_item_id", "competency_indicator_id"], name: "idx_epa_competencies_unique", unique: true
     t.index ["epa_id", "competency_item_id"], name: "idx_epa_competency_without_indicator", unique: true, where: "(competency_indicator_id IS NULL)"
     t.index ["epa_id"], name: "index_epa_competencies_on_epa_id"
-    t.check_constraint "ksa_dimension IS NULL OR (ksa_dimension::text = ANY (ARRAY['knowledge'::character varying, 'skill'::character varying, 'attitude'::character varying]::text[]))", name: "chk_epa_competency_ksa"
+    t.check_constraint "ksa_dimension IS NULL OR (ksa_dimension::text = ANY (ARRAY['knowledge'::character varying::text, 'skill'::character varying::text, 'attitude'::character varying::text]))", name: "chk_epa_competency_ksa"
     t.check_constraint "minimum_attainment_level IS NULL OR minimum_attainment_level >= 1 AND minimum_attainment_level <= 5", name: "chk_epa_competency_minimum_level"
   end
 
@@ -780,7 +780,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["epa_id"], name: "index_epa_milestones_on_epa_id"
     t.index ["supervision_level_id"], name: "index_epa_milestones_on_supervision_level_id"
     t.check_constraint "expected_level >= 1", name: "chk_epa_milestone_level"
-    t.check_constraint "stage::text = ANY (ARRAY['sarjana'::character varying, 'profesi'::character varying, 'spesialis'::character varying, 'subspesialis'::character varying]::text[])", name: "chk_epa_milestone_stage"
+    t.check_constraint "stage::text = ANY (ARRAY['sarjana'::character varying::text, 'profesi'::character varying::text, 'spesialis'::character varying::text, 'subspesialis'::character varying::text])", name: "chk_epa_milestone_stage"
   end
 
   create_table "epa_observations", force: :cascade do |t|
@@ -813,9 +813,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["student_id", "epa_id", "observed_at"], name: "idx_epa_observations_student_epa_date"
     t.index ["student_id"], name: "index_epa_observations_on_student_id"
     t.index ["supervision_level_id"], name: "index_epa_observations_on_supervision_level_id"
-    t.check_constraint "complexity::text = ANY (ARRAY['routine'::character varying, 'moderate'::character varying, 'complex'::character varying, 'critical'::character varying]::text[])", name: "chk_epa_observation_complexity"
+    t.check_constraint "complexity::text = ANY (ARRAY['routine'::character varying::text, 'moderate'::character varying::text, 'complex'::character varying::text, 'critical'::character varying::text])", name: "chk_epa_observation_complexity"
     t.check_constraint "safety_resolved_at IS NULL AND safety_resolved_by_id IS NULL AND safety_resolution IS NULL OR safety_resolved_at IS NOT NULL AND safety_resolved_by_id IS NOT NULL AND length(btrim(safety_resolution)) >= 10", name: "chk_epa_safety_resolution"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying, 'recorded'::character varying, 'returned'::character varying, 'voided'::character varying]::text[])", name: "chk_epa_observation_status"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'submitted'::character varying::text, 'recorded'::character varying::text, 'returned'::character varying::text, 'voided'::character varying::text])", name: "chk_epa_observation_status"
   end
 
   create_table "epa_promotion_appeals", force: :cascade do |t|
@@ -833,7 +833,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["epa_promotion_id", "round_number"], name: "idx_epa_promotion_appeals_round", unique: true
     t.index ["epa_promotion_id"], name: "index_epa_promotion_appeals_on_epa_promotion_id"
     t.index ["resolved_by_id"], name: "index_epa_promotion_appeals_on_resolved_by_id"
-    t.check_constraint "resolution IS NULL OR (resolution::text = ANY (ARRAY['approved'::character varying, 'restricted'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'deferred'::character varying, 'revoked'::character varying]::text[]))", name: "chk_epa_promotion_appeal_resolution"
+    t.check_constraint "resolution IS NULL OR (resolution::text = ANY (ARRAY['approved'::character varying::text, 'restricted'::character varying::text, 'needs_more_evidence'::character varying::text, 'not_entrusted'::character varying::text, 'deferred'::character varying::text, 'revoked'::character varying::text]))", name: "chk_epa_promotion_appeal_resolution"
   end
 
   create_table "epa_promotion_review_events", force: :cascade do |t|
@@ -848,8 +848,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.boolean "conflict_disclosed", default: false, null: false
     t.index ["epa_promotion_review_id"], name: "index_epa_promotion_review_events_on_epa_promotion_review_id"
     t.index ["supervision_level_id"], name: "index_epa_promotion_review_events_on_supervision_level_id"
-    t.check_constraint "event_kind::text = ANY (ARRAY['recommendation'::character varying, 'recusal'::character varying]::text[])", name: "chk_epa_panel_event_kind"
-    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying, 'restricted'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'deferred'::character varying, 'revoked'::character varying]::text[])", name: "chk_epa_panel_event_recommendation"
+    t.check_constraint "event_kind::text = ANY (ARRAY['recommendation'::character varying::text, 'recusal'::character varying::text])", name: "chk_epa_panel_event_kind"
+    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying::text, 'restricted'::character varying::text, 'needs_more_evidence'::character varying::text, 'not_entrusted'::character varying::text, 'deferred'::character varying::text, 'revoked'::character varying::text])", name: "chk_epa_panel_event_recommendation"
   end
 
   create_table "epa_promotion_reviews", force: :cascade do |t|
@@ -868,7 +868,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["epa_promotion_id"], name: "index_epa_promotion_reviews_on_epa_promotion_id"
     t.index ["reviewer_id"], name: "index_epa_promotion_reviews_on_reviewer_id"
     t.index ["supervision_level_id"], name: "index_epa_promotion_reviews_on_supervision_level_id"
-    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying, 'restricted'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'deferred'::character varying, 'revoked'::character varying]::text[])", name: "chk_epa_promotion_review_recommendation"
+    t.check_constraint "recommendation::text = ANY (ARRAY['approved'::character varying::text, 'restricted'::character varying::text, 'needs_more_evidence'::character varying::text, 'not_entrusted'::character varying::text, 'deferred'::character varying::text, 'revoked'::character varying::text])", name: "chk_epa_promotion_review_recommendation"
   end
 
   create_table "epa_promotions", force: :cascade do |t|
@@ -897,9 +897,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["renewal_of_decision_id"], name: "idx_epa_promotions_renewal_decision"
     t.index ["reviewed_by_id"], name: "index_epa_promotions_on_reviewed_by_id"
     t.index ["status", "eligible_at"], name: "index_epa_promotions_on_status_and_eligible_at"
-    t.index ["student_id", "epa_id"], name: "idx_epa_promotions_open_student_epa", unique: true, where: "((status)::text = ANY ((ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying, 'appeal_pending'::character varying])::text[]))"
+    t.index ["student_id", "epa_id"], name: "idx_epa_promotions_open_student_epa", unique: true, where: "((status)::text = ANY (ARRAY[('ready'::character varying)::text, ('promoted'::character varying)::text, ('under_review'::character varying)::text, ('appeal_pending'::character varying)::text]))"
     t.index ["student_id"], name: "index_epa_promotions_on_student_id"
-    t.check_constraint "status::text = ANY (ARRAY['ready'::character varying, 'promoted'::character varying, 'under_review'::character varying, 'needs_more_evidence'::character varying, 'not_entrusted'::character varying, 'approved'::character varying, 'restricted'::character varying, 'deferred'::character varying, 'revoked'::character varying, 'appeal_pending'::character varying]::text[])", name: "chk_epa_promotion_status"
+    t.check_constraint "status::text = ANY (ARRAY['ready'::character varying::text, 'promoted'::character varying::text, 'under_review'::character varying::text, 'needs_more_evidence'::character varying::text, 'not_entrusted'::character varying::text, 'approved'::character varying::text, 'restricted'::character varying::text, 'deferred'::character varying::text, 'revoked'::character varying::text, 'appeal_pending'::character varying::text])", name: "chk_epa_promotion_status"
   end
 
   create_table "epas", force: :cascade do |t|
@@ -915,7 +915,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.datetime "updated_at", null: false
     t.index ["competency_framework_id", "code"], name: "idx_epas_framework_code", unique: true
     t.index ["competency_framework_id"], name: "index_epas_on_competency_framework_id"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying]::text[])", name: "chk_epa_status"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'published'::character varying::text, 'archived'::character varying::text])", name: "chk_epa_status"
   end
 
   create_table "evaluation_schedules", force: :cascade do |t|
@@ -961,6 +961,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["evidence_requirement_id", "activity_log_id"], name: "idx_evidence_record_activity_once", unique: true, where: "(activity_log_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "assessment_instance_id"], name: "idx_evidence_record_assessment_once", unique: true, where: "(assessment_instance_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "dops_evaluation_id"], name: "idx_evidence_record_dops_once", unique: true, where: "(dops_evaluation_id IS NOT NULL)"
+    t.index ["evidence_requirement_id", "epa_observation_id"], name: "idx_evidence_record_epa_observation_once", unique: true, where: "(epa_observation_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "evidence_date"], name: "idx_evidence_records_requirement_date"
     t.index ["evidence_requirement_id", "evidence_source_id"], name: "idx_evidence_record_source_once", unique: true, where: "(evidence_source_id IS NOT NULL)"
     t.index ["evidence_requirement_id", "mini_cex_evaluation_id"], name: "idx_evidence_record_mini_cex_once", unique: true, where: "(mini_cex_evaluation_id IS NOT NULL)"
@@ -971,8 +972,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["evidence_source_id"], name: "index_evidence_records_on_evidence_source_id"
     t.index ["mini_cex_evaluation_id"], name: "index_evidence_records_on_mini_cex_evaluation_id"
     t.index ["reflection_entry_id"], name: "index_evidence_records_on_reflection_entry_id"
-    t.check_constraint "num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id) = 1 OR num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id) = 0 AND evidence_source_id IS NOT NULL", name: "chk_evidence_record_single_source"
-    t.check_constraint "result::text = ANY (ARRAY['pass'::character varying, 'fail'::character varying, 'borderline'::character varying, 'not_assessed'::character varying, 'other'::character varying]::text[])", name: "chk_evidence_record_result"
+    t.check_constraint "num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id, wpba_observation_id) = 1 OR num_nonnulls(assessment_instance_id, activity_log_id, reflection_entry_id, epa_observation_id, mini_cex_evaluation_id, dops_evaluation_id, wpba_observation_id) = 0 AND evidence_source_id IS NOT NULL", name: "chk_evidence_record_single_source"
+    t.check_constraint "result::text = ANY (ARRAY['pass'::character varying::text, 'fail'::character varying::text, 'borderline'::character varying::text, 'not_assessed'::character varying::text, 'other'::character varying::text])", name: "chk_evidence_record_result"
   end
 
   create_table "evidence_requirement_versions", force: :cascade do |t|
@@ -1008,10 +1009,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.check_constraint "competency_indicator_id IS NULL OR competency_item_id IS NOT NULL", name: "chk_evidence_indicator_target"
     t.check_constraint "competency_item_id IS NOT NULL OR epa_id IS NOT NULL", name: "chk_evidence_requirement_target"
     t.check_constraint "origin::text = 'blueprint'::text AND blueprint_item_id IS NOT NULL OR origin::text = 'manual'::text AND blueprint_item_id IS NULL", name: "chk_evidence_requirement_origin_source"
-    t.check_constraint "origin::text = ANY (ARRAY['blueprint'::character varying, 'manual'::character varying]::text[])", name: "chk_evidence_requirement_origin"
+    t.check_constraint "origin::text = ANY (ARRAY['blueprint'::character varying::text, 'manual'::character varying::text])", name: "chk_evidence_requirement_origin"
     t.check_constraint "required_count > 0", name: "chk_evidence_requirement_count"
-    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying, 'wpba'::character varying, 'logbook'::character varying, 'portfolio'::character varying, 'reflection'::character varying, 'other'::character varying, 'epa_observation'::character varying, 'external'::character varying]::text[])", name: "chk_evidence_requirement_source"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "chk_evidence_requirement_status"
+    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying::text, 'wpba'::character varying::text, 'logbook'::character varying::text, 'portfolio'::character varying::text, 'reflection'::character varying::text, 'other'::character varying::text, 'epa_observation'::character varying::text, 'external'::character varying::text])", name: "chk_evidence_requirement_source"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text])", name: "chk_evidence_requirement_status"
   end
 
   create_table "evidence_sources", force: :cascade do |t|
@@ -1040,8 +1041,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["source_system", "source_record_id", "source_revision"], name: "idx_evidence_sources_external_identity", unique: true
     t.index ["student_id"], name: "index_evidence_sources_on_student_id"
     t.index ["validated_by_id"], name: "index_evidence_sources_on_validated_by_id"
-    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying, 'wpba'::character varying, 'logbook'::character varying, 'reflection'::character varying, 'epa_observation'::character varying, 'external'::character varying]::text[])", name: "chk_evidence_source_type"
-    t.check_constraint "validation_status::text = ANY (ARRAY['unverified'::character varying, 'validated'::character varying, 'rejected'::character varying]::text[])", name: "chk_evidence_source_validation_status"
+    t.check_constraint "source_type::text = ANY (ARRAY['assessment'::character varying::text, 'wpba'::character varying::text, 'logbook'::character varying::text, 'reflection'::character varying::text, 'epa_observation'::character varying::text, 'external'::character varying::text])", name: "chk_evidence_source_type"
+    t.check_constraint "validation_status::text = ANY (ARRAY['unverified'::character varying::text, 'validated'::character varying::text, 'rejected'::character varying::text])", name: "chk_evidence_source_validation_status"
   end
 
   create_table "exam_imports", force: :cascade do |t|
@@ -1095,7 +1096,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["created_by_id"], name: "index_external_identity_mappings_on_created_by_id"
     t.index ["internal_record_type", "internal_record_id"], name: "idx_external_identity_internal_target"
     t.index ["source_system", "entity_type", "external_id"], name: "idx_external_identity_source_once", unique: true
-    t.check_constraint "authority::text = ANY (ARRAY['manual'::character varying, 'import'::character varying, 'integration'::character varying]::text[])", name: "chk_external_identity_authority"
+    t.check_constraint "authority::text = ANY (ARRAY['manual'::character varying::text, 'import'::character varying::text, 'integration'::character varying::text])", name: "chk_external_identity_authority"
   end
 
   create_table "external_import_batches", force: :cascade do |t|
@@ -1167,7 +1168,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_framework_template_records_on_created_by_id"
     t.index ["name"], name: "index_framework_template_records_on_name"
-    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['sarjana'::character varying, 'profesi'::character varying, 'spesialis'::character varying, 'subspesialis'::character varying]::text[]))", name: "chk_framework_template_education_stage"
+    t.check_constraint "education_stage IS NULL OR (education_stage::text = ANY (ARRAY['sarjana'::character varying::text, 'profesi'::character varying::text, 'spesialis'::character varying::text, 'subspesialis'::character varying::text]))", name: "chk_framework_template_education_stage"
   end
 
   create_table "glide_imports", force: :cascade do |t|
@@ -1344,7 +1345,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.datetime "updated_at", null: false
     t.index ["artifact_submission_id"], name: "index_portfolio_selections_on_artifact_submission_id", unique: true
     t.index ["student_id"], name: "index_portfolio_selections_on_student_id"
-    t.check_constraint "visibility::text = ANY (ARRAY['private'::character varying, 'assigned_reviewers'::character varying]::text[])", name: "chk_portfolio_selection_visibility"
+    t.check_constraint "visibility::text = ANY (ARRAY['private'::character varying::text, 'assigned_reviewers'::character varying::text])", name: "chk_portfolio_selection_visibility"
   end
 
   create_table "prescription_items", force: :cascade do |t|
@@ -1424,7 +1425,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["role_id", "system_permission_id"], name: "idx_role_permissions_unique", unique: true
     t.index ["role_id"], name: "index_role_permissions_on_role_id"
     t.index ["system_permission_id"], name: "index_role_permissions_on_system_permission_id"
-    t.check_constraint "scope_level::text = ANY (ARRAY['system'::character varying, 'study_program'::character varying]::text[])", name: "chk_role_permissions_scope"
+    t.check_constraint "scope_level::text = ANY (ARRAY['system'::character varying::text, 'study_program'::character varying::text])", name: "chk_role_permissions_scope"
   end
 
   create_table "roles", force: :cascade do |t|
@@ -1499,7 +1500,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["code", "version_label"], name: "idx_supervision_scale_versions_identity", unique: true
-    t.check_constraint "use_case::text = ANY (ARRAY['retrospective_observation'::character varying, 'prospective_entrustment'::character varying]::text[])", name: "chk_supervision_scale_use_case"
+    t.check_constraint "use_case::text = ANY (ARRAY['retrospective_observation'::character varying::text, 'prospective_entrustment'::character varying::text])", name: "chk_supervision_scale_use_case"
   end
 
   create_table "system_permissions", force: :cascade do |t|
@@ -1677,7 +1678,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
     t.index ["student_id", "observed_at"], name: "index_wpba_observations_on_student_id_and_observed_at"
     t.index ["student_id"], name: "index_wpba_observations_on_student_id"
     t.index ["wpba_instrument_version_id"], name: "index_wpba_observations_on_wpba_instrument_version_id"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying]::text[])", name: "chk_wpba_observations_status"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'submitted'::character varying::text])", name: "chk_wpba_observations_status"
   end
 
   add_foreign_key "academic_activity_subdomains", "academic_activity_domains"
@@ -1692,7 +1693,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
   add_foreign_key "activity_logs", "academic_periods"
   add_foreign_key "activity_logs", "clinical_rotations"
   add_foreign_key "activity_logs", "users"
-  add_foreign_key "activity_logs", "users", column: "verified_by_id", validate: false
+  add_foreign_key "activity_logs", "users", column: "verified_by_id"
   add_foreign_key "app_settings", "users", column: "updated_by_id"
   add_foreign_key "artifact_submission_reviews", "artifact_submissions"
   add_foreign_key "artifact_submission_reviews", "users", column: "reviewer_id"
@@ -1714,7 +1715,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
   add_foreign_key "assessment_form_answers", "assessment_form_fields"
   add_foreign_key "assessment_form_answers", "assessment_form_submissions"
   add_foreign_key "assessment_form_fields", "assessment_form_templates"
-  add_foreign_key "assessment_form_fields", "competency_items", validate: false
+  add_foreign_key "assessment_form_fields", "competency_items"
   add_foreign_key "assessment_form_submissions", "assessment_form_templates"
   add_foreign_key "assessment_form_submissions", "users", column: "respondent_id"
   add_foreign_key "assessment_form_submissions", "users", column: "subject_user_id"
@@ -1763,7 +1764,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
   add_foreign_key "competency_progressions", "competency_items", column: "target_competency_id"
   add_foreign_key "data_export_logs", "users"
   add_foreign_key "device_push_tokens", "users"
-  add_foreign_key "dops_evaluations", "clinical_cases", validate: false
+  add_foreign_key "dops_evaluations", "clinical_cases"
   add_foreign_key "dops_evaluations", "clinical_rotations"
   add_foreign_key "dops_evaluations", "dops_evaluations", column: "corrects_id", name: "fk_dops_correction_parent", on_delete: :restrict
   add_foreign_key "dops_evaluations", "users", column: "evaluator_id"
@@ -1851,7 +1852,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120000) do
   add_foreign_key "learning_units", "study_programs"
   add_foreign_key "logbook_case_targets", "academic_periods"
   add_foreign_key "logbook_case_targets", "study_programs"
-  add_foreign_key "mini_cex_evaluations", "clinical_cases", validate: false
+  add_foreign_key "mini_cex_evaluations", "clinical_cases"
   add_foreign_key "mini_cex_evaluations", "clinical_rotations"
   add_foreign_key "mini_cex_evaluations", "mini_cex_evaluations", column: "corrects_id", name: "fk_minicex_correction_parent", on_delete: :restrict
   add_foreign_key "mini_cex_evaluations", "users", column: "evaluator_id"

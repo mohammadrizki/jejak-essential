@@ -14,15 +14,17 @@ class Admin::ExportsController < ApplicationController
 
   def index
     @datasets = DataExport.datasets_for(current_user).group_by(&:group)
-    @study_programs = StudyProgram.ordered
+    @study_programs = current_user.has_role?("superadmin") ? StudyProgram.ordered :
+      StudyProgram.where(id: current_user.programs_with_permission("users.manage").map(&:id)).ordered
     @academic_periods = AcademicPeriod.ordered
-    @form_templates = AssessmentFormTemplate.order(:name)
+    @form_templates = current_user.has_role?("superadmin") ? AssessmentFormTemplate.order(:name) :
+      AssessmentFormTemplate.where(study_program_id: @study_programs.select(:id)).order(:name)
     @filters = filter_params
     @counts = @datasets.values.flatten.to_h do |dataset|
       [ dataset.key, DataExport.new(dataset.key, viewer: current_user, **@filters).count ]
     end
     logs = DataExportLog.includes(:user).recent
-    @logs = (current_user.has_role?("admin") ? logs : logs.where(user: current_user)).limit(20)
+    @logs = (current_user.has_role?("superadmin") ? logs : logs.where(user: current_user)).limit(20)
   end
 
   # GET /admin/exports/:id.csv — :id = kunci dataset (mis. activity_logs).

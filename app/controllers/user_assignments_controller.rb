@@ -88,7 +88,8 @@ class UserAssignmentsController < ApplicationController
   end
 
   def assignment_target_allowed?(program, assignee)
-    current_user.has_role?("superadmin") || current_user.has_permission?("assignments.manage", study_program: program)
+    current_user.has_role?("superadmin") ||
+      (assignee.study_program_id == program.id && current_user.has_permission?("assignments.manage", study_program: program))
   end
 
   def set_assignment

@@ -67,9 +67,7 @@ class ExternalEvidenceImportsController < ApplicationController
   private
 
   def authorize_manager!
-    return if current_user.has_role?("admin") ||
-      (current_user.has_role?("kaprodi") && current_user.study_program_id.present?) ||
-      managed_programs.exists?
+    return if managed_programs.exists?
 
     redirect_to dashboard_path, alert: "Impor bukti eksternal memerlukan kewenangan admin, Kaprodi, atau penugasan pengelola data pada program studi."
   end
@@ -79,12 +77,13 @@ class ExternalEvidenceImportsController < ApplicationController
   end
 
   def managed_programs
-    return StudyProgram.ordered if current_user.has_role?("admin")
-    return StudyProgram.where(id: current_user.study_program_id) if current_user.has_role?("kaprodi") && current_user.study_program_id.present?
+    return StudyProgram.ordered if current_user.has_role?("superadmin")
+
+    permitted_ids = current_user.programs_with_permission("integration.manage").map(&:id)
 
     assignments = UserAssignment.active.where(user: current_user, assignment_role: "external_data_manager",
       scope_type: "StudyProgram").where("user_assignments.scope_id = user_assignments.study_program_id")
-    StudyProgram.where(id: assignments.select(:study_program_id))
+    StudyProgram.where(id: permitted_ids).or(StudyProgram.where(id: assignments.select(:study_program_id))).distinct
   end
 
   def selected_program

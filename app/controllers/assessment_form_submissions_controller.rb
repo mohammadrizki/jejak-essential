@@ -60,9 +60,11 @@ class AssessmentFormSubmissionsController < ApplicationController
   end
 
   def allowed_subject_users
-    return User.active_accounts if current_user.has_role?("admin")
-    return User.active_accounts.where(study_program_id: [ current_user.study_program_id, nil ]) if
-      current_user.has_role?("kaprodi") && current_user.study_program_id.present?
+    return User.active_accounts if current_user.has_role?("superadmin")
+
+    program_ids = @template.study_program_id ? [@template.study_program_id] : []
+    return User.active_accounts.where(study_program_id: program_ids) if
+      current_user.permitted_for_program?(@template.study_program, "curriculum.manage")
 
     User.none
   end

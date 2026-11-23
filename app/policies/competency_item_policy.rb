@@ -3,8 +3,7 @@
 class CompetencyItemPolicy < ApplicationPolicy
   def manage?
     framework = record.is_a?(CompetencyItem) ? record.competency_framework : nil
-    user.has_role?("admin") ||
-      (user.has_role?("kaprodi") && framework&.study_program_id == user.study_program_id)
+    user.permitted_for_program?(framework&.study_program, "curriculum.manage")
   end
   alias create? manage?
   alias new? manage?

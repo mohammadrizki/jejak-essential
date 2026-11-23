@@ -8,6 +8,7 @@ class CompetencyMilestonesController < ApplicationController
 
   def create
     authorize CompetencyMilestone
+    authorize @competency_item, :update?
     milestone = @competency_item.competency_milestones.new(milestone_params)
 
     if milestone.save
@@ -19,6 +20,7 @@ class CompetencyMilestonesController < ApplicationController
 
   def destroy
     authorize CompetencyMilestone
+    authorize @competency_item, :update?
     milestone = @competency_item.competency_milestones.find(params[:id])
     milestone.destroy
     redirect_to competency_framework_path(@competency_item.competency_framework), notice: "Target kompetensi dihapus.", status: :see_other

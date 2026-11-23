@@ -5,22 +5,23 @@
 # Penguji (ExaminerEvaluationsController), yang tidak melewati policy ini.
 class AssessmentFormTemplatePolicy < ApplicationPolicy
   def manage?
-    return true if user.has_role?("admin")
-    user.has_role?("kaprodi") && user.study_program_id.present? && record.study_program_id == user.study_program_id
+    return user.has_role?("superadmin") if record.study_program_id.blank?
+
+    user.permitted_for_program?(record.study_program, "curriculum.manage")
   end
 
   def index?
-    user.can_manage_assessment_forms? && (!user.has_role?("kaprodi") || user.study_program_id.present?)
+    user.has_role?("superadmin") || user.programs_with_permission("curriculum.manage").any?
   end
 
   def show?
-    return true if user.has_role?("admin")
-    user.has_role?("kaprodi") && user.study_program_id.present? &&
-      (record.study_program_id.nil? || record.study_program_id == user.study_program_id)
+    return user.has_role?("superadmin") if record.study_program_id.blank?
+
+    user.permitted_for_program?(record.study_program, "curriculum.manage")
   end
 
   def create?
-    user.has_role?("admin") || (user.has_role?("kaprodi") && user.study_program_id.present?)
+    user.has_role?("superadmin") || user.programs_with_permission("curriculum.manage").any?
   end
   alias new? create?
 
@@ -35,10 +36,9 @@ class AssessmentFormTemplatePolicy < ApplicationPolicy
 
   class Scope < Scope
     def resolve
-      return scope.all if user.has_role?("admin")
-      return scope.none unless user.has_role?("kaprodi") && user.study_program_id.present?
+      return scope.all if user.has_role?("superadmin")
 
-      scope.where(study_program_id: [nil, user.study_program_id])
+      scope.where(study_program_id: user.programs_with_permission("curriculum.manage").map(&:id))
     end
   end
 end

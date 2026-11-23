@@ -30,7 +30,7 @@ class ProfilesController < ApplicationController
     )
     # Prodi menentukan batas akses akademik. Selain admin, pengguna tidak
     # boleh memindahkan akun sendiri ke program studi lain lewat profil.
-    permitted.delete(:study_program_id) unless current_user.has_role?("admin")
+    permitted.delete(:study_program_id) unless current_user.has_role?("superadmin")
     permitted
   end
 end

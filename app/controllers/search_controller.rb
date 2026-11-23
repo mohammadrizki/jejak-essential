@@ -24,13 +24,18 @@ class SearchController < ApplicationController
   private
 
   def require_viewer!
-    return if current_user.can_view_students? || current_user.has_role?("admin")
+    return if current_user.can_view_students? || current_user.has_role?("superadmin") ||
+      current_user.programs_with_permission("users.manage").any?
 
     redirect_to dashboard_path, alert: "Pencarian pengguna khusus pengajar, kaprodi, dan admin."
   end
 
   def searchable_users
-    return User.all if current_user.has_role?("admin")
+    return User.all if current_user.has_role?("superadmin")
+
+    manageable_program_ids = current_user.programs_with_permission("users.manage").map(&:id)
+    return User.active_accounts.where(study_program_id: manageable_program_ids) if manageable_program_ids.any?
+    return User.none if current_user.has_role_grant?("admin")
 
     students = User.active_accounts.where(id: UserRole.joins(:role).where(roles: { code: "mahasiswa" }).select(:user_id))
     current_user.study_program_bound? ? students.where(study_program_id: current_user.study_program_id) : students

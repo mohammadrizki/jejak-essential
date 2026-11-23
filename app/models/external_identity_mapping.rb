@@ -24,9 +24,9 @@ class ExternalIdentityMapping < ApplicationRecord
     raise ArgumentError, "Target harus mahasiswa." unless student&.has_role?("mahasiswa")
     old = internal_record
     raise ArgumentError, "Pemetaan sudah menunjuk ke mahasiswa tersebut." if old&.id == student.id
-    allowed = by.has_role?("admin") ||
-      (by.has_role?("kaprodi") && by.study_program_id.present? &&
-        old&.study_program_id == by.study_program_id && student.study_program_id == by.study_program_id) ||
+    same_program = old&.study_program_id.present? && old.study_program_id == student.study_program_id
+    allowed = by.has_role?("superadmin") ||
+      (same_program && by.has_permission?("integration.manage", study_program: student.study_program)) ||
       (old&.study_program_id == student.study_program_id &&
         AssignmentAuthorization.assigned?(user: by, role: "external_data_manager", student: student))
     raise Pundit::NotAuthorizedError unless allowed

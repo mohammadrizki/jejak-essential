@@ -31,6 +31,7 @@ class AssessmentInstance < ApplicationRecord
   validates :score, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :max_score, numericality: { greater_than: 0 }
   validate :score_within_max
+  validate :student_matches_event_program
 
   scope :scored, -> { where(status: "scored") }
   scope :by_attempt, -> { order(:attempt_number) }
@@ -136,5 +137,12 @@ class AssessmentInstance < ApplicationRecord
     return if score.nil? || max_score.nil?
 
     errors.add(:score, "tidak boleh melebihi nilai maksimum (#{max_score})") if score > max_score
+  end
+
+  def student_matches_event_program
+    return if assessment_event.blank? || student.blank? || assessment_event.study_program_id.blank?
+    return if student.study_program_id == assessment_event.study_program_id
+
+    errors.add(:student, "harus berasal dari program studi Assessment Event")
   end
 end

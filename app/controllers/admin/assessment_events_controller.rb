@@ -6,12 +6,13 @@ require "csv"
 # tugaskan penguji, isi nilai manual, dan impor CSV berpemetaan kolom.
 class Admin::AssessmentEventsController < ApplicationController
   before_action :authenticate_user!
-  before_action :require_admin!
+  before_action :require_assessment_manager!
   before_action :set_event, only: %i[show edit update destroy import import_template import_preview import_create add_instance]
+  before_action :authorize_event_program!, only: %i[show edit update destroy import import_template import_preview import_create add_instance]
   before_action :require_importable_event!, only: %i[import import_template import_preview import_create]
 
   def index
-    @events = AssessmentEvent.includes(:academic_period, :study_program).ordered.page(params[:page]).per(30)
+    @events = event_scope.includes(:academic_period, :study_program).ordered.page(params[:page]).per(30)
   end
 
   def show
@@ -23,8 +24,10 @@ class Admin::AssessmentEventsController < ApplicationController
     @competency_items = competency_item_choices
     @instances = @event.assessment_instances.includes(:student, :examiner, assessment_dimension_scores: :assessment_dimension)
                        .joins(:student).order("users.full_name", :attempt_number)
-    @students = User.active_accounts.joins(:roles).where(roles: { code: "mahasiswa" }).distinct.order(:full_name)
-    @examiners = User.active_accounts.joins(:roles).where(roles: { code: %w[dosen preseptor kaprodi] }).distinct.order(:full_name)
+    @students = scoped_students.order(:full_name)
+    examiners = User.active_accounts.joins(:roles).where(roles: { code: %w[dosen preseptor kaprodi] }).distinct
+    @examiners = current_user.has_role?("superadmin") ? examiners.order(:full_name) :
+      examiners.where(study_program_id: @event.study_program_id).order(:full_name)
   end
 
   def new
@@ -35,6 +38,11 @@ class Admin::AssessmentEventsController < ApplicationController
 
   def create
     @event = AssessmentEvent.new(event_params.merge(created_by: current_user))
+    unless permitted_event_program?(@event.study_program)
+      @event.errors.add(:study_program, "berada di luar cakupan hak akses Anda")
+      load_collections
+      return render :new, status: :unprocessable_entity
+    end
     @event.wpba_instrument_version = WpbaInstrumentCatalog.version_for("cbd") if @event.assessment_type == "cbd"
     if @event.save
       redirect_to admin_assessment_event_path(@event), notice: "Assessment Event dibuat."
@@ -50,7 +58,14 @@ class Admin::AssessmentEventsController < ApplicationController
 
   def update
     previous_max = @event.max_score
-    if @event.update(event_params)
+    attributes = event_params
+    target_program = attributes.key?("study_program_id") ? StudyProgram.find_by(id: attributes["study_program_id"]) : @event.study_program
+    unless permitted_event_program?(target_program)
+      @event.errors.add(:study_program, "berada di luar cakupan hak akses Anda")
+      load_collections
+      return render :edit, status: :unprocessable_entity
+    end
+    if @event.update(attributes)
       sync_max_score!(previous_max)
       redirect_to admin_assessment_event_path(@event), notice: "Assessment Event diperbarui."
     else
@@ -75,14 +90,19 @@ class Admin::AssessmentEventsController < ApplicationController
   # Daftarkan percobaan (baru) untuk seorang mahasiswa — juga dipakai untuk
   # ujian ulang pada event berpercobaan-ulang.
   def add_instance
-    student = User.find_by(id: params[:student_id])
+    student = scoped_students.find_by(id: params[:student_id])
     return redirect_to(admin_assessment_event_path(@event), alert: "Pilih mahasiswa terlebih dahulu.") if student.nil?
+
+    examiner = User.active_accounts.find_by(id: params[:examiner_id]) if params[:examiner_id].present?
+    if examiner && !current_user.has_role?("superadmin") && examiner.study_program_id != @event.study_program_id
+      return redirect_to admin_assessment_event_path(@event), alert: "Penguji berada di luar cakupan program studi Anda."
+    end
 
     attempt = @event.allow_multiple_attempts? ? AssessmentInstance.next_attempt_number(@event, student) : 1
     instance = AssessmentInstance.find_or_initialize_by(assessment_event: @event, student: student, attempt_number: attempt)
     if instance.new_record?
       instance.max_score = @event.max_score
-      instance.examiner_id = params[:examiner_id].presence
+      instance.examiner = examiner
       instance.scheduled_at = params[:scheduled_at].presence
       instance.save!
       redirect_to admin_assessment_event_path(@event), notice: "#{student.full_name} didaftarkan (percobaan ke-#{attempt})."
@@ -169,14 +189,40 @@ class Admin::AssessmentEventsController < ApplicationController
 
   private
 
-  def require_admin!
-    return if current_user.has_role?("admin")
+  def require_assessment_manager!
+    return if current_user.has_role?("superadmin") || current_user.programs_with_permission("assessment.decide").any?
 
-    redirect_to dashboard_path, alert: "Halaman ini khusus admin."
+    redirect_to dashboard_path, alert: "Hak kelola asesmen pada program studi diperlukan."
   end
 
   def set_event
-    @event = AssessmentEvent.find(params[:id])
+    @event = event_scope.find(params[:id])
+  end
+
+  def permitted_program_ids
+    current_user.programs_with_permission("assessment.decide").map(&:id)
+  end
+
+  def event_scope
+    current_user.has_role?("superadmin") ? AssessmentEvent.all : AssessmentEvent.where(study_program_id: permitted_program_ids)
+  end
+
+  def permitted_event_program?(program)
+    current_user.has_role?("superadmin") || current_user.permitted_for_program?(program, "assessment.decide")
+  end
+
+  def authorize_event_program!
+    return if permitted_event_program?(@event.study_program)
+
+    redirect_to admin_assessment_events_path, alert: "Event berada di luar cakupan program studi Anda."
+  end
+
+  def scoped_students
+    students = User.active_accounts.joins(:roles).where(roles: { code: "mahasiswa" }).distinct
+    return students.where(study_program_id: @event.study_program_id) if @event.study_program_id.present?
+    return students if current_user.has_role?("superadmin")
+
+    students.none
   end
 
   # Impor CSV hanya masuk akal untuk ujian tulis/praktik. Sebelumnya tombolnya
@@ -199,8 +245,12 @@ class Admin::AssessmentEventsController < ApplicationController
 
   def load_collections
     @academic_periods = AcademicPeriod.ordered
-    @study_programs = StudyProgram.ordered
-    @form_templates = AssessmentFormTemplate.where(is_active: true).order(:name)
+    @study_programs = current_user.has_role?("superadmin") ? StudyProgram.ordered : StudyProgram.where(id: permitted_program_ids).ordered
+    @form_templates = if current_user.has_role?("superadmin")
+      AssessmentFormTemplate.where(is_active: true).order(:name)
+    else
+      AssessmentFormTemplate.where(is_active: true, study_program_id: permitted_program_ids).order(:name)
+    end
     items = BlueprintItem.joins(blueprint_version: [:assessment_blueprint, :competency_framework])
                          .where(blueprint_versions: { status: "published" }, competency_frameworks: { status: "published" })
     items = items.where(assessment_blueprints: { study_program_id: @event.study_program_id }) if @event.study_program_id.present?
@@ -221,7 +271,10 @@ class Admin::AssessmentEventsController < ApplicationController
   # Pilihan ranah kompetensi untuk pemetaan dimensi — ranah beserta
   # sub-kompetensinya, ditampilkan bertingkat.
   def competency_item_choices
-    CompetencyItem.includes(:competency_framework, :children).where(parent_id: nil).order(:position).flat_map do |domain|
+    framework_ids = CompetencyFramework.where(study_program_id: @event.study_program_id).select(:id)
+    items = CompetencyItem.includes(:competency_framework, :children)
+      .where(parent_id: nil, competency_framework_id: framework_ids).order(:position)
+    items.flat_map do |domain|
       [ [ domain.title, domain.id ] ] + domain.children.map { |child| [ "— #{child.title}", child.id ] }
     end
   end

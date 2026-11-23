@@ -31,8 +31,7 @@ class ModuleConfiguration
 
   def update!(values, actor:)
     raise ArgumentError, "program studi wajib dipilih" if study_program.blank?
-    unless actor.has_role?("admin") ||
-        (actor.has_role?("kaprodi") && actor.study_program_id == study_program.id)
+    unless actor.permitted_for_program?(study_program, "modules.manage")
       raise Pundit::NotAuthorizedError, "Anda tidak berwenang mengatur modul program studi ini."
     end
 

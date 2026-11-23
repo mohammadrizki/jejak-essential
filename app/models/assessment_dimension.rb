@@ -34,6 +34,7 @@ class AssessmentDimension < ApplicationRecord
   validates :name, uniqueness: { scope: :assessment_event_id, case_sensitive: false, message: "sudah ada pada event ini" }
   validates :weight, numericality: { greater_than: 0, less_than_or_equal_to: 100 }
   validates :max_score, numericality: { greater_than: 0 }
+  validate :competency_item_belongs_to_event_program
 
   before_create :assign_position
 
@@ -62,5 +63,12 @@ class AssessmentDimension < ApplicationRecord
 
   def assign_position
     self.position = (assessment_event.assessment_dimensions.maximum(:position) || 0) + 1
+  end
+
+  def competency_item_belongs_to_event_program
+    return if competency_item.blank? || assessment_event.blank? || assessment_event.study_program_id.blank?
+    return if competency_item.competency_framework.study_program_id == assessment_event.study_program_id
+
+    errors.add(:competency_item, "harus berasal dari Peta Kompetensi program studi event asesmen")
   end
 end

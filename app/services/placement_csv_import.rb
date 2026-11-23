@@ -31,10 +31,11 @@ class PlacementCsvImport
 
   Result = Struct.new(:created, :updated, :skipped, keyword_init: true)
 
-  def initialize(csv:, default_period: nil, actor: nil)
+  def initialize(csv:, default_period: nil, actor: nil, allowed_study_program_ids: nil)
     @csv = CsvUpload.decode(csv)
     @default_period = default_period
     @actor = actor
+    @allowed_study_program_ids = allowed_study_program_ids&.map(&:to_i)
   end
 
   def matches
@@ -132,6 +133,9 @@ class PlacementCsvImport
 
     match.student = candidates.first
     return "akun ini bukan mahasiswa" unless match.student.roles.any? { |role| role.code == "mahasiswa" }
+    if @allowed_study_program_ids && !@allowed_study_program_ids.include?(match.student.study_program_id)
+      return "mahasiswa berada di luar cakupan program studi Anda"
+    end
 
     "akun ini nonaktif" if match.student.deactivated?
   end
@@ -164,7 +168,12 @@ class PlacementCsvImport
     return "#{label} \"#{row[:supervisor]}\" akunnya nonaktif" if match.supervisor.deactivated?
 
     allowed = match.supervisor.roles.any? { |role| self.class::SUPERVISOR_ROLES.include?(role.code) }
-    "#{label} \"#{row[:supervisor]}\" tidak berperan #{self.class::SUPERVISOR_ROLES.join(' atau ')}" unless allowed
+    return "#{label} \"#{row[:supervisor]}\" tidak berperan #{self.class::SUPERVISOR_ROLES.join(' atau ')}" unless allowed
+    if @allowed_study_program_ids && !@allowed_study_program_ids.include?(match.supervisor.study_program_id)
+      return "#{label} \"#{row[:supervisor]}\" berada di luar cakupan program studi Anda"
+    end
+
+    nil
   end
 
   def build_record(match, key)

@@ -165,14 +165,14 @@ class DataExport
   EXCEL_TEXT_NUMBER = /\A(?:\+\d+|0\d+|\d{12,})\z/
 
   def self.allowed?(user)
-    user.has_role?("admin") || user.has_role?("kaprodi")
+    user.has_role?("superadmin") || user.programs_with_permission("users.manage").any?
   end
 
   def self.datasets_for(user)
     return [] unless allowed?(user)
 
-    admin = user.has_role?("admin")
-    DATASETS.values.reject { |dataset| dataset.admin_only && !admin }
+    system_manager = user.has_role?("superadmin")
+    DATASETS.values.reject { |dataset| dataset.admin_only && !system_manager }
   end
 
   def self.dataset_for(key, user)
@@ -185,7 +185,8 @@ class DataExport
                  form_template_id: nil, format: "standard")
     @dataset = self.class.dataset_for(key, viewer) or raise AccessDenied, "Dataset tidak tersedia untuk akun ini."
     @viewer = viewer
-    @admin = viewer.has_role?("admin")
+    @admin = viewer.has_role?("superadmin")
+    @permitted_program_ids = viewer.programs_with_permission("users.manage").map(&:id) unless @admin
     @study_program = resolve_study_program(study_program_id) if @dataset.filter?(:program)
     @period = AcademicPeriod.find_by(id: academic_period_id) if academic_period_id.present? && @dataset.filter?(:period)
     @from, @to = (@dataset.filter?(:dates) ? [ from, to ] : [ nil, nil ])
@@ -235,15 +236,24 @@ class DataExport
 
   def excel_id? = @format == "excel_id"
 
-  # Kaprodi terikat selalu prodinya sendiri; parameter study_program_id
-  # hanya didengar dari admin. Kaprodi tanpa prodi ditolak, bukan dibiarkan
-  # melihat semua prodi.
+  # Non-superadmin exports always have a permitted program selected. A missing
+  # or forged program ID must never turn into an unfiltered cross-program dump.
   def resolve_study_program(requested_id)
-    if @viewer.study_program_bound?
-      @viewer.study_program or raise AccessDenied, "Akun kaprodi belum terhubung ke Program Studi."
-    elsif requested_id.present?
-      StudyProgram.find_by(id: requested_id)
+    if @admin
+      return StudyProgram.find_by(id: requested_id) if requested_id.present?
+
+      return
     end
+
+    raise AccessDenied, "Tidak ada program studi dalam cakupan hak akses ekspor Anda." if @permitted_program_ids.blank?
+    if requested_id.present?
+      program = StudyProgram.where(id: @permitted_program_ids).find_by(id: requested_id)
+      raise AccessDenied, "Program studi berada di luar cakupan hak akses ekspor Anda." if program.blank?
+
+      return program
+    end
+
+    StudyProgram.where(id: @permitted_program_ids).ordered.first
   end
 
   def each_row(&block)

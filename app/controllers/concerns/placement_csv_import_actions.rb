@@ -24,7 +24,9 @@ module PlacementCsvImportActions
     raw = file.respond_to?(:read) ? file.read : params[:csv_raw].to_s
     return render_import_error("Berkas terlalu besar — maksimal 2 MB.") if raw.bytesize > MAX_IMPORT_FILE_SIZE
 
-    importer = placement_importer.new(csv: raw, default_period: @default_period, actor: current_user)
+    program_ids = current_user.has_role?("superadmin") ? nil : current_user.programs_with_permission("assignments.manage").pluck(:id)
+    importer = placement_importer.new(csv: raw, default_period: @default_period, actor: current_user,
+                                     allowed_study_program_ids: program_ids)
     @csv_raw = CsvUpload.decode(raw)
     @matches = importer.matches
     return render_import_error("Unggah CSV berisi minimal satu baris data — unduh template dulu kalau belum punya.") if @matches.empty?

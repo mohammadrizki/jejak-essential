@@ -101,7 +101,7 @@ class User < ApplicationRecord
   # Assessment Form Builder (/assessment_form_templates) — membuat, menyunting,
   # mengisi, dan membaca jawaban formulir — hanya untuk kaprodi dan admin.
   def can_manage_assessment_forms?
-    has_role?("admin") || has_role?("kaprodi")
+    has_role?("superadmin") || programs_with_permission("curriculum.manage").any?
   end
 
   # Kaprodi (bukan admin) terikat ke prodi akunnya: prodi itu membatasi apa
@@ -321,8 +321,31 @@ class User < ApplicationRecord
     user_roles.includes(:role).for_program(program).any? { |grant| grant.role.code == code.to_s }
   end
 
+  def has_role_grant?(code)
+    user_roles.joins(:role).exists?(roles: { code: code.to_s })
+  end
+
   def has_permission?(key, study_program: nil)
     RbacAuthorization.allowed?(user: self, permission: key, study_program: study_program)
+  end
+
+  # Returns only programs where this user can exercise a scoped permission.
+  # A system administrator is the sole exception and may explicitly request
+  # the complete program list.
+  def programs_with_permission(*keys)
+    return StudyProgram.ordered if has_role?("superadmin")
+
+    permissions = keys.flatten.map(&:to_s)
+    StudyProgram.ordered.select do |program|
+      permissions.any? { |key| has_permission?(key, study_program: program) }
+    end
+  end
+
+  def permitted_for_program?(program, *keys)
+    return false if program.blank?
+    return true if has_role?("superadmin")
+
+    keys.flatten.any? { |key| has_permission?(key, study_program: program) }
   end
 
   def has_system_permission?(key)

@@ -15,8 +15,8 @@ class ExternalIdentityResolver
     raise ArgumentError, "Sistem sumber wajib dipilih." if source_system.to_s.blank?
     raise ArgumentError, "Identifier eksternal tidak boleh kosong." if external_id.to_s.blank?
     raise ArgumentError, "Target wajib merupakan akun mahasiswa." unless student&.has_role?("mahasiswa")
-    authorized = by.has_role?("admin") ||
-      (by.has_role?("kaprodi") && by.study_program_id == student.study_program_id) ||
+    authorized = by.has_role?("superadmin") ||
+      by.has_permission?("integration.manage", study_program: student.study_program) ||
       assigned_data_manager?(by, student)
     raise ArgumentError, "Pemberi pemetaan harus admin, Kaprodi, atau petugas data yang ditugaskan pada program mahasiswa." unless authorized
 

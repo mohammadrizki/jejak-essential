@@ -2,7 +2,7 @@
 
 class StudyProgramPolicy < ApplicationPolicy
   def index?
-    user.has_role?("admin")
+    user.has_role?("superadmin")
   end
 
   def create?

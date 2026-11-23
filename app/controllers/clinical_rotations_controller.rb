@@ -20,8 +20,9 @@ class ClinicalRotationsController < ApplicationController
   def create
     authorize ClinicalRotation
     @clinical_rotation = ClinicalRotation.new(clinical_rotation_params)
+    authorize @clinical_rotation, :create?
 
-    if @clinical_rotation.save
+    if within_program_scope?(@clinical_rotation) && @clinical_rotation.save
       redirect_to clinical_rotations_path, notice: "Rotasi berhasil ditambahkan."
     else
       load_form_collections
@@ -36,7 +37,8 @@ class ClinicalRotationsController < ApplicationController
 
   def update
     authorize @clinical_rotation
-    if @clinical_rotation.update(clinical_rotation_params)
+    @clinical_rotation.assign_attributes(clinical_rotation_params)
+    if within_program_scope?(@clinical_rotation) && @clinical_rotation.save
       redirect_to clinical_rotations_path, notice: "Rotasi berhasil diperbarui."
     else
       load_form_collections
@@ -60,15 +62,12 @@ class ClinicalRotationsController < ApplicationController
   def placement_importer = ClinicalRotationCsvImport
   def import_success_path = clinical_rotations_path
 
-  def set_clinical_rotation
-    @clinical_rotation = ClinicalRotation.find(params[:id])
-  end
-
   def load_form_collections
-    @students = User.active_accounts.joins(:roles).where(roles: { code: "mahasiswa" }).order(:full_name)
+    program_ids = current_user.has_role?("superadmin") ? StudyProgram.select(:id) : current_user.programs_with_permission("assignments.manage").select(:id)
+    @students = User.active_accounts.joins(:roles).where(roles: { code: "mahasiswa" }, study_program_id: program_ids).distinct.order(:full_name)
     # Preseptor rotasi: peran Preseptor (pembimbing klinik) dan Dosen. Dulu
     # hanya Dosen, sehingga akun berperan Preseptor tidak dapat dipilih.
-    @preceptors = User.active_accounts.joins(:roles).where(roles: { code: %w[preseptor dosen] }).distinct.order(:full_name)
+    @preceptors = User.active_accounts.joins(:roles).where(roles: { code: %w[preseptor dosen] }, study_program_id: program_ids).distinct.order(:full_name)
     @academic_periods = AcademicPeriod.ordered
   end
 
@@ -76,5 +75,19 @@ class ClinicalRotationsController < ApplicationController
     params.require(:clinical_rotation).permit(
       :user_id, :academic_period_id, :preceptor_id, :station_name, :institution_name, :start_date, :end_date
     )
+  end
+
+  def within_program_scope?(rotation)
+    return true if current_user.has_role?("superadmin")
+
+    allowed = current_user.permitted_for_program?(rotation.user&.study_program, "assignments.manage")
+    preceptor_matches = rotation.preceptor.blank? || rotation.preceptor.study_program_id == rotation.user&.study_program_id
+    rotation.errors.add(:user, "berada di luar cakupan program studi Anda") unless allowed
+    rotation.errors.add(:preceptor, "harus berada pada program studi mahasiswa") unless preceptor_matches
+    allowed && preceptor_matches
+  end
+
+  def set_clinical_rotation
+    @clinical_rotation = policy_scope(ClinicalRotation).find(params[:id])
   end
 end

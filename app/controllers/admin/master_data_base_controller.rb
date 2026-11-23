@@ -58,9 +58,9 @@ class Admin::MasterDataBaseController < ApplicationController
   private
 
   def require_admin!
-    return if current_user.has_role?("admin")
+    return if current_user.has_role?("superadmin")
 
-    redirect_to dashboard_path, alert: "Halaman ini khusus admin."
+    redirect_to dashboard_path, alert: "Data master tingkat sistem hanya dapat dikelola superadmin."
   end
 
   def set_record

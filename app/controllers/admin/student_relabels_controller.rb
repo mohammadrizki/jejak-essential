@@ -6,11 +6,8 @@ require "csv"
 # secara massal dari CSV — pratinjau dulu, baru terapkan. Pencocokannya di
 # StudentProgramRelabeler.
 #
-# Gerbang: admin (lintas prodi) atau kaprodi. Kaprodi terikat ke prodi
-# akunnya sendiri (users.study_program_id): "pindah" hanya berlaku bagi
-# mahasiswa prodinya, dan tujuan "klaim" dikunci server-side ke prodinya —
-# target_study_program_id kiriman form diabaikan. Akun yang juga admin
-# diperlakukan sebagai admin, sama seperti gerbang has_role? lainnya.
+# Superadmin dapat lintas prodi. Pengelola lain harus memiliki users.manage
+# pada program asal dan tujuan; kecocokan CSV di luar cakupan dilewati.
 class Admin::StudentRelabelsController < ApplicationController
   MAX_FILE_SIZE = 2.megabytes
 
@@ -45,12 +42,12 @@ class Admin::StudentRelabelsController < ApplicationController
     return render_form_error("Berkas terlalu besar — maksimal 2 MB.") if raw.bytesize > MAX_FILE_SIZE
 
     @csv_raw = StudentProgramRelabeler.normalize_csv(raw)
-    @target_study_program_id = own_study_program.id if @mode == "klaim" && prodi_bound_viewer?
-    target = StudyProgram.find_by(id: @target_study_program_id)
+    target = manageable_programs.find_by(id: @target_study_program_id)
+    return render_form_error("Program studi tujuan berada di luar cakupan hak akses Anda.") if target.nil?
 
     relabeler = StudentProgramRelabeler.new(
       csv: @csv_raw, mode: @mode, target_study_program: target, actor: current_user,
-      restrict_to_study_program_id: (own_study_program.id if @mode == "pindah" && prodi_bound_viewer?),
+      allowed_source_program_ids: (manageable_programs.pluck(:id) unless current_user.has_role?("superadmin")),
       default_cohort_year: @default_cohort_year
     )
     @matches = relabeler.matches
@@ -78,13 +75,9 @@ class Admin::StudentRelabelsController < ApplicationController
   private
 
   def require_relabel_access!
-    unless current_user.has_role?("admin") || current_user.has_role?("kaprodi")
-      return redirect_to dashboard_path, alert: "Halaman ini khusus admin/kaprodi."
-    end
-    return unless prodi_bound_viewer? && own_study_program.nil?
+    return if current_user.has_role?("superadmin") || manageable_programs.exists?
 
-    redirect_to dashboard_path,
-                alert: "Akun kaprodi Anda belum terhubung ke Program Studi — minta admin mengisinya di Konfigurasi → Pengguna."
+    redirect_to dashboard_path, alert: "Permission pengelolaan pengguna pada program studi diperlukan."
   end
 
   def prodi_bound_viewer?
@@ -98,10 +91,14 @@ class Admin::StudentRelabelsController < ApplicationController
   end
 
   def load_form_state
-    @study_programs = StudyProgram.ordered
+    @study_programs = manageable_programs
     @mode = params[:mode].presence || "pindah"
     @target_study_program_id = params[:target_study_program_id].presence&.to_i
     @default_cohort_year = params[:default_cohort_year].to_s.strip.presence
+  end
+
+  def manageable_programs
+    current_user.has_role?("superadmin") ? StudyProgram.ordered : StudyProgram.where(id: current_user.programs_with_permission("users.manage").select(:id)).order(:name)
   end
 
   def render_form_error(message)

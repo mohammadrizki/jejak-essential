@@ -7,10 +7,10 @@ class AssessmentFormSubmissionPolicy < ApplicationPolicy
 
   class Scope < Scope
     def resolve
-      if user.has_role?("admin")
+      if user.has_role?("superadmin")
         scope.all
-      elsif user.has_role?("kaprodi") && user.study_program_id.present?
-        program_users = User.where(study_program_id: user.study_program_id).select(:id)
+      elsif user.programs_with_permission("curriculum.manage").any?
+        program_users = User.where(study_program_id: user.programs_with_permission("curriculum.manage").map(&:id)).select(:id)
         scope.where(respondent_id: program_users).or(scope.where(subject_user_id: program_users))
       else
         scope.where("respondent_id = :id OR subject_user_id = :id", id: user.id)
@@ -22,10 +22,9 @@ class AssessmentFormSubmissionPolicy < ApplicationPolicy
 
   def manager_can_access_record?
     return false unless user.can_manage_assessment_forms?
-    return true if user.has_role?("admin")
-    return false unless user.study_program_id.present?
+    return true if user.has_role?("superadmin")
 
-    record.respondent&.study_program_id == user.study_program_id ||
-      record.subject_user&.study_program_id == user.study_program_id
+    program_ids = user.programs_with_permission("curriculum.manage").map(&:id)
+    record.respondent&.study_program_id.in?(program_ids) || record.subject_user&.study_program_id.in?(program_ids)
   end
 end

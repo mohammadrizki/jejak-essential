@@ -5,9 +5,10 @@
 # oleh hasil ujian, bukan proksi rata-rata.
 class Admin::AssessmentDimensionsController < ApplicationController
   before_action :authenticate_user!
-  before_action :require_admin!
+  before_action :require_assessment_manager!
   before_action :set_dimension, only: %i[update destroy]
   before_action :set_event
+  before_action :authorize_event_program!
 
   def create
     dimension = @event.assessment_dimensions.new(dimension_params)
@@ -56,10 +57,10 @@ class Admin::AssessmentDimensionsController < ApplicationController
 
   private
 
-  def require_admin!
-    return if current_user.has_role?("admin")
+  def require_assessment_manager!
+    return if current_user.has_role?("superadmin") || current_user.programs_with_permission("assessment.decide").any?
 
-    redirect_to dashboard_path, alert: "Halaman ini khusus admin."
+    redirect_to dashboard_path, alert: "Hak kelola asesmen pada program studi diperlukan."
   end
 
   # Rute anggota bersifat shallow (/admin/assessment_dimensions/:id), jadi
@@ -69,7 +70,18 @@ class Admin::AssessmentDimensionsController < ApplicationController
   end
 
   def set_dimension
-    @dimension = AssessmentDimension.find(params[:id])
+    @dimension = AssessmentDimension.joins(:assessment_event).merge(event_scope).find(params[:id])
+  end
+
+  def event_scope
+    current_user.has_role?("superadmin") ? AssessmentEvent.all : AssessmentEvent.where(study_program_id: current_user.programs_with_permission("assessment.decide").select(:id))
+  end
+
+  def authorize_event_program!
+    event = @event
+    return if current_user.has_role?("superadmin") || current_user.permitted_for_program?(event.study_program, "assessment.decide")
+
+    redirect_to dashboard_path, alert: "Event berada di luar cakupan program studi Anda."
   end
 
   def dimension_params

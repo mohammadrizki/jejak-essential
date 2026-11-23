@@ -52,7 +52,7 @@ class StudentProgramRelabeler
   end
 
   def initialize(csv:, mode:, target_study_program:, actor: nil,
-                 restrict_to_study_program_id: nil, default_cohort_year: nil)
+                 restrict_to_study_program_id: nil, allowed_source_program_ids: nil, default_cohort_year: nil)
     raise Error, "Pilih aksi yang valid." unless MODES.include?(mode.to_s)
     raise Error, "Pilih program studi tujuan." if target_study_program.nil?
 
@@ -61,6 +61,7 @@ class StudentProgramRelabeler
     @target = target_study_program
     @actor = actor
     @restrict_source_id = restrict_to_study_program_id
+    @allowed_source_program_ids = allowed_source_program_ids&.map(&:to_i)
     @default_cohort_year = nil
     if default_cohort_year.present?
       @default_cohort_year = parse_cohort_year(default_cohort_year) ||
@@ -169,6 +170,9 @@ class StudentProgramRelabeler
       return "angkatan '#{row[:cohort_year]}' tidak terbaca (isi tahun 4 digit) — dilewati"
     end
     return "di luar prodi Anda — dilewati" if @restrict_source_id && user.study_program_id != @restrict_source_id
+    if @allowed_source_program_ids && user.study_program_id.present? && !@allowed_source_program_ids.include?(user.study_program_id)
+      return "program studi asal di luar cakupan hak akses — dilewati"
+    end
 
     if match.new_npm
       return "NPM baru dobel di CSV ini — dilewati" if npm_count > 1
