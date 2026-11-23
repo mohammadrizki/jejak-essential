@@ -20,10 +20,12 @@ class AssessmentEvent < ApplicationRecord
     "community_project"  => [ "Community Project",            :rubric,   %w[pssk] ],
     "student_reflection" => [ "Refleksi Mahasiswa (dinilai)", :rubric,   %w[pssk pspd] ],
     "cbd"                => [ "Case-Based Discussion (CBD)",  :case,     %w[pspd] ],
-    "long_case"          => [ "Long Case",                    :case,     %w[pspd] ]
+    "long_case"          => [ "Long Case",                    :case,     %w[pspd] ],
+    "dops"               => [ "Direct Observation of Procedural Skills (DOPS)", :wpba, %w[pssk pspd] ],
+    "mini_cex"           => [ "Mini-Clinical Evaluation Exercise (Mini-CEX)", :wpba, %w[pssk pspd] ]
   }.freeze
   STATUSES = { "draft" => "Draf", "published" => "Terbit", "closed" => "Ditutup" }.freeze
-  FAMILY_LABELS = { written: "Ujian tulis", practical: "Ujian praktik", rubric: "Rubrik penguji", case: "Berbasis kasus" }.freeze
+  FAMILY_LABELS = { written: "Ujian tulis", practical: "Ujian praktik", rubric: "Rubrik penguji", case: "Berbasis kasus", wpba: "Penilaian di tempat kerja" }.freeze
   # Kolom exam_type berkas CBT Glide (formative/summative; progress_test
   # menjadi tipe event tersendiri).
   EXAM_PURPOSES = { "formative" => "Formatif", "summative" => "Sumatif" }.freeze
@@ -36,6 +38,7 @@ class AssessmentEvent < ApplicationRecord
   belongs_to :assessment_form_template, optional: true
   belongs_to :created_by, class_name: "User", optional: true
   has_many :assessment_instances, dependent: :destroy
+  has_many :evaluation_schedules, dependent: :restrict_with_error
   # Mata uji CBT / station OSCE beserta pemetaannya ke ranah kompetensi.
   has_many :assessment_dimensions, -> { ordered }, dependent: :destroy, inverse_of: :assessment_event
   # Baris Assessment Matrix unit pembelajaran yang menunjuk event ini.
@@ -52,6 +55,9 @@ class AssessmentEvent < ApplicationRecord
   validate :blueprint_item_matches_program
   validate :active_blueprint_item_for_new_event
   validate :blueprint_item_unchanged_after_attempts
+  validate :wpba_event_requires_program
+  validate :event_type_consistent_with_schedules
+  validate :event_program_consistent_with_schedules
   before_validation :assign_cbd_instrument_version
 
   scope :published, -> { where(status: "published") }
@@ -76,6 +82,10 @@ class AssessmentEvent < ApplicationRecord
   # Diinisiasi dari kasus logbook (CBD, Long Case).
   def case_based?
     family == :case
+  end
+
+  def wpba?
+    family == :wpba
   end
 
   # Nilai masuk lewat impor CSV massal (ujian tulis/praktik).
@@ -105,6 +115,7 @@ class AssessmentEvent < ApplicationRecord
   # blok cocok dengan enrolment tutorial / rotasi aktifnya).
   def visible_to?(user)
     return false unless status == "published"
+    return false if wpba?
     return false if study_program_id.present? && user.study_program_id != study_program_id
     return true if block_name.blank?
 
@@ -147,5 +158,23 @@ class AssessmentEvent < ApplicationRecord
     return unless persisted? && will_save_change_to_blueprint_item_id? && assessment_instances.exists?
 
     errors.add(:blueprint_item, "tidak dapat diubah setelah asesmen memiliki percobaan")
+  end
+
+  def wpba_event_requires_program
+    errors.add(:study_program, "wajib dipilih untuk Event Asesmen WPBA") if wpba? && study_program_id.blank?
+  end
+
+  def event_type_consistent_with_schedules
+    return unless persisted? && evaluation_schedules.exists?
+    return unless evaluation_schedules.where.not(kind: assessment_type).exists?
+
+    errors.add(:assessment_type, "tidak dapat diubah karena tidak lagi sesuai dengan jadwal yang tertaut")
+  end
+
+  def event_program_consistent_with_schedules
+    return unless persisted? && will_save_change_to_study_program_id?
+    return unless evaluation_schedules.joins(:student).where.not(users: { study_program_id: study_program_id }).exists?
+
+    errors.add(:study_program, "tidak dapat diubah karena tidak sesuai dengan mahasiswa pada jadwal tertaut")
   end
 end

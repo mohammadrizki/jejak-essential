@@ -5,7 +5,7 @@
 # intentionally not implied by enabling an adapter.
 class ModuleConfiguration
   MODULE_KEYS = %w[
-    core_eportfolio clinical_logbook wpba epa
+    core_eportfolio clinical_logbook wpba assessment_scheduling epa
     integration_sia integration_moodle integration_examtool integration_osce integration_clinical_wpba
   ].freeze
 
@@ -39,6 +39,7 @@ class ModuleConfiguration
       ActiveModel::Type::Boolean.new.cast(value)
     end
     after_value = @modules.merge(submitted).merge("core_eportfolio" => true)
+    after_value["assessment_scheduling"] = false if submitted["wpba"] == false && !submitted.key?("assessment_scheduling")
     validate_configuration!(after_value)
     before_value = @modules.dup
     return self if before_value == after_value
@@ -72,6 +73,9 @@ class ModuleConfiguration
       "core_eportfolio" => true,
       "clinical_logbook" => true,
       "wpba" => true,
+      # Jadwal DOPS/Mini-CEX telah menjadi perilaku lama; aktifkan sebagai
+      # bawaan agar konfigurasi prodi yang belum memiliki sakelar tetap utuh.
+      "assessment_scheduling" => true,
       "epa" => study_program&.level.in?(%w[profesi spesialis subspesialis]),
       "integration_sia" => false,
       "integration_moodle" => false,
@@ -84,6 +88,7 @@ class ModuleConfiguration
   def validate_configuration!(value)
     errors = []
     errors << "Core E-Portfolio selalu aktif." unless value["core_eportfolio"]
+    errors << "Penjadwalan Asesmen memerlukan modul WPBA." if value["assessment_scheduling"] && !value["wpba"]
     raise ArgumentError, errors.join(" ") if errors.any?
   end
 end

@@ -41,7 +41,7 @@ class ModuleConfigurationsController < ApplicationController
   end
 
   def configuration_params
-    params.require(:modules).permit(:clinical_logbook, :wpba, :epa,
+    params.require(:modules).permit(:clinical_logbook, :wpba, :assessment_scheduling, :epa,
       :integration_sia, :integration_moodle, :integration_examtool, :integration_osce,
       :integration_clinical_wpba)
   end

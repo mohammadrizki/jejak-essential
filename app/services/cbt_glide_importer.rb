@@ -151,7 +151,8 @@ class CbtGlideImporter
     filled = instance.persisted?
     AssessmentInstance.transaction(requires_new: true) do
       instance.update!(score: total, max_score: event.max_score, status: "scored", source: "import",
-                       scored_at: held_at || Time.current)
+                       performed_at: held_at || event.exam_date&.in_time_zone,
+                       scored_at: Time.current)
       write_dimensions!(event, instance, row)
     end
     if filled

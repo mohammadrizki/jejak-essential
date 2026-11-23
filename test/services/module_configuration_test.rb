@@ -1,12 +1,18 @@
 require "test_helper"
 
 class ModuleConfigurationTest < ActiveSupport::TestCase
+  setup do
+    grant_permission("kaprodi", "modules.manage")
+    grant_permission("admin", "modules.manage")
+  end
+
   test "Core selalu aktif dan default modul menjaga fitur lama pada Sarjana" do
     configuration = ModuleConfiguration.for(study_programs(:sarjana_kedokteran))
 
     assert configuration.enabled?("core_eportfolio")
     assert configuration.enabled?("clinical_logbook")
     assert configuration.enabled?("wpba")
+    assert configuration.enabled?("assessment_scheduling")
     refute configuration.enabled?("epa")
   end
 
@@ -46,15 +52,26 @@ class ModuleConfigurationTest < ActiveSupport::TestCase
   test "EPA bawaan tetap dapat digunakan secara terpisah dari modul WPBA umum" do
     program = study_programs(:profesi_dokter)
     admin = users(:budi)
-    admin.roles << roles(:admin)
+    admin.user_roles.find_or_create_by!(role: roles(:admin), scope_level: "study_program",
+      study_program: study_programs(:profesi_dokter))
     configuration = ModuleConfiguration.for(program)
 
     configuration.update!({ "wpba" => "0" }, actor: admin)
     refute configuration.enabled?("wpba")
+    refute configuration.enabled?("assessment_scheduling")
     assert configuration.enabled?("epa")
     refute configuration.enabled?("integration_clinical_wpba")
 
     configuration.update!({ "integration_clinical_wpba" => "1" }, actor: admin)
     assert configuration.enabled?("integration_clinical_wpba")
+  end
+
+  private
+
+  def grant_permission(role_code, key)
+    permission = SystemPermission.find_or_create_by!(key: key) { |row| row.name = key.humanize }
+    RolePermission.find_or_create_by!(role: roles(role_code), system_permission: permission) do |grant|
+      grant.scope_level = "system"
+    end
   end
 end

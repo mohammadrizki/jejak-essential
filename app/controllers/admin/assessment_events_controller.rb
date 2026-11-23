@@ -24,6 +24,7 @@ class Admin::AssessmentEventsController < ApplicationController
     @competency_items = competency_item_choices
     @instances = @event.assessment_instances.includes(:student, :examiner, assessment_dimension_scores: :assessment_dimension)
                        .joins(:student).order("users.full_name", :attempt_number)
+    @evaluation_schedules = @event.evaluation_schedules.includes(:student, :evaluator, :clinical_rotation).ordered
     @students = scoped_students.order(:full_name)
     examiners = User.active_accounts.joins(:roles).where(roles: { code: %w[dosen preseptor kaprodi] }).distinct
     @examiners = current_user.has_role?("superadmin") ? examiners.order(:full_name) :
@@ -31,7 +32,8 @@ class Admin::AssessmentEventsController < ApplicationController
   end
 
   def new
-    @event = AssessmentEvent.new(academic_period: AcademicPeriod.ordered.first, status: "draft", max_score: 100)
+    @event = AssessmentEvent.new(academic_period: AcademicPeriod.ordered.first, study_program: current_user.study_program,
+      status: "draft", max_score: 100)
     @event.wpba_instrument_version = WpbaInstrumentCatalog.version_for("cbd") if params[:assessment_type] == "cbd"
     load_collections
   end
@@ -40,6 +42,11 @@ class Admin::AssessmentEventsController < ApplicationController
     @event = AssessmentEvent.new(event_params.merge(created_by: current_user))
     unless permitted_event_program?(@event.study_program)
       @event.errors.add(:study_program, "berada di luar cakupan hak akses Anda")
+      load_collections
+      return render :new, status: :unprocessable_entity
+    end
+    unless event_module_enabled?(@event)
+      @event.errors.add(:assessment_type, "modul WPBA dan Penjadwalan Asesmen harus aktif pada program studi")
       load_collections
       return render :new, status: :unprocessable_entity
     end
@@ -65,6 +72,13 @@ class Admin::AssessmentEventsController < ApplicationController
       load_collections
       return render :edit, status: :unprocessable_entity
     end
+    candidate = @event.dup
+    candidate.assign_attributes(attributes)
+    unless event_module_enabled?(candidate)
+      @event.errors.add(:assessment_type, "modul WPBA dan Penjadwalan Asesmen harus aktif pada program studi")
+      load_collections
+      return render :edit, status: :unprocessable_entity
+    end
     if @event.update(attributes)
       sync_max_score!(previous_max)
       redirect_to admin_assessment_event_path(@event), notice: "Assessment Event diperbarui."
@@ -77,6 +91,12 @@ class Admin::AssessmentEventsController < ApplicationController
   # Menghapus event membuang nilai yang sudah keluar — termasuk yang sudah
   # dipakai Assessment Matrix & kurva kohort. Event bernilai ditutup, bukan dihapus.
   def destroy
+    if @event.evaluation_schedules.exists?
+      redirect_to admin_assessment_event_path(@event),
+                  alert: "Event ini masih dirujuk jadwal. Batalkan atau arsipkan jadwal terlebih dahulu; riwayat tidak dihapus otomatis."
+      return
+    end
+
     if @event.assessment_instances.scored.exists?
       redirect_to admin_assessment_event_path(@event),
                   alert: "Event ini sudah punya nilai, jadi tidak dapat dihapus. Ubah statusnya menjadi Ditutup bila tidak dipakai lagi."
@@ -209,6 +229,13 @@ class Admin::AssessmentEventsController < ApplicationController
 
   def permitted_event_program?(program)
     current_user.has_role?("superadmin") || current_user.permitted_for_program?(program, "assessment.decide")
+  end
+
+  def event_module_enabled?(event)
+    return true unless event.wpba?
+
+    event.study_program.present? && ModuleConfiguration.for(event.study_program).enabled?("wpba") &&
+      ModuleConfiguration.for(event.study_program).enabled?("assessment_scheduling")
   end
 
   def authorize_event_program!

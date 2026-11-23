@@ -13,3 +13,5 @@ wati_preseptor:
 dedi_kaprodi:
   user: dedi
   role: kaprodi
+  scope_level: study_program
+  study_program: sarjana_kedokteran

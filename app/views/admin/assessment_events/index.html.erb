@@ -19,7 +19,7 @@
         <th class="text-left px-5 py-3">Periode · Prodi · Blok</th>
         <th class="text-left px-5 py-3">Tanggal</th>
         <th class="text-left px-5 py-3">Status</th>
-        <th class="text-right px-5 py-3">Percobaan</th>
+        <th class="text-right px-5 py-3">Jadwal / Percobaan</th>
         <th class="px-5 py-3"></th>
       </tr>
     </thead>
@@ -32,7 +32,7 @@
           <td class="px-5 py-3 text-gray-600"><%= e.academic_period.name %> · <%= e.study_program&.name || "Semua prodi" %><%= " · #{e.block_name}" if e.block_name.present? %></td>
           <td class="px-5 py-3 text-gray-600"><%= e.exam_date ? l(e.exam_date, format: :long) : "—" %></td>
           <td class="px-5 py-3"><span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full <%= status_cls %>"><%= e.status_label %></span></td>
-          <td class="px-5 py-3 text-right text-gray-700"><%= e.assessment_instances.size %></td>
+          <td class="px-5 py-3 text-right text-gray-700"><%= e.wpba? ? e.evaluation_schedules.size : e.assessment_instances.size %></td>
           <td class="px-5 py-3 text-right whitespace-nowrap">
             <% if e.importable? %><%= link_to "Impor CSV", import_admin_assessment_event_path(e), class: "text-indigo-600 font-medium hover:underline mr-2" %><% end %>
             <%= link_to "Sunting", edit_admin_assessment_event_path(e), class: "text-gray-600 hover:text-indigo-600" %>

@@ -125,8 +125,12 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
   test "jadwal evaluasi prodi tampil sampai penilai mengirim penilaian sejenis" do
     rotation = clinical_rotations(:wati_preceptored_rotation)
+    event = AssessmentEvent.create!(name: "DOPS jahit", assessment_type: "dops",
+      academic_period: academic_periods(:current_period), study_program: users(:siti).study_program,
+      status: "published", max_score: 100)
     EvaluationSchedule.create!(student: users(:siti), evaluator: users(:wati), clinical_rotation: rotation,
-                               kind: "dops", scheduled_at: Time.current.beginning_of_day + 9.hours, topic: "Jahit luka")
+                               assessment_event: event, kind: "dops", scheduled_at: Time.current.beginning_of_day + 9.hours,
+                               topic: "Jahit luka")
 
     sign_in users(:wati)
     get dashboard_path

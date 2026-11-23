@@ -14,7 +14,7 @@
     <div>
       <%= f.label :assessment_type, "Tipe asesmen", class: lbl %>
       <%= f.select :assessment_type, AssessmentEvent.types_for_select, {}, class: cls %>
-      <p class="text-[11px] text-gray-400 mt-1">Ujian tulis/praktik → nilai lewat impor CSV. Rubrik penguji → mahasiswa mengumpulkan, penguji menilai. Berbasis kasus → diinisiasi dari Kasus Klinis.</p>
+      <p class="text-[11px] text-gray-400 mt-1">Ujian tulis/praktik → nilai lewat impor. Rubrik → formulir penguji. Berbasis kasus → Kasus Klinis. DOPS/Mini-CEX → rencana asesmen yang dapat ditautkan ke jadwal mahasiswa.</p>
     </div>
     <div>
       <%= f.label :status, "Status", class: lbl %>
@@ -35,11 +35,11 @@
       <p class="text-[11px] text-gray-400 mt-1">Bila diisi, hanya mahasiswa yang enrolment tutorial/rotasinya cocok yang melihat event ini.</p>
     </div>
     <div>
-      <%= f.label :exam_date, "Tanggal ujian", class: lbl %>
+      <%= f.label :exam_date, event.wpba? ? "Tanggal rencana (opsional)" : "Tanggal ujian", class: lbl %>
       <%= f.date_field :exam_date, class: cls %>
     </div>
     <div>
-      <%= f.label :max_score, "Nilai maksimum", class: lbl %>
+      <%= f.label :max_score, "Nilai maksimum (jika memakai skor)", class: lbl %>
       <%= f.number_field :max_score, step: "0.01", min: 1, class: cls %>
     </div>
     <div>

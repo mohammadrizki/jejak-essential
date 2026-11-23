@@ -59,14 +59,14 @@ class Admin::CbtExamsController < Admin::BaseController
     params.require(:assessment_event).permit(:name, :exam_date)
   end
 
-  # Tanggal ujian dikoreksi → nilai hasil impor yang tercatat di tanggal lama
-  # ikut pindah, supaya grafik tren & Evaluasi Akademik memakai tanggal yang
-  # benar.
+  # Tanggal pelaksanaan event dikoreksi → tanggal aktual hasil impor yang
+  # mengikuti tanggal event ikut dikoreksi. Waktu nilai dicatat (scored_at)
+  # tetap menyimpan waktu pemrosesan.
   def shift_imported_dates!(previous_date)
     return if @exam.exam_date.blank? || previous_date == @exam.exam_date
 
     scope = @exam.assessment_instances.where(source: "import")
-    scope = scope.where(scored_at: previous_date.in_time_zone.all_day) if previous_date
-    scope.update_all(scored_at: @exam.exam_date.in_time_zone, updated_at: Time.current)
+    scope = scope.where(performed_at: previous_date.in_time_zone.all_day) if previous_date
+    scope.update_all(performed_at: @exam.exam_date.in_time_zone, updated_at: Time.current)
   end
 end

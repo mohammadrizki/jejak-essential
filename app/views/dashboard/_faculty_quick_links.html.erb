@@ -23,8 +23,10 @@
   links << { label: term("nav.analytics"), hint: "mahasiswa bimbingan & prodi", path: analytics_path, icon: :chart }
   links << { label: term("nav.student_directory"), hint: "cari & buka dasbor mahasiswa", path: search_path, icon: :users }
   links << { label: term("nav.calendar"), hint: "kegiatan & jadwal lengkap", path: activity_logs_calendar_path, icon: :calendar }
-  if current_user.has_role?("admin")
+  if current_user.has_role?("superadmin") || current_user.programs_with_permission("assignments.manage").any? { |program| ModuleConfiguration.for(program).enabled?("assessment_scheduling") && ModuleConfiguration.for(program).enabled?("wpba") }
     links << { label: term("nav.evaluation_schedules"), hint: "jadwalkan penilai DOPS/Mini-CEX", path: admin_evaluation_schedules_path, icon: :cog }
+  end
+  if current_user.has_role?("admin")
     links << { label: term("nav.users"), hint: "kelola akun & peran", path: admin_users_path, icon: :cog }
   end
 %>

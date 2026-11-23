@@ -72,8 +72,13 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
 
   test "jadwal DOPS & Mini-CEX kaprodi hanya untuk mahasiswa prodinya" do
     pspd = create_student("Rani Profesi", :profesi_dokter)
-    other = EvaluationSchedule.create!(kind: "dops", student: pspd, scheduled_at: 2.days.from_now)
-    own = EvaluationSchedule.create!(kind: "mini_cex", student: users(:siti), scheduled_at: 3.days.from_now, topic: "Anamnesis")
+    other_event = AssessmentEvent.create!(name: "DOPS Profesi", assessment_type: "dops",
+      academic_period: academic_periods(:current_period), study_program: pspd.study_program, status: "published", max_score: 100)
+    own_event = AssessmentEvent.create!(name: "Mini-CEX Sarjana", assessment_type: "mini_cex",
+      academic_period: academic_periods(:current_period), study_program: users(:siti).study_program, status: "published", max_score: 100)
+    other = EvaluationSchedule.create!(kind: "dops", student: pspd, assessment_event: other_event, scheduled_at: 2.days.from_now)
+    own = EvaluationSchedule.create!(kind: "mini_cex", student: users(:siti), assessment_event: own_event,
+      scheduled_at: 3.days.from_now, topic: "Anamnesis")
 
     sign_in users(:dedi)
     get admin_evaluation_schedules_path
@@ -85,13 +90,15 @@ class RoleAccessTest < ActionDispatch::IntegrationTest
     assert_response :not_found
 
     assert_no_difference "EvaluationSchedule.count" do
-      post admin_evaluation_schedules_path, params: { evaluation_schedule: { kind: "dops", student_id: pspd.id, scheduled_at: 1.day.from_now } }
+      post admin_evaluation_schedules_path, params: { evaluation_schedule: { kind: "dops", student_id: pspd.id,
+        assessment_event_id: other_event.id, scheduled_at: 1.day.from_now } }
     end
     assert_response :unprocessable_entity
     assert_match "di luar program studi binaan Anda", response.body
 
     assert_difference "EvaluationSchedule.count", 1 do
-      post admin_evaluation_schedules_path, params: { evaluation_schedule: { kind: "dops", student_id: users(:siti).id, scheduled_at: 1.day.from_now } }
+      post admin_evaluation_schedules_path, params: { evaluation_schedule: { kind: "mini_cex", student_id: users(:siti).id,
+        assessment_event_id: own_event.id, scheduled_at: 1.day.from_now } }
     end
   end
 

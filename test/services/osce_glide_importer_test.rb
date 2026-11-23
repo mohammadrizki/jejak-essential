@@ -67,6 +67,8 @@ class OsceGlideImporterTest < ActiveSupport::TestCase
     # Station 2: (1 + 1) / (2 × 3) = 33,33% → rata-rata station (88,89 + 33,33) / 2 = 61,11
     assert_equal "scored", instance.status
     assert_in_delta 61.11, instance.score.to_f, 0.01
+    assert_equal @day1, instance.performed_at.to_date
+    assert_operator instance.scored_at, :>=, 1.minute.ago
     assert_equal @examiner, instance.examiner, "penguji tunggal semua station menjadi penguji percobaan"
     anamnesis = instance.assessment_dimension_scores.joins(:assessment_dimension).find_by!(assessment_dimensions: { code: "anamnesis" })
     assert_equal 2.0, anamnesis.score.to_f, "dimensi = rata-rata station yang menilainya ((3 + 1) / 2)"

@@ -117,7 +117,7 @@ class DataExport
       key: "assessment_scores", label: "Nilai Event Asesmen", group: :assessment, filters: %i[program period dates], admin_only: false,
       description: "Setiap percobaan CBT, OSCE, Progress Test, rubrik, CBD/Long Case: nilai, persentase, penguji, dan umpan balik.",
       headers: [ "Event Asesmen", "Tipe", "Periode", "Prodi Event", "Blok / Stase", "Tanggal Ujian", *STUDENT_HEADERS,
-                 "Percobaan", "Status", "Nilai", "Nilai Maks", "Persentase", "Penguji", "Waktu Dinilai", "Sumber Nilai",
+                 "Percobaan", "Status", "Nilai", "Nilai Maks", "Persentase", "Penguji", "Tanggal Pelaksanaan", "Waktu Nilai Dicatat", "Sumber Nilai",
                  "Umpan Balik (Pertahankan)", "Umpan Balik (Perbaiki)" ]
     ),
     Dataset.new(
@@ -521,7 +521,21 @@ class DataExport
   def assessment_scores_scope
     instances = within_program(AssessmentInstance.joins(:assessment_event), :student_id)
     instances = instances.where(assessment_events: { academic_period_id: period.id }) if period
-    within_dates(instances, :scored_at, time: true, include_period: false)
+    if (range = date_range(include_period: false))
+      expression = "COALESCE(assessment_instances.performed_at, assessment_events.exam_date::timestamp, assessment_instances.scored_at)"
+      conditions = []
+      values = []
+      if range.begin
+        conditions << "#{expression} >= ?"
+        values << range.begin.in_time_zone
+      end
+      if range.end
+        conditions << "#{expression} <= ?"
+        values << range.end.in_time_zone.end_of_day
+      end
+      instances = instances.where(conditions.join(" AND "), *values)
+    end
+    instances
       .preload(:examiner, student: :study_program, assessment_event: %i[academic_period study_program])
       .order("assessment_events.exam_date", "assessment_events.id", :student_id, :attempt_number, :id)
   end
@@ -530,7 +544,8 @@ class DataExport
     event = instance.assessment_event
     [ event.name, event.type_label, event.academic_period.name, event.study_program&.name, event.block_name, event.exam_date,
       *student_cells(instance.student), instance.attempt_number, instance.status_label, instance.score, instance.max_score,
-      instance.percentage, instance.examiner&.full_name, instance.scored_at, label_for(ASSESSMENT_SOURCES, instance.source),
+      instance.percentage, instance.examiner&.full_name, instance.performed_at || event.exam_date, instance.scored_at,
+      label_for(ASSESSMENT_SOURCES, instance.source),
       instance.feedback_keep, instance.feedback_improve ]
   end
 

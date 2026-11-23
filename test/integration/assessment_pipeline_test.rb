@@ -319,9 +319,13 @@ class AssessmentPipelineTest < ActionDispatch::IntegrationTest
   # ── Jadwal WBA ──
   test "admin membuat jadwal Mini-CEX; mahasiswa & penilai diberi notifikasi dan melihatnya di beranda" do
     sign_in @admin
+    event = AssessmentEvent.create!(name: "Mini-CEX Nyeri Dada", assessment_type: "mini_cex",
+      academic_period: academic_periods(:current_period), study_program: users(:siti).study_program,
+      status: "published", max_score: 100)
     assert_difference "EvaluationSchedule.count", 1 do
       post admin_evaluation_schedules_path, params: { evaluation_schedule: {
-        kind: "mini_cex", student_id: users(:siti).id, evaluator_id: users(:wati).id, scheduled_at: 2.days.from_now, topic: "Nyeri dada"
+        kind: "mini_cex", student_id: users(:siti).id, evaluator_id: users(:wati).id,
+        assessment_event_id: event.id, scheduled_at: 2.days.from_now, topic: "Nyeri dada"
       } }
     end
     assert Notification.where(recipient: users(:siti)).where("title LIKE ?", "%Jadwal Mini-CEX%").exists?

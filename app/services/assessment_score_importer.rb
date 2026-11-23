@@ -85,7 +85,8 @@ class AssessmentScoreImporter
         result.errors << "Baris #{line} (#{email}): tanggal \"#{row[@mapping["date"]]}\" tidak dikenali — pakai format 2026-09-17 atau 17/09/2026."
         next
       end
-      instance.scored_at = scored_on&.in_time_zone || @event.exam_date&.in_time_zone || Time.current
+      instance.performed_at = scored_on&.in_time_zone || @event.exam_date&.in_time_zone
+      instance.scored_at = Time.current
       instance.score = numeric(row, @mapping["score"]) || 0
 
       begin

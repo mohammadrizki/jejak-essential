@@ -14,7 +14,7 @@
 class OsceStationSummary
   KEYS = OsceStationScore::DIMENSIONS.keys.freeze
   BATCH = 1000
-  UPDATED_COLUMNS = %i[status source max_score score examiner_id scored_at updated_at].freeze
+  UPDATED_COLUMNS = %i[status source max_score score examiner_id performed_at scored_at updated_at].freeze
 
   def self.refresh!(instance_ids)
     new(instance_ids).refresh!
@@ -69,13 +69,14 @@ class OsceStationSummary
     max = instance.assessment_event.max_score.to_f
     checklist = rows.filter_map { |row| row[2] }.map(&:to_f)
     if checklist.empty?
-      return { status: "registered", source: "manual", max_score: max, score: nil, examiner_id: nil, scored_at: nil }
+      return { status: "registered", source: "manual", max_score: max, score: nil, examiner_id: nil, performed_at: nil, scored_at: nil }
     end
 
     examiners = rows.map { |row| row[3] }.uniq
     { status: "scored", source: "import", max_score: max,
       score: ((checklist.sum / checklist.size) / 100.0 * max).round(2),
       examiner_id: (examiners.size == 1 ? examiners.first : nil),
-      scored_at: rows.filter_map { |row| row[4] }.max || instance.scored_at || Time.current }
+      performed_at: rows.filter_map { |row| row[4] }.max || instance.performed_at || instance.assessment_event.exam_date&.in_time_zone,
+      scored_at: Time.current }
   end
 end

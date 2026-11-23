@@ -52,7 +52,8 @@ class CbtGlideImporterTest < ActiveSupport::TestCase
     assert_equal 72.5, siti.score.to_f
     assert_equal "scored", siti.status
     assert_equal "import", siti.source
-    assert_equal exam_date, siti.scored_at.to_date
+    assert_equal exam_date, siti.performed_at.to_date
+    assert_operator siti.scored_at, :>=, 1.minute.ago
     assert_equal 4, siti.assessment_dimension_scores.count
 
     andi = event.assessment_instances.find_by!(student: @andi)

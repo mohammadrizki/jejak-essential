@@ -51,9 +51,9 @@ class AssessmentInstance < ApplicationRecord
     (score.to_f / max_score.to_f * 100).round(1)
   end
 
-  # Tanggal yang dipakai grafik/kurva: waktu dinilai, jatuh ke tanggal ujian event.
+  # Tanggal aktual kegiatan, terpisah dari scored_at (waktu nilai dicatat).
   def effective_date
-    (scored_at || submitted_at || assessment_event.exam_date || created_at).to_date
+    (performed_at || assessment_event.exam_date || submitted_at || scored_at || created_at).to_date
   end
 
   # Nilai wakil per (event, mahasiswa): percobaan bernilai tertinggi; kalau
@@ -117,7 +117,7 @@ class AssessmentInstance < ApplicationRecord
   def reset_to_registered!
     transaction do
       assessment_dimension_scores.destroy_all
-      update!(status: "registered", score: nil, scored_at: nil, source: "manual")
+      update!(status: "registered", score: nil, scored_at: nil, performed_at: nil, source: "manual")
     end
   end
 

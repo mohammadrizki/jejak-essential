@@ -8,40 +8,56 @@ class Admin::EvaluationSchedulesController < ApplicationController
   before_action :set_schedule, only: %i[edit update destroy]
 
   def index
-    @schedules = schedule_scope.includes(:student, :evaluator, :clinical_rotation).ordered.page(params[:page]).per(50)
+    @schedules = schedule_scope.includes(:student, :evaluator, :clinical_rotation, :assessment_event).ordered.page(params[:page]).per(50)
   end
 
   def new
     @schedule = EvaluationSchedule.new(kind: "mini_cex", scheduled_at: 1.day.from_now.change(hour: 9))
+    if params[:assessment_event_id].present?
+      event = accessible_wpba_events.find(params[:assessment_event_id])
+      @schedule.assessment_event = event
+      @schedule.kind = event.assessment_type == "dops" ? "dops" : "mini_cex"
+    end
     load_collections
+    unless @assessment_events.any? || @students.map(&:study_program).compact.uniq.any? { |program| scheduling_enabled_for?(program) }
+      redirect_to admin_evaluation_schedules_path, alert: "Penjadwalan Asesmen nonaktif pada program studi dalam cakupan Anda."
+    end
   end
 
   def create
     @schedule = EvaluationSchedule.new(schedule_params)
-    if within_program_scope?(@schedule) && @schedule.save
+    if scheduling_enabled_for?(@schedule.student&.study_program) && within_program_scope?(@schedule) && @schedule.save
       notify_parties
       redirect_to admin_evaluation_schedules_path, notice: "Jadwal #{@schedule.kind_label} dibuat."
     else
+      @schedule.errors.add(:base, "Penjadwalan Asesmen dan WPBA harus aktif pada program studi mahasiswa.") unless scheduling_enabled_for?(@schedule.student&.study_program)
       load_collections
       render :new, status: :unprocessable_entity
     end
   end
 
   def edit
+    return redirect_to admin_evaluation_schedules_path, alert: "Modul penjadwalan nonaktif; jadwal ini hanya dapat dibaca." unless scheduling_enabled_for?(@schedule.student.study_program)
+
     load_collections
   end
 
   def update
+    return redirect_to admin_evaluation_schedules_path, alert: "Modul penjadwalan nonaktif; jadwal ini hanya dapat dibaca." unless scheduling_enabled_for?(@schedule.student.study_program)
+
     @schedule.assign_attributes(schedule_params)
-    if within_program_scope?(@schedule) && @schedule.save
+    if scheduling_enabled_for?(@schedule.student&.study_program) && within_program_scope?(@schedule) && @schedule.save
       redirect_to admin_evaluation_schedules_path, notice: "Jadwal diperbarui."
     else
+      @schedule.errors.add(:base, "Penjadwalan Asesmen dan WPBA harus aktif pada program studi mahasiswa.") unless scheduling_enabled_for?(@schedule.student&.study_program)
       load_collections
       render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
+    return redirect_to admin_evaluation_schedules_path, alert: "Modul penjadwalan nonaktif; jadwal historis dipertahankan." unless scheduling_enabled_for?(@schedule.student.study_program)
+
     @schedule.destroy
     redirect_to admin_evaluation_schedules_path, notice: "Jadwal dihapus.", status: :see_other
   end
@@ -88,6 +104,18 @@ class Admin::EvaluationSchedulesController < ApplicationController
     @evaluators = @evaluators.where(study_program_id: managed_program_ids) unless current_user.has_role?("superadmin")
     @evaluators = @evaluators.distinct.order(:full_name)
     @rotations = ClinicalRotation.where(user_id: student_scope.select(:id)).includes(:user).order(start_date: :desc).limit(200)
+    @assessment_events = accessible_wpba_events
+  end
+
+  def accessible_wpba_events
+    events = AssessmentEvent.includes(:academic_period, :study_program).where(assessment_type: %w[dops mini_cex])
+    events = events.where(study_program_id: managed_program_ids) unless current_user.has_role?("superadmin")
+    events.where.not(status: "closed").ordered.to_a.select { |event| scheduling_enabled_for?(event.study_program) }
+  end
+
+  def scheduling_enabled_for?(program)
+    program.present? && ModuleConfiguration.for(program).enabled?("assessment_scheduling") &&
+      ModuleConfiguration.for(program).enabled?("wpba")
   end
 
   def managed_program_ids
@@ -95,7 +123,8 @@ class Admin::EvaluationSchedulesController < ApplicationController
   end
 
   def schedule_params
-    params.require(:evaluation_schedule).permit(:kind, :student_id, :evaluator_id, :clinical_rotation_id, :scheduled_at, :topic, :status, :notes)
+    params.require(:evaluation_schedule).permit(:kind, :student_id, :evaluator_id, :clinical_rotation_id,
+      :assessment_event_id, :scheduled_at, :topic, :status, :notes)
   end
 
   def notify_parties

@@ -6,6 +6,7 @@
   <% end %>
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div><%= f.label :kind, "Jenis", class: lbl %><%= f.select :kind, EvaluationSchedule::KINDS.invert, {}, class: cls %></div>
+    <div><%= f.label :assessment_event_id, "Event Asesmen", class: lbl %><%= f.collection_select :assessment_event_id, @assessment_events, :id, ->(event) { "#{event.name} · #{event.academic_period.name}" }, { include_blank: "Pilih Event Asesmen..." }, required: true, class: cls %><p class="mt-1 text-xs text-slate-500">Jadwal baru harus terkait ke Event Asesmen DOPS/Mini-CEX sebagai rencana pengumpulan bukti.</p><% if @assessment_events.empty? %><p class="mt-1 text-xs text-amber-700">Belum ada Event Asesmen DOPS/Mini-CEX yang terbuka dalam cakupan Anda. Event harus dibuat lebih dahulu oleh pengelola asesmen prodi.</p><% end %></div>
     <div><%= f.label :scheduled_at, "Waktu", class: lbl %><%= f.datetime_local_field :scheduled_at, class: cls %></div>
     <div><%= f.label :student_id, "Mahasiswa", class: lbl %><%= f.collection_select :student_id, @students, :id, :full_name, { include_blank: "Pilih..." }, class: cls, data: { controller: "searchable-select" } %></div>
     <div><%= f.label :evaluator_id, "Penilai", class: lbl %><%= f.collection_select :evaluator_id, @evaluators, :id, :full_name, { include_blank: "—" }, class: cls, data: { controller: "searchable-select" } %></div>

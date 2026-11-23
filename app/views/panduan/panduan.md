@@ -1207,7 +1207,7 @@ Tiap baris memuat jumlah kegiatan pada periode terpilih (kolom **Kegiatan Period
 
 - **Relabel Prodi Mahasiswa** (`/admin/student_relabel/new`): unggah CSV `email,npm,angkatan` → pratinjau per baris → terapkan. Kaprodi dapat **Pindah** mahasiswa prodinya sendiri atau **Label ke prodi saya** (mengklaim mahasiswa dari prodi mana pun ke prodi Anda). Rincian format di [Relabel Prodi Mahasiswa](#relabel-prodi-mahasiswa).
 - **Prodi binaan** akun Anda menentukan cakupan mahasiswa yang dapat Anda buka (Dasbor Mahasiswa dan halaman asesmennya), bagian *Program Studi* di Dashboard Analitik, mahasiswa yang boleh Anda pindahkan di Relabel, serta Jadwal DOPS & Mini-CEX, Learning Unit, dan isi berkas Ekspor Data yang Anda kelola. Prodi ini ditetapkan admin (**Konfigurasi → Pengguna → Sunting**) dan tidak dapat diubah dari Sunting Profil. Bila belum diisi, Relabel Prodi, Jadwal DOPS & Mini-CEX, Learning Unit, dan Ekspor Data menolak dengan pesan *akun kaprodi belum terhubung ke Program Studi*.
-- **Coaching Center → Jadwal DOPS & Mini-CEX** (`/admin/evaluation_schedules`): hanya jadwal mahasiswa prodi Anda yang tampil; mahasiswa dan rotasi prodi lain ditolak saat menyimpan.
+- **Coaching Center → Jadwal DOPS & Mini-CEX** (`/admin/evaluation_schedules`): koordinasi asesmen opsional per prodi; modul nonaktif menghentikan input baru tetapi riwayat tetap dapat dibaca. Akses tetap dibatasi ke mahasiswa prodi dalam kewenangan pengguna.
 - **Coaching Center → Learning Unit & Matrix** (`/admin/learning_units`): hanya unit prodi Anda; prodi unit baru otomatis dikunci ke prodi Anda, dan komponen Assessment Matrix dipilih dari event prodi Anda atau event lintas prodi. Lihat [Bab 6](#bab-6--panduan-admin-konfigurasi).
 - **Coaching Center → Ekspor Data (CSV)** (`/admin/exports`): unduh data mahasiswa prodi Anda — data mahasiswa, rekap capaian, logbook, kasus (tanpa draf dan tanpa identitas pasien), rotasi, tutorial, tugas akhir, DOPS/Mini-CEX, nilai event asesmen, keputusan EPA, jadwal, dan jawaban Assessment Form. Pilihan prodi terkunci ke prodi Anda; dataset Pengguna & Peran dan Master Data khusus admin. Lihat [Ekspor Data (CSV)](#ekspor-data-csv).
 - Kaprodi **tidak** memverifikasi kasus/kegiatan, tidak menilai DOPS/Mini-CEX, dan tidak memutuskan tingkat EPA, sehingga menu Validasi tidak ditawarkan. Lembar Penguji tetap terbuka bila admin menunjuk Anda sebagai penguji suatu percobaan; percobaan tanpa penguji hanya dapat Anda ambil untuk mahasiswa prodi binaan.
@@ -1372,7 +1372,7 @@ Aturan pengaman:
 
 ### 6.6 Jadwal DOPS & Mini-CEX
 
-`/admin/evaluation_schedules` (admin untuk semua prodi; kaprodi hanya mahasiswa prodi binaannya) — rencana penilaian: jenis (DOPS/Mini-CEX), mahasiswa, penilai, rotasi, waktu, status **Terjadwal / Selesai / Dibatalkan**. Jadwal tampil di beranda mahasiswa dan penilai; penilaian tetap dicatat lewat formulir DOPS/Mini-CEX, lalu tandai jadwalnya Selesai.
+`/admin/evaluation_schedules` — modul penjadwalan opsional untuk DOPS/Mini-CEX. Rencana dapat ditautkan ke Event Asesmen; tanggal jadwal adalah rencana, sedangkan tanggal pelaksanaan dari impor disimpan terpisah dari waktu nilai dicatat. Menonaktifkan modul hanya menghentikan input baru dan mempertahankan riwayat baca.
 
 ![Jadwal DOPS & Mini-CEX](panduan/6-6-jadwal-dops-minicex.png)
 

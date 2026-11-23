@@ -7,7 +7,7 @@
       <h1 class="text-xl font-bold text-gray-900 mt-1"><%= @event.name %></h1>
       <p class="text-sm text-gray-500 mt-0.5">
         <%= @event.type_label %> · <%= @event.family_label %> · <%= @event.academic_period.name %> · <%= @event.study_program&.name || "Semua prodi" %>
-        <%= " · #{@event.block_name}" if @event.block_name.present? %> · maks <%= @event.max_score %>
+        <%= " · #{@event.block_name}" if @event.block_name.present? %><%= " · maks #{@event.max_score}" unless @event.wpba? %>
         <%= " · percobaan berulang" if @event.allow_multiple_attempts? %>
         <%= " · #{@event.exam_purpose_label}" if @event.exam_purpose %>
         <% if @event.external_code %> · kode <span class="font-mono"><%= @event.external_code %></span><% end %>
@@ -19,11 +19,45 @@
         <%= link_to "Impor CSV", import_admin_assessment_event_path(@event), class: "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm" %>
       <% end %>
       <%= link_to "Sunting", edit_admin_assessment_event_path(@event), class: "text-sm text-gray-600 hover:text-indigo-600 font-medium" %>
-      <%= button_to "Hapus", admin_assessment_event_path(@event), method: :delete, class: "text-sm text-rose-600 hover:underline",
-            form: { data: { turbo_confirm: "Hapus event ini beserta #{@instances.size} percobaan?" } } %>
+      <% unless @event.evaluation_schedules.exists? %>
+        <%= button_to "Hapus", admin_assessment_event_path(@event), method: :delete, class: "text-sm text-rose-600 hover:underline",
+              form: { data: { turbo_confirm: "Hapus event ini beserta #{@instances.size} percobaan?" } } %>
+      <% end %>
     </div>
   </div>
 
+  <% if @event.wpba? %>
+    <section class="rounded-2xl border border-slate-200 bg-white p-5">
+      <div class="flex items-center justify-between gap-3">
+        <div><h2 class="font-semibold text-slate-900">Jadwal DOPS/Mini-CEX</h2><p class="mt-1 text-sm text-slate-500">Event ini merencanakan pengumpulan bukti. Pelaksanaan dan hasil dicatat melalui instrumen WPBA.</p></div>
+        <% if ModuleConfiguration.for(@event.study_program).enabled?("assessment_scheduling") && ModuleConfiguration.for(@event.study_program).enabled?("wpba") %>
+          <%= link_to "Jadwalkan mahasiswa", new_admin_evaluation_schedule_path(assessment_event_id: @event.id), class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+        <% end %>
+      </div>
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full text-sm"><thead><tr class="text-left text-xs uppercase text-slate-500"><th class="py-2 pr-4">Waktu rencana</th><th class="py-2 pr-4">Jenis</th><th class="py-2 pr-4">Mahasiswa</th><th class="py-2 pr-4">Penilai</th><th class="py-2 pr-4">Status</th></tr></thead>
+          <tbody class="divide-y divide-slate-100"><% @evaluation_schedules.each do |schedule| %><tr><td class="py-2 pr-4"><%= l(schedule.scheduled_at, format: :long) %></td><td class="py-2 pr-4"><%= schedule.kind_label %></td><td class="py-2 pr-4"><%= schedule.student.full_name %></td><td class="py-2 pr-4"><%= schedule.evaluator&.full_name || "—" %></td><td class="py-2 pr-4"><%= schedule.status_label %></td></tr><% end %>
+            <% if @evaluation_schedules.empty? %><tr><td colspan="5" class="py-5 text-center text-slate-400">Belum ada jadwal tertaut.</td></tr><% end %></tbody>
+        </table>
+      </div>
+    </section>
+  <% else %>
+  <% if @event.wpba? %>
+    <section class="rounded-2xl border border-slate-200 bg-white p-5">
+      <div class="flex items-center justify-between gap-3">
+        <div><h2 class="font-semibold text-slate-900">Jadwal DOPS/Mini-CEX</h2><p class="mt-1 text-sm text-slate-500">Event ini merencanakan pengumpulan bukti. Pelaksanaan dan hasil dicatat melalui instrumen WPBA.</p></div>
+        <% if ModuleConfiguration.for(@event.study_program).enabled?("assessment_scheduling") && ModuleConfiguration.for(@event.study_program).enabled?("wpba") %>
+          <%= link_to "Jadwalkan mahasiswa", new_admin_evaluation_schedule_path(assessment_event_id: @event.id), class: "rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white" %>
+        <% end %>
+      </div>
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full text-sm"><thead><tr class="text-left text-xs uppercase text-slate-500"><th class="py-2 pr-4">Waktu rencana</th><th class="py-2 pr-4">Jenis</th><th class="py-2 pr-4">Mahasiswa</th><th class="py-2 pr-4">Penilai</th><th class="py-2 pr-4">Status</th></tr></thead>
+          <tbody class="divide-y divide-slate-100"><% @evaluation_schedules.each do |schedule| %><tr><td class="py-2 pr-4"><%= l(schedule.scheduled_at, format: :long) %></td><td class="py-2 pr-4"><%= schedule.kind_label %></td><td class="py-2 pr-4"><%= schedule.student.full_name %></td><td class="py-2 pr-4"><%= schedule.evaluator&.full_name || "—" %></td><td class="py-2 pr-4"><%= schedule.status_label %></td></tr><% end %>
+            <% if @evaluation_schedules.empty? %><tr><td colspan="5" class="py-5 text-center text-slate-400">Belum ada jadwal tertaut.</td></tr><% end %></tbody>
+        </table>
+      </div>
+    </section>
+  <% else %>
   <%# ── Tab: Peserta & Nilai / Dimensi & Kompetensi ── %>
   <div class="flex items-center gap-2">
     <%= link_to "Peserta & Nilai", admin_assessment_event_path(@event),
@@ -105,5 +139,7 @@
       </tbody>
     </table>
   </div>
+  <% end %>
+  <% end %>
   <% end %>
 </div>
